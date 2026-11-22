@@ -160,3 +160,25 @@
 .md-toc-item { display: block; padding: 3px 0; color: var(--fg); opacity: .82; cursor: pointer; text-decoration: none; }
 .md-toc-item:hover { color: var(--accent); opacity: 1; }
 .md-toc-empty { color: var(--fg-muted); font-size: 13px; }
+
+/* ---- 雙語對照 ---- */
+.milkdown .ProseMirror .bilingual { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 1.2em 0; padding: 12px 16px;
+  border-radius: 14px; background: color-mix(in srgb, var(--fg) 3.5%, transparent); border: 1px solid var(--line); }
+.milkdown .ProseMirror .bilingual .bi-col { min-width: 0; }
+.milkdown .ProseMirror .bilingual .bi-col + .bi-col { border-left: 1px solid var(--line); padding-left: 18px; }
+.milkdown .ProseMirror .bilingual .bi-col > :first-child { margin-top: 0; }
+.milkdown .ProseMirror .bilingual .bi-col > :last-child { margin-bottom: 0; }
+/* ---- 提示框 ---- */
+.milkdown .ProseMirror blockquote.glass-callout { --co: var(--accent); border-left: 3px solid var(--co); border-radius: 12px;
+  background: color-mix(in srgb, var(--co) 10%, transparent); padding: 10px 16px 10px 16px; position: relative; }
+.milkdown .ProseMirror blockquote.glass-callout::before { content: attr(data-callout-label); display: block; font-size: 12px;
+  font-weight: 600; letter-spacing: .08em; color: var(--co); margin-bottom: 2px; }
+.milkdown .ProseMirror blockquote.glass-callout .callout-tag { display: none; }
+.callout-tip, .callout-success { --co: #2fa96b; } .callout-warning, .callout-caution { --co: #d8902a; }
+.callout-danger, .callout-important { --co: #d6455d; } .callout-question { --co: #8a63d2; } .callout-info { --co: #3b8fd9; }
+/* ---- 算式結果 / 腳註預覽 ---- */
+.calc-result { color: var(--accent); font-variant-numeric: tabular-nums; margin-left: 4px; opacity: .9; user-select: none; }
+.calc-result::before { content: ''; }
+.fn-tip { position: fixed; z-index: 60; max-width: 300px; padding: 8px 12px; border-radius: 12px; font-size: 13px; line-height: 1.5;
+  background: var(--glass-bg, rgba(255,255,255,.8)); backdrop-filter: blur(18px) saturate(1.4); border: 1px solid var(--line);
+  box-shadow: 0 8px 28px rgba(0,0,0,.16); color: var(--fg); pointer-events: none; }

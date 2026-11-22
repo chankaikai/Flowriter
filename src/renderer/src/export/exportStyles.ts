@@ -54,3 +54,12 @@ export const TOC_CSS = `
 .toc a { display: block; padding: 2px 0; color: inherit; text-decoration: none; opacity: .85; }
 .toc a:hover { text-decoration: underline; }
 `
+
+export const SYNTAX_CSS = `
+.bilingual{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:1.2em 0}
+.bilingual .bi-col+.bi-col{border-left:1px solid #0002;padding-left:18px}
+blockquote.callout{--co:#3b82c4;border-left:3px solid var(--co);background:color-mix(in srgb,var(--co) 10%,transparent);border-radius:8px;padding:8px 16px}
+blockquote.callout .callout-title{font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--co)}
+.callout-tip,.callout-success{--co:#2fa96b}.callout-warning,.callout-caution{--co:#d8902a}
+.callout-danger,.callout-important{--co:#d6455d}.callout-question{--co:#8a63d2}
+`

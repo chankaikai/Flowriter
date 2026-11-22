@@ -39,7 +39,7 @@ import {
   type SearchInfo
 } from './plugins'
 import { TextSelection } from '@milkdown/kit/prose/state'
-import { extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
+import { BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
 import { renderMermaid } from '@/lib/mermaid'
 import { LARGE_DOC } from '@/lib/markdown'
 
@@ -47,7 +47,7 @@ export type FormatName =
   | 'strong' | 'em' | 'strike' | 'code' | 'link'
   | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p'
   | 'quote' | 'ul' | 'ol' | 'task' | 'codeblock' | 'math' | 'table' | 'hr'
-  | 'undo' | 'redo' | 'toc' | 'footnote' | 'frontmatter'
+  | 'undo' | 'redo' | 'toc' | 'footnote' | 'frontmatter' | 'bilingual' | 'callout'
 
 export interface EditorHandle {
   getMarkdown(): string
@@ -276,6 +276,8 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
         case 'math': c.editor.action(insert('$$\n\n$$')); break
         case 'table': run(insertTableCommand.key, { row: 3, col: 3 }); break
         case 'hr': run(insertHrCommand.key); break
+        case 'bilingual': c.editor.action(insert(BILINGUAL_SNIPPET)); break
+        case 'callout': c.editor.action(insert('> [!NOTE]\n> ')); break
         case 'toc': c.editor.action(insert('[TOC]')); break
         case 'footnote': { const v = view(); if (v) insertFootnote(v); return }
         case 'frontmatter': { const v = view(); if (v) insertFrontMatter(v); return }

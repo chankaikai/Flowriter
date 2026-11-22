@@ -9,9 +9,11 @@ import rehypeSlug from 'rehype-slug'
 import rehypeKatex from 'rehype-katex'
 import rehypeHighlight from 'rehype-highlight'
 import rehypeStringify from 'rehype-stringify'
-import { EXPORT_CSS, TOC_CSS } from './exportStyles'
+import { EXPORT_CSS, TOC_CSS, SYNTAX_CSS } from './exportStyles'
 import { renderMermaid } from '@/lib/mermaid'
 import { toAbsolutePath } from '@/lib/path'
+import { applyInlineCalcs } from '@/lib/calc'
+import { bilingualTransform, CALLOUT_TYPES } from '@/lib/mdTransforms'
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -27,6 +29,7 @@ export async function renderHtmlBody(md: string, docDir: string | null): Promise
     .use(remarkFrontmatter, ['yaml'])
     .use(remarkGfm)
     .use(remarkMath)
+    .use(() => (tree: unknown) => void bilingualTransform(tree))
     .use(remarkRehype, {
       allowDangerousHtml: true,
       handlers: { yaml: () => undefined }
@@ -36,9 +39,24 @@ export async function renderHtmlBody(md: string, docDir: string | null): Promise
     .use(rehypeKatex, { output: 'mathml', throwOnError: false })
     .use(rehypeHighlight, { detect: false, ignoreMissing: true, plainText: ['mermaid'] })
     .use(rehypeStringify)
-    .process(md)
+    .process(applyInlineCalcs(md))
 
   const dom = new DOMParser().parseFromString(`<body>${String(file)}</body>`, 'text/html')
+
+  // > [!NOTE] → 提示框
+  const coRe = new RegExp(`^\\[!(${CALLOUT_TYPES.join('|')})\\]\\s*`, 'i')
+  for (const bq of Array.from(dom.querySelectorAll('blockquote'))) {
+    const p0 = bq.querySelector(':scope > p')
+    const m = p0 && coRe.exec(p0.textContent || '')
+    if (!p0 || !m) continue
+    const first = p0.firstChild
+    if (first?.nodeType === 3) first.textContent = (first.textContent || '').replace(coRe, '')
+    bq.classList.add('callout', `callout-${m[1].toLowerCase()}`)
+    const label = dom.createElement('div')
+    label.className = 'callout-title'
+    label.textContent = m[1].toUpperCase()
+    bq.insertBefore(label, bq.firstChild)
+  }
 
   // [TOC] → 由標題組成的目錄（標題 id 由 rehype-slug 產生）
   for (const p of Array.from(dom.querySelectorAll('p'))) {
@@ -97,7 +115,7 @@ export function buildHtmlDocument(title: string, body: string): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
-<style>${EXPORT_CSS}${TOC_CSS}</style>
+<style>${EXPORT_CSS}${TOC_CSS}${SYNTAX_CSS}</style>
 </head>
 <body>
 ${body}

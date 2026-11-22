@@ -10,7 +10,10 @@
 import { $inputrule, $node, $prose, $remark, $view } from '@milkdown/kit/utils'
 import { InputRule } from '@milkdown/kit/prose/inputrules'
 import { Plugin, PluginKey } from '@milkdown/kit/prose/state'
+import { Decoration, DecorationSet } from '@milkdown/kit/prose/view'
 import type { EditorView } from '@milkdown/kit/prose/view'
+import { calcTransform, calloutTransform, bilingualTransform, CALLOUT_TYPES } from '@/lib/mdTransforms'
+import { collectVars, evaluate, formatNumber } from '@/lib/calc'
 import remarkFrontmatter from 'remark-frontmatter'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -301,6 +304,214 @@ export function insertFrontMatter(view: EditorView): boolean {
   return true
 }
 
+
+/* ------------------------------ 提示框 / 算式 / 雙語（mdast 轉換） ------------------------------ */
+
+export const calloutRemark = $remark('inkwellCallout', () => () => (tree: any) => void calloutTransform(tree))
+export const calcRemark = $remark('inkwellCalc', () => () => (tree: any) => void calcTransform(tree))
+export const bilingualRemark = $remark('inkwellBilingual', () => () => (tree: any) => void bilingualTransform(tree))
+
+/* ------------------------------ 雙語對照 ------------------------------ */
+
+export const biColNode = $node('inkwell_bi_col', () => ({
+  group: 'inkwell_bi',
+  content: 'block+',
+  isolating: true,
+  defining: true,
+  parseDOM: [{ tag: 'div.bi-col' }],
+  toDOM: () => ['div', { class: 'bi-col' }, 0] as any,
+  parseMarkdown: {
+    match: (n: any) => n.type === 'bilingualCol',
+    runner: (state: any, node: any, type: any) => {
+      state.openNode(type).next(node.children).closeNode()
+    }
+  },
+  toMarkdown: {
+    match: (n: any) => n.type.name === 'inkwell_bi_col',
+    runner: (state: any, node: any) => {
+      state.next(node.content)
+    }
+  }
+}))
+
+export const biBlockNode = $node('inkwell_bilingual', () => ({
+  group: 'block',
+  content: 'inkwell_bi_col inkwell_bi_col',
+  isolating: true,
+  defining: true,
+  parseDOM: [{ tag: 'div.bilingual' }],
+  toDOM: () => ['div', { class: 'bilingual' }, 0] as any,
+  parseMarkdown: {
+    match: (n: any) => n.type === 'bilingualBlock',
+    runner: (state: any, node: any, type: any) => {
+      state.openNode(type).next(node.children).closeNode()
+    }
+  },
+  toMarkdown: {
+    match: (n: any) => n.type.name === 'inkwell_bilingual',
+    runner: (state: any, node: any) => {
+      state.addNode('html', undefined, ':::bilingual')
+      node.forEach((col: any, _o: number, i: number) => {
+        if (i === 1) state.addNode('thematicBreak')
+        state.next(col.content)
+      })
+      state.addNode('html', undefined, ':::')
+    }
+  }
+}))
+
+export const BILINGUAL_SNIPPET = ':::bilingual\n\n原文\n\n---\n\n譯文\n\n:::'
+
+/* ------------------------------ 提示框裝飾（只加 class，不動文件） ------------------------------ */
+
+const CALLOUT_LABEL: Record<string, string> = {
+  note: '備註', tip: '提示', important: '重要', warning: '警告', caution: '注意',
+  info: '資訊', danger: '危險', success: '成功', question: '疑問'
+}
+const CALLOUT_RE = new RegExp(`^\\[!(${CALLOUT_TYPES.join('|')})\\]$`, 'i')
+
+export const calloutPlugin = $prose(() => {
+  const key = new PluginKey('inkwell-callout')
+  return new Plugin({
+    key,
+    state: {
+      init: (_c, state) => build(state.doc),
+      apply: (tr, old) => (tr.docChanged ? build(tr.doc) : old)
+    },
+    props: { decorations: (state) => key.getState(state) }
+  })
+  function build(doc: any): DecorationSet {
+    const decos: Decoration[] = []
+    doc.descendants((node: any, pos: number) => {
+      if (node.type.name !== 'blockquote') return true
+      const para = node.firstChild
+      const atom = para?.firstChild
+      if (para?.type.name === 'paragraph' && atom?.type.name === 'html' && CALLOUT_RE.test(String(atom.attrs.value))) {
+        const type = String(atom.attrs.value).slice(2, -1).toLowerCase()
+        decos.push(
+          Decoration.node(pos, pos + node.nodeSize, {
+            class: `glass-callout callout-${type}`,
+            'data-callout-label': CALLOUT_LABEL[type] || type
+          })
+        )
+        decos.push(Decoration.node(pos + 1 + 1, pos + 1 + 1 + atom.nodeSize, { class: 'callout-tag' }))
+      }
+      return false
+    })
+    return DecorationSet.create(doc, decos)
+  }
+})
+
+/* ------------------------------ 行內算式 {{a * b}}（只顯示結果，不寫進檔案） ------------------------------ */
+
+const CALC_MAX_DOC = 300_000
+
+export const calcPlugin = $prose(() => {
+  const key = new PluginKey('inkwell-calc')
+  let timer = 0
+  const compute = (doc: any): DecorationSet => {
+    if (doc.content.size > CALC_MAX_DOC) return DecorationSet.empty
+    const lines: string[] = []
+    doc.descendants((n: any) => {
+      if (n.type.name === 'paragraph') lines.push(n.textContent)
+      return true
+    })
+    const vars = collectVars(lines)
+    const decos: Decoration[] = []
+    doc.descendants((n: any, pos: number) => {
+      const expr =
+        n.type.name === 'html' && /^\{\{[^{}]+\}\}$/.test(String(n.attrs.value))
+          ? String(n.attrs.value).slice(2, -2)
+          : null
+      if (expr == null) return true
+      const v = evaluate(expr, vars)
+      if (v == null) return false
+      decos.push(
+        Decoration.widget(
+          pos + n.nodeSize,
+          () => {
+            const el = document.createElement('span')
+            el.className = 'calc-result'
+            el.textContent = `= ${formatNumber(v)}`
+            return el
+          },
+          { side: 1, key: `calc-${pos}-${v}` }
+        )
+      )
+      return false
+    })
+    return DecorationSet.create(doc, decos)
+  }
+  return new Plugin({
+    key,
+    state: {
+      init: (_c, state) => compute(state.doc),
+      apply(tr, old) {
+        const meta = tr.getMeta(key)
+        if (meta) return meta as DecorationSet
+        return tr.docChanged ? old.map(tr.mapping, tr.doc) : old
+      }
+    },
+    props: { decorations: (state) => key.getState(state) },
+    view: () => ({
+      update(view, prev) {
+        if (prev.doc === view.state.doc) return
+        window.clearTimeout(timer)
+        timer = window.setTimeout(() => {
+          if (view.isDestroyed) return
+          view.dispatch(view.state.tr.setMeta(key, compute(view.state.doc)).setMeta('addToHistory', false))
+        }, 400)
+      },
+      destroy: () => window.clearTimeout(timer)
+    })
+  })
+})
+
+/* ------------------------------ 腳註懸浮預覽 ------------------------------ */
+
+export const footnoteTipPlugin = $prose(() => {
+  let tip: HTMLElement | null = null
+  const hide = () => {
+    tip?.remove()
+    tip = null
+  }
+  return new Plugin({
+    key: new PluginKey('inkwell-fn-tip'),
+    props: {
+      handleDOMEvents: {
+        mouseover(view, e) {
+          const el = (e.target as HTMLElement)?.closest?.('.fn-ref') as HTMLElement | null
+          if (!el) return false
+          const label = el.dataset.label
+          let text = ''
+          view.state.doc.descendants((n: any) => {
+            if (n.type.name === 'inkwell_fndef' && String(n.attrs.label) === label) {
+              text = n.textContent
+              return false
+            }
+            return true
+          })
+          if (!text) return false
+          hide()
+          tip = document.createElement('div')
+          tip.className = 'fn-tip'
+          tip.textContent = text.length > 240 ? text.slice(0, 240) + '…' : text
+          document.body.appendChild(tip)
+          const r = el.getBoundingClientRect()
+          tip.style.left = `${Math.min(r.left, window.innerWidth - 320)}px`
+          tip.style.top = `${r.bottom + 6}px`
+          return false
+        },
+        mouseout(_v, e) {
+          if ((e.target as HTMLElement)?.closest?.('.fn-ref')) hide()
+          return false
+        }
+      }
+    },
+    view: () => ({ destroy: hide })
+  })
+})
+
 export const extraPlugins = [
   frontMatterRemark,
   tocRemark,
@@ -310,5 +521,13 @@ export const extraPlugins = [
   footnoteInputRule,
   tocNode,
   tocView,
-  tocRefreshPlugin
+  tocRefreshPlugin,
+  calloutRemark,
+  calcRemark,
+  bilingualRemark,
+  biColNode,
+  biBlockNode,
+  calloutPlugin,
+  calcPlugin,
+  footnoteTipPlugin
 ].flat()
