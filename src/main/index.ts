@@ -104,6 +104,25 @@ function createWindow(): BrowserWindow {
     }
   })
 
+  // 開發時把渲染程序的錯誤轉到終端機，方便排查白屏
+  if (!app.isPackaged) {
+    // Electron 35+ 的事件改成單一事件物件；舊版是位置參數，兩種都接
+    win.webContents.on('console-message', (...args: unknown[]) => {
+      const first = args[0] as { level?: unknown; message?: string; lineNumber?: number; sourceId?: string } | undefined
+      const p =
+        first && typeof first.message === 'string'
+          ? first
+          : { level: args[1], message: String(args[2] ?? ''), lineNumber: args[3] as number, sourceId: args[4] as string }
+      if (p.level === 'error' || p.level === 3) {
+        console.error(`[renderer] ${p.message}${p.sourceId ? `\n    at ${p.sourceId}:${p.lineNumber}` : ''}`)
+      }
+    })
+    win.webContents.on('preload-error', (_e, path, err) => console.error(`[preload] ${path}\n`, err))
+    win.webContents.on('did-fail-load', (_e, code, desc, url) => console.error(`[load] ${code} ${desc} ${url}`))
+    win.webContents.on('render-process-gone', (_e, d) => console.error('[renderer gone]', d.reason))
+    if (process.env['INKWELL_DEVTOOLS']) win.webContents.openDevTools({ mode: 'detach' })
+  }
+
   const devUrl = process.env['ELECTRON_RENDERER_URL']
   if (!app.isPackaged && devUrl) win.loadURL(devUrl)
   else win.loadFile(join(__dirname, '../renderer/index.html'))

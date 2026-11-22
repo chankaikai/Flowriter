@@ -969,6 +969,13 @@ export default function App() {
     if (settings.sidebarOpen && settings.sidebarTab === tab) update({ sidebarOpen: false })
     else actionsRef.current.showSidebarTab(tab)
   }
+  const pomo = usePomodoro((phase, nextLong) =>
+    showToast(
+      phase === 'work' ? (nextLong ? '專注完成，該好好休息一下了（長休息）' : '專注完成，休息一下吧') : '休息結束，繼續書寫'
+    )
+  )
+  useEffect(() => () => setAmbient('off', 0), [])
+
   const dockGroups: DockItem[][] = [
     [
       { key: 'files', label: '文件', icon: 'folder', run: navRun('files') },
@@ -1057,12 +1064,6 @@ export default function App() {
     return () => document.removeEventListener('input', onInput, true)
   }, [settings.inkRipple])
 
-  const pomo = usePomodoro((phase, nextLong) =>
-    showToast(
-      phase === 'work' ? (nextLong ? '專注完成，該好好休息一下了（長休息）' : '專注完成，休息一下吧') : '休息結束，繼續書寫'
-    )
-  )
-  useEffect(() => () => setAmbient('off', 0), [])
 
   const activeTabKey = String(tabList.find((t) => t.active)?.id ?? '')
   usePill(tabsEl, tabPill, activeTabKey, tabList.map((t) => `${t.id}:${t.name}`).join('|'))
