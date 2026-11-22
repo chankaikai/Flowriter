@@ -1,0 +1,25 @@
+/* =====================================================================
+   系統級毛玻璃：html.translucent 時視窗透明，由作業系統提供模糊背景。
+   內容區以 --tl 的不透明度鋪一層主題色，確保文字可讀。
+   ===================================================================== */
+.milkdown { background: transparent !important; }
+
+html.translucent,
+html.translucent body { background: transparent; }
+
+.translucent .app { background: transparent; }
+.translucent .app::before { opacity: 0.4; }
+
+.translucent .workspace {
+  background: color-mix(in srgb, var(--bg) calc(var(--tl) * 100%), transparent);
+}
+.translucent .sidebar {
+  background: color-mix(in srgb, var(--bg-side) calc(var(--tl) * 52%), transparent);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-right-color: var(--line);
+}
+.translucent .statusbar { background: transparent; }
+
+/* 設定頁中的分隔 */
+.set-sep { height: 1px; margin: 12px 0 4px; background: var(--line); }

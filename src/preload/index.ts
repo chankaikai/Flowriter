@@ -1,0 +1,46 @@
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
+import type { InkwellApi } from '../shared/types'
+
+const inv = <T>(channel: string, ...args: unknown[]) =>
+  ipcRenderer.invoke(channel, ...args) as Promise<T>
+
+const api: InkwellApi = {
+  platform: process.platform,
+  openFile: () => inv('file:open'),
+  readFile: (p) => inv('file:read', p),
+  saveFile: (p, c) => inv('file:save', p, c),
+  saveFileAs: (s, c) => inv('file:saveAs', s, c),
+  openFolder: () => inv('folder:open'),
+  readDir: (p) => inv('dir:read', p),
+  statFile: (p) => inv('file:stat', p),
+  createFile: (d, n) => inv('file:create', d, n),
+  renamePath: (p, n) => inv('path:rename', p, n),
+  trashPath: (p) => inv('path:trash', p),
+  listAll: (r) => inv('folder:listAll', r),
+  searchFolder: (r, q) => inv('folder:search', r, q),
+  saveImage: (d, n, data) => inv('image:save', d, n, data),
+  readDataUrl: (p) => inv('file:dataUrl', p),
+  exportFile: (o) => inv('export:save', o),
+  exportPdf: (o) => inv('export:pdf', o),
+  getLaunchFile: () => inv('app:launchFile'),
+  pathForFile: (f) => webUtils.getPathForFile(f),
+  setDirty: (d) => ipcRenderer.send('doc:dirty', d),
+  setChrome: (c) => ipcRenderer.send('chrome:set', c),
+  getMaterialSupport: () => inv('window:materialSupport'),
+  setMaterial: (o) => ipcRenderer.send('window:setMaterial', o),
+  toggleFullscreen: () => ipcRenderer.send('win:fullscreen'),
+  openExternal: (u) => ipcRenderer.send('shell:external', u),
+  reveal: (p) => ipcRenderer.send('shell:reveal', p),
+  historySave: (p, c) => inv('history:save', p, c),
+  historyList: (p) => inv('history:list', p),
+  historyRead: (p, t) => inv('history:read', p, t),
+  aiRewrite: (r) => inv('ai:rewrite', r),
+  exportImage: (o) => inv('export:image', o),
+  onMenu: (cb) => {
+    const handler = (_e: unknown, action: string) => cb(action)
+    ipcRenderer.on('menu', handler)
+    return () => ipcRenderer.removeListener('menu', handler)
+  }
+}
+
+contextBridge.exposeInMainWorld('api', api)

@@ -1,0 +1,37 @@
+name: Build
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      # 型別檢查失敗不阻擋打包，但會在日誌中標示
+      - run: npm run typecheck
+        continue-on-error: true
+      - run: npm run build
+      - run: npx electron-builder --publish never
+        env:
+          # 未簽署的安裝檔：macOS 首次開啟需在「系統設定 → 隱私與安全性」放行
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: inkwell-${{ matrix.os }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.zip
+            dist/*.AppImage
+          if-no-files-found: ignore

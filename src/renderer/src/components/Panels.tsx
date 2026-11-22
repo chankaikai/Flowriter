@@ -1,0 +1,373 @@
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Icon, type IconName } from './Icon'
+import { setAmbient, setAmbientVolume, type AmbientKind } from '@/lib/ambient'
+import { fmtClock, type PomoState } from '@/lib/pomodoro'
+import { lastDays, streak, type WritingData, dayKey } from '@/lib/writing'
+import type { HistoryItem, SearchHit } from '../../../shared/types'
+import { basename, stripExt } from '@/lib/path'
+
+/** 停靠欄上方的浮動玻璃面板，一次只開一個。 */
+export function Popover({
+  open, icon, title, onClose, children, wide
+}: { open: boolean; icon: IconName; title: string; onClose(): void; children: ReactNode; wide?: boolean }) {
+  const [mounted, setMounted] = useState(open)
+  useEffect(() => {
+    if (open) setMounted(true)
+    else {
+      const id = window.setTimeout(() => setMounted(false), 260)
+      return () => window.clearTimeout(id)
+    }
+  }, [open])
+  useEffect(() => {
+    if (!open) return
+    const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [open, onClose])
+  if (!mounted) return null
+  return (
+    <div className={`pop${open ? ' in' : ''}${wide ? ' wide' : ''}`} onMouseDown={(e) => e.stopPropagation()}>
+      <div className="pop-head">
+        <Icon name={icon} size={16} />
+        <h3>{title}</h3>
+        <span className="grow" />
+        <button className="icon-btn sm" onClick={onClose} title="關閉">
+          <Icon name="close" size={14} />
+        </button>
+      </div>
+      <div className="pop-body">{children}</div>
+    </div>
+  )
+}
+
+const Ring = ({ value, size = 120, children }: { value: number; size?: number; children?: ReactNode }) => {
+  const r = size / 2 - 7
+  const c = 2 * Math.PI * r
+  return (
+    <div className="ring" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size / 2} cy={size / 2} r={r} className="ring-bg" />
+        <circle
+          cx={size / 2} cy={size / 2} r={r} className="ring-fg"
+          strokeDasharray={c} strokeDashoffset={c * (1 - Math.min(1, Math.max(0, value)))}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </svg>
+      <div className="ring-in">{children}</div>
+    </div>
+  )
+}
+
+/* ------------------------------ 時光機 ------------------------------ */
+
+const fmtTime = (ts: number) => {
+  const d = new Date(ts)
+  const today = dayKey() === dayKey(d)
+  const hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  return today ? `今天 ${hm}` : `${d.getMonth() + 1}/${d.getDate()} ${hm}`
+}
+
+export function HistoryPanel({
+  path, current, onRestore
+}: { path: string | null; current: () => string; onRestore(content: string): void }) {
+  const [items, setItems] = useState<HistoryItem[] | null>(null)
+  const [idx, setIdx] = useState(0)
+  const [text, setText] = useState<string | null>(null)
+  const cur = useMemo(() => current(), [current, items])
+
+  useEffect(() => {
+    let live = true
+    if (!path) {
+      setItems([])
+      return
+    }
+    window.api.historyList(path).then((l) => {
+      if (!live) return
+      setItems(l)
+      setIdx(Math.max(0, l.length - 1))
+    })
+    return () => {
+      live = false
+    }
+  }, [path])
+
+  const sel = items?.[idx]
+  useEffect(() => {
+    let live = true
+    setText(null)
+    if (path && sel) window.api.historyRead(path, sel.ts).then((t) => live && setText(t))
+    return () => {
+      live = false
+    }
+  }, [path, sel?.ts])
+
+  if (!path) return <p className="pop-empty">先儲存檔案，才會開始記錄版本。</p>
+  if (!items) return <p className="pop-empty">讀取中…</p>
+  if (!items.length) return <p className="pop-empty">還沒有歷史版本。每次儲存都會留下快照（內容相同不重複記錄）。</p>
+
+  const curLines = new Set(cur.split('\n'))
+  const lines = (text ?? '').split('\n')
+  const changed = lines.filter((l) => l.trim() && !curLines.has(l)).length
+  return (
+    <>
+      <div className="hist-meta">
+        <b>{sel ? fmtTime(sel.ts) : ''}</b>
+        <span>
+          第 {idx + 1} / {items.length} 版 · {sel ? Math.round(sel.size / 100) / 10 : 0} KB
+        </span>
+      </div>
+      <input
+        type="range" className="hist-slider" min={0} max={items.length - 1} step={1} value={idx}
+        onChange={(e) => setIdx(+e.target.value)}
+      />
+      <div className="hist-hint">{changed ? `與目前版本相比有 ${changed} 行內容不同（以綠色標出）` : '與目前版本相同'}</div>
+      <pre className="hist-view">
+        {text == null
+          ? '…'
+          : lines.slice(0, 400).map((l, i) => (
+              <span key={i} className={l.trim() && !curLines.has(l) ? 'diff-add' : undefined}>
+                {l}
+                {'\n'}
+              </span>
+            ))}
+      </pre>
+      <div className="pop-actions">
+        <button className="btn" disabled={text == null || text === cur} onClick={() => text != null && onRestore(text)}>
+          還原到此版本
+        </button>
+      </div>
+    </>
+  )
+}
+
+/* ------------------------------ 寫作儀表板 ------------------------------ */
+
+export function DashboardPanel({
+  data, goal, onGoal
+}: { data: WritingData; goal: number; onGoal(n: number): void }) {
+  const today = data.days[dayKey()] || 0
+  const days = lastDays(data, 14)
+  const max = Math.max(goal, ...days.map((d) => d.words), 1)
+  const total = Object.values(data.days).reduce((a, b) => a + b, 0)
+  return (
+    <>
+      <div className="dash-top">
+        <Ring value={today / goal} size={116}>
+          <b>{today.toLocaleString()}</b>
+          <small>/ {goal.toLocaleString()} 字</small>
+        </Ring>
+        <div className="dash-stats">
+          <div><b>{streak(data)}</b><span>連續寫作天數</span></div>
+          <div><b>{total.toLocaleString()}</b><span>累計新增字數</span></div>
+          <div className="goal-step">
+            <button className="icon-btn sm" onClick={() => onGoal(Math.max(100, goal - 100))}>−</button>
+            <span>每日目標 {goal}</span>
+            <button className="icon-btn sm" onClick={() => onGoal(Math.min(20000, goal + 100))}>＋</button>
+          </div>
+        </div>
+      </div>
+      <div className="bars" aria-label="近 14 天">
+        {days.map((d) => (
+          <div key={d.key} className="bar" title={`${d.key}：${d.words} 字`}>
+            <i className={d.words >= goal ? 'hit' : ''} style={{ height: `${Math.max(3, (d.words / max) * 100)}%` }} />
+          </div>
+        ))}
+      </div>
+      <div className="hist-hint">只統計你實際輸入的新增字數，刪減與貼上的大段內容不計入。</div>
+    </>
+  )
+}
+
+/* ------------------------------ 專注：番茄鐘 + 氛圍音 ------------------------------ */
+
+const AMBIENT: { k: AmbientKind; label: string }[] = [
+  { k: 'off', label: '靜音' }, { k: 'rain', label: '雨聲' }, { k: 'brown', label: '深沉白噪' }, { k: 'cafe', label: '咖啡館' }
+]
+
+export function FocusPanel({
+  st, toggle, reset, setLengths, ambient, setAmbientKind
+}: {
+  st: PomoState
+  toggle(): void
+  reset(): void
+  setLengths(w: number, r: number): void
+  ambient: AmbientKind
+  setAmbientKind(k: AmbientKind): void
+}) {
+  const [vol, setVol] = useState(0.35)
+  const volRef = useRef(vol)
+  volRef.current = vol
+  useEffect(() => {
+    setAmbient(ambient, volRef.current)
+  }, [ambient])
+  const presets: [number, number][] = [[25, 5], [50, 10], [15, 3]]
+  return (
+    <>
+      <div className="pomo">
+        <Ring value={1 - st.left / st.total} size={132}>
+          <b className="clock">{fmtClock(st.left)}</b>
+          <small>{st.phase === 'work' ? '專注' : '休息'} · 今日 {st.rounds} 輪</small>
+        </Ring>
+        <div className="pomo-ctl">
+          <button className="btn" onClick={toggle}>{st.running ? '暫停' : '開始'}</button>
+          <button className="btn ghost" onClick={reset}>重設</button>
+        </div>
+        <div className="chips">
+          {presets.map(([w, r]) => (
+            <button key={w} className={`chip${st.workMin === w ? ' on' : ''}`} onClick={() => setLengths(w, r)}>
+              {w} / {r}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="set-sep" />
+      <div className="hist-hint">氛圍音（即時合成，無需網路）</div>
+      <div className="chips">
+        {AMBIENT.map((a) => (
+          <button key={a.k} className={`chip${ambient === a.k ? ' on' : ''}`} onClick={() => setAmbientKind(a.k)}>
+            {a.label}
+          </button>
+        ))}
+      </div>
+      <input
+        type="range" min={0} max={1} step={0.01} value={vol}
+        onChange={(e) => {
+          setVol(+e.target.value)
+          setAmbientVolume(+e.target.value)
+        }}
+      />
+    </>
+  )
+}
+
+/* ------------------------------ AI 改寫 ------------------------------ */
+
+const AI_PRESETS: { label: string; prompt: string }[] = [
+  { label: '潤色', prompt: '潤色以下文字，使表達更流暢自然，保持原意與語言。' },
+  { label: '精簡', prompt: '把以下文字精簡到原來約一半的長度，保留關鍵資訊。' },
+  { label: '擴寫', prompt: '在不編造事實的前提下，把以下文字擴寫得更充實。' },
+  { label: '修正錯字語法', prompt: '只修正以下文字的錯字、標點與語法錯誤，不改變用詞與風格。' },
+  { label: '翻成英文', prompt: '把以下文字翻譯成自然的英文。' },
+  { label: '翻成中文', prompt: '把以下文字翻譯成自然的繁體中文。' }
+]
+
+export function AiPanel({
+  selection, apiKey, model, onApply
+}: { selection: string; apiKey: string; model: string; onApply(md: string): void }) {
+  const [custom, setCustom] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [out, setOut] = useState<string | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+
+  const run = async (instruction: string) => {
+    if (!instruction.trim() || busy) return
+    setBusy(true)
+    setErr(null)
+    setOut(null)
+    const r = await window.api.aiRewrite({ apiKey, model, instruction, text: selection })
+    setBusy(false)
+    if ('error' in r) setErr(r.error)
+    else setOut(r.text.trim())
+  }
+
+  if (!apiKey) return <p className="pop-empty">請先到「偏好設定 → AI」填入 Anthropic API 金鑰。金鑰只保存在這台電腦。</p>
+  if (!selection) return <p className="pop-empty">先在編輯器中選取一段文字，再打開這個面板。</p>
+  return (
+    <>
+      <div className="ai-src">{selection.length > 260 ? `${selection.slice(0, 260)}…` : selection}</div>
+      <div className="chips">
+        {AI_PRESETS.map((p) => (
+          <button key={p.label} className="chip" disabled={busy} onClick={() => void run(p.prompt)}>
+            {p.label}
+          </button>
+        ))}
+      </div>
+      <div className="ai-row">
+        <input
+          className="ai-input" placeholder="或輸入自訂指示，Enter 送出" value={custom}
+          onChange={(e) => setCustom(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && void run(custom)}
+        />
+      </div>
+      {busy && <div className="ai-busy"><i /><span>Claude 正在改寫…</span></div>}
+      {err && <div className="ai-err">{err}</div>}
+      {out && (
+        <>
+          <div className="ai-out">{out}</div>
+          <div className="pop-actions">
+            <button className="btn" onClick={() => onApply(out)}>取代選取內容</button>
+            <button className="btn ghost" onClick={() => void navigator.clipboard.writeText(out)}>複製</button>
+          </div>
+        </>
+      )}
+    </>
+  )
+}
+
+/* ------------------------------ 連結與反向連結 ------------------------------ */
+
+export function LinksPanel({
+  folder, docPath, md, onOpenLink, onOpenHit
+}: {
+  folder: string | null
+  docPath: string | null
+  md: string
+  onOpenLink(name: string): void
+  onOpenHit(path: string): void
+}) {
+  const [hits, setHits] = useState<SearchHit[] | null>(null)
+  const stem = docPath ? stripExt(basename(docPath)) : null
+  const outgoing = useMemo(() => {
+    const set = new Set<string>()
+    for (const m of md.matchAll(/\[\[([^[\]\n]{1,120})\]\]/g)) set.add(m[1].split('|')[0].trim())
+    return [...set]
+  }, [md])
+
+  useEffect(() => {
+    let live = true
+    setHits(null)
+    if (!folder || !stem) return
+    window.api.searchFolder(folder, `[[${stem}`).then((h) => {
+      if (!live) return
+      // 同一檔案只列一次，排除自己
+      const seen = new Set<string>()
+      setHits(h.filter((x) => x.path !== docPath && !seen.has(x.path) && !!seen.add(x.path)))
+    })
+    return () => {
+      live = false
+    }
+  }, [folder, stem, docPath])
+
+  return (
+    <>
+      <div className="hist-hint">本文連出（點擊開啟，不存在則建立）</div>
+      <div className="link-list">
+        {outgoing.length ? (
+          outgoing.map((n) => (
+            <button key={n} onClick={() => onOpenLink(n)}>[[{n}]]</button>
+          ))
+        ) : (
+          <span className="pop-empty">在文中輸入 [[筆記名稱]] 即可建立連結。</span>
+        )}
+      </div>
+      <div className="set-sep" />
+      <div className="hist-hint">反向連結（其他筆記指向本文）</div>
+      {!folder || !stem ? (
+        <p className="pop-empty">開啟資料夾並儲存檔案後可用。</p>
+      ) : hits == null ? (
+        <p className="pop-empty">搜尋中…</p>
+      ) : hits.length ? (
+        <div className="link-list col">
+          {hits.map((h) => (
+            <button key={h.path} onClick={() => onOpenHit(h.path)}>
+              <b>{stripExt(h.name)}</b>
+              <small>{h.text.trim().slice(0, 80)}</small>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="pop-empty">目前沒有其他筆記連到這裡。</p>
+      )}
+    </>
+  )
+}

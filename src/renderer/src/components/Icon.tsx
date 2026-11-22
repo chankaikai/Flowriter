@@ -1,0 +1,49 @@
+const PATHS = {
+  sidebar: 'M3.5 4h13a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1ZM7.5 4v12',
+  folder: 'M2.5 5.5a1 1 0 0 1 1-1h4l1.6 1.8h7.4a1 1 0 0 1 1 1v7.2a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1v-9Z',
+  list: 'M7.5 5.5h9M7.5 10h9M7.5 14.5h9M3.6 5.5h.01M3.6 10h.01M3.6 14.5h.01',
+  search: 'M9 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12ZM13.5 13.5 17 17',
+  sliders: 'M3 6h8M15 6h2M3 14h2M9 14h8M13 4v4M7 12v4',
+  code: 'M7 6.5 3.5 10 7 13.5M13 6.5l3.5 3.5-3.5 3.5',
+  focus: 'M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3 6.5v-2a1 1 0 0 1 1-1h2M14 3.5h2a1 1 0 0 1 1 1v2M17 13.5v2a1 1 0 0 1-1 1h-2M6 16.5H4a1 1 0 0 1-1-1v-2',
+  type: 'M4.5 5.5h11M10 5.5v10M7.5 15.5h5',
+  chevron: 'M8 5.5 12.5 10 8 14.5',
+  file: 'M5.5 2.5h6L15 6v10.5a1 1 0 0 1-1 1H5.5a1 1 0 0 1-1-1v-13a1 1 0 0 1 1-1ZM11.5 2.5V6H15',
+  prompt: 'M4 5.5 8.5 10 4 14.5M10.5 15h5.5',
+  half: 'M10 16.5a6.5 6.5 0 1 1 0-13 6.5 6.5 0 0 1 0 13ZM10 3.5v13',
+  pen: 'M13.5 4.5l2 2-8 8-3 1 1-3 8-8Z',
+  keyboard: 'M3 6.5h14a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1ZM5.5 9.5h.01M8.5 9.5h.01M11.5 9.5h.01M14.5 9.5h.01M6.5 12h7',
+  plus: 'M10 4.5v11M4.5 10h11',
+  close: 'M5.5 5.5l9 9M14.5 5.5l-9 9',
+  up: 'M5.5 12 10 7.5l4.5 4.5',
+  down: 'M5.5 8 10 12.5 14.5 8',
+  history: 'M3.5 10a6.5 6.5 0 1 0 2-4.7M3.5 3.5v3h3M10 6.5V10l2.5 1.5',
+  chart: 'M4 16V9M8.7 16V4M13.3 16v-5M17 16.5H3',
+  book: 'M3.5 4.5c2.5-.5 4.5 0 6.5 1.5 2-1.5 4-2 6.5-1.5v10c-2.5-.5-4.5 0-6.5 1.5-2-1.5-4-2-6.5-1.5v-10ZM10 6v10',
+  timer: 'M10 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12ZM10 8.5V12l2 1.2M8 2.5h4',
+  sparkle: 'M10 3l1.6 4.4L16 9l-4.4 1.6L10 15l-1.6-4.4L4 9l4.4-1.6L10 3ZM15.5 14.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6.6-1.4Z',
+  link: 'M8.5 11.5a3 3 0 0 0 4.2 0l2.3-2.3a3 3 0 0 0-4.2-4.2l-.8.8M11.5 8.5a3 3 0 0 0-4.2 0L5 10.8a3 3 0 0 0 4.2 4.2l.8-.8',
+  image: 'M4 4.5h12a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1ZM3 13.5l4-3.5 3 2.5 2.5-2L17 14M7 8.2h.01',
+  folderOpen: 'M2.5 15.5v-10a1 1 0 0 1 1-1h4l1.6 1.8h5.4a1 1 0 0 1 1 1v1.2M2.5 15.5l2-6.2a1 1 0 0 1 1-.8h11.4a.8.8 0 0 1 .8 1.1l-2 5.9a1 1 0 0 1-1 .7H2.5Z'
+} as const
+
+export type IconName = keyof typeof PATHS
+
+export function Icon({ name, size = 18, className }: { name: IconName; size?: number; className?: string }) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.4}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d={PATHS[name]} />
+    </svg>
+  )
+}

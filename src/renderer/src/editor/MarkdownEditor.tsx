@@ -1,0 +1,289 @@
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import { Crepe } from '@milkdown/crepe'
+import { editorViewCtx } from '@milkdown/kit/core'
+import { callCommand, insert } from '@milkdown/kit/utils'
+import {
+  createCodeBlockCommand,
+  insertHrCommand,
+  liftListItemCommand,
+  sinkListItemCommand,
+  toggleEmphasisCommand,
+  toggleInlineCodeCommand,
+  toggleLinkCommand,
+  toggleStrongCommand,
+  turnIntoTextCommand,
+  wrapInBlockquoteCommand,
+  wrapInBulletListCommand,
+  wrapInHeadingCommand,
+  wrapInOrderedListCommand
+} from '@milkdown/kit/preset/commonmark'
+import { insertTableCommand, toggleStrikethroughCommand } from '@milkdown/kit/preset/gfm'
+import { redoCommand, undoCommand } from '@milkdown/kit/plugin/history'
+import type { EditorView } from '@milkdown/kit/prose/view'
+
+import '@milkdown/crepe/theme/common/style.css'
+import '@milkdown/crepe/theme/frame.css'
+import 'katex/dist/katex.min.css'
+
+import {
+  activeBlockPlugin,
+  makeChangePlugin,
+  searchClear,
+  searchPlugin,
+  wikiPlugin,
+  searchReplaceAll,
+  searchReplaceCurrent,
+  searchSet,
+  searchStep,
+  typewriterPlugin,
+  type SearchInfo
+} from './plugins'
+import { renderMermaid } from '@/lib/mermaid'
+import { LARGE_DOC } from '@/lib/markdown'
+
+export type FormatName =
+  | 'strong' | 'em' | 'strike' | 'code' | 'link'
+  | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p'
+  | 'quote' | 'ul' | 'ol' | 'task' | 'codeblock' | 'math' | 'table' | 'hr'
+  | 'undo' | 'redo'
+
+export interface EditorHandle {
+  getMarkdown(): string
+  focus(): void
+  format(name: FormatName): void
+  insert(markdown: string): void
+  find(query: string, caseSensitive: boolean): SearchInfo
+  findStep(dir: 1 | -1): SearchInfo
+  replaceCurrent(text: string): SearchInfo
+  replaceAll(text: string): SearchInfo
+  clearFind(): void
+  scrollToHeading(index: number): void
+  scroller(): HTMLElement | null
+  /** 目前選取的純文字（沒有選取時為空字串） */
+  selectionText(): string
+  setReadonly(ro: boolean): void
+}
+
+interface Props {
+  initialValue: string
+  autofocus?: boolean
+  isDark: boolean
+  /** 文檔有變動（不帶內容；需要內容時呼叫 getMarkdown） */
+  onEdit(): void
+  onReady?(): void
+  uploadImage(file: File): Promise<string>
+  resolveImageUrl(src: string): string
+}
+
+export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownEditor(props, ref) {
+  const rootRef = useRef<HTMLDivElement>(null)
+  const crepeRef = useRef<Crepe | null>(null)
+  const propsRef = useRef(props)
+  propsRef.current = props
+
+  const view = (): EditorView | null => {
+    const c = crepeRef.current
+    if (!c) return null
+    try {
+      return c.editor.action((ctx) => ctx.get(editorViewCtx))
+    } catch {
+      return null
+    }
+  }
+
+  useEffect(() => {
+    const mount = rootRef.current
+    if (!mount) return
+    let cancelled = false
+    // 每次掛載使用獨立容器，StrictMode 重複執行 effect 時不會互相干擾
+    const root = document.createElement('div')
+    mount.appendChild(root)
+
+    const crepe = new Crepe({
+      root,
+      defaultValue: propsRef.current.initialValue,
+      featureConfigs: {
+        [Crepe.Feature.Placeholder]: { text: '開始書寫…', mode: 'doc' },
+        [Crepe.Feature.ImageBlock]: {
+          onUpload: (file: File) => propsRef.current.uploadImage(file),
+          proxyDomURL: (url: string) => propsRef.current.resolveImageUrl(url)
+        },
+        [Crepe.Feature.CodeMirror]: {
+          renderPreview: (language: string, content: string) => {
+            if (language.toLowerCase() !== 'mermaid' || !content.trim()) return null
+            const el = document.createElement('div')
+            el.className = 'mermaid-preview'
+            renderMermaid(content, propsRef.current.isDark)
+              .then((svg) => (el.innerHTML = svg))
+              .catch(() => (el.textContent = '圖表語法有誤'))
+            return el
+          }
+        }
+      }
+    })
+
+    crepe.editor
+      .use(activeBlockPlugin)
+      .use(typewriterPlugin)
+      .use(searchPlugin)
+      .use(wikiPlugin)
+      .use(makeChangePlugin(() => propsRef.current.onEdit()))
+
+    const start = async () => {
+      // 大文件解析會阻塞主執行緒：先讓出兩幀，載入提示才畫得出來
+      if (propsRef.current.initialValue.length > LARGE_DOC) {
+        await new Promise<void>((r) => requestAnimationFrame(() => setTimeout(r, 30)))
+      }
+      if (cancelled) {
+        root.remove()
+        return
+      }
+      await crepe.create()
+      if (cancelled) {
+        crepe.destroy()
+        root.remove()
+        return
+      }
+      crepeRef.current = crepe
+      if (propsRef.current.autofocus) view()?.focus()
+      propsRef.current.onReady?.()
+    }
+    void start()
+
+    return () => {
+      cancelled = true
+      if (crepeRef.current === crepe) {
+        crepeRef.current = null
+        crepe.destroy()
+        root.remove()
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Tab / Shift+Tab：列表縮排與反縮排
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return
+      const c = crepeRef.current
+      const v = view()
+      if (!c || !v) return
+      if ((e.target as HTMLElement).closest('.cm-editor')) return
+      const { $from } = v.state.selection
+      let inList = false
+      for (let d = $from.depth; d > 0; d--) {
+        if ($from.node(d).type.name === 'list_item') {
+          inList = true
+          break
+        }
+      }
+      if (!inList) return
+      e.preventDefault()
+      e.stopPropagation()
+      c.editor.action(callCommand(e.shiftKey ? liftListItemCommand.key : sinkListItemCommand.key))
+    }
+    root.addEventListener('keydown', onKey, true)
+    return () => root.removeEventListener('keydown', onKey, true)
+  }, [])
+
+  // Ctrl/⌘ + 點擊連結：以系統瀏覽器開啟
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    const onClick = (e: MouseEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return
+      const a = (e.target as HTMLElement).closest('a[href]') as HTMLAnchorElement | null
+      if (!a) return
+      e.preventDefault()
+      window.api.openExternal(a.href)
+    }
+    root.addEventListener('click', onClick)
+    return () => root.removeEventListener('click', onClick)
+  }, [])
+
+  useImperativeHandle(ref, () => ({
+    getMarkdown: () => crepeRef.current?.getMarkdown() ?? '',
+    focus: () => view()?.focus(),
+    selectionText: () => {
+      const v = view()
+      if (!v) return ''
+      const { from, to, empty } = v.state.selection
+      return empty ? '' : v.state.doc.textBetween(from, to, '\n\n')
+    },
+    setReadonly: (ro) => {
+      const v = view()
+      if (v) v.setProps({ editable: () => !ro })
+    },
+    scroller: () => rootRef.current?.closest('.editor-scroll') as HTMLElement | null,
+
+    format(name) {
+      const c = crepeRef.current
+      if (!c) return
+      const run = (key: Parameters<typeof callCommand>[0], payload?: unknown) =>
+        c.editor.action(callCommand(key as never, payload as never))
+      switch (name) {
+        case 'strong': run(toggleStrongCommand.key); break
+        case 'em': run(toggleEmphasisCommand.key); break
+        case 'strike': run(toggleStrikethroughCommand.key); break
+        case 'code': run(toggleInlineCodeCommand.key); break
+        case 'link': run(toggleLinkCommand.key, { href: 'https://' }); break
+        case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6':
+          run(wrapInHeadingCommand.key, Number(name[1])); break
+        case 'p': run(turnIntoTextCommand.key); break
+        case 'quote': run(wrapInBlockquoteCommand.key); break
+        case 'ul': run(wrapInBulletListCommand.key); break
+        case 'ol': run(wrapInOrderedListCommand.key); break
+        case 'task': c.editor.action(insert('- [ ] ')); break
+        case 'codeblock': run(createCodeBlockCommand.key); break
+        case 'math': c.editor.action(insert('$$\n\n$$')); break
+        case 'table': run(insertTableCommand.key, { row: 3, col: 3 }); break
+        case 'hr': run(insertHrCommand.key); break
+        case 'undo': run(undoCommand.key); break
+        case 'redo': run(redoCommand.key); break
+      }
+      view()?.focus()
+    },
+
+    insert(markdown) {
+      const c = crepeRef.current
+      if (!c) return
+      c.editor.action(insert(markdown))
+      view()?.focus()
+    },
+
+    find: (q, cs) => {
+      const v = view()
+      return v ? searchSet(v, q, cs) : { total: 0, current: -1 }
+    },
+    findStep: (dir) => {
+      const v = view()
+      return v ? searchStep(v, dir) : { total: 0, current: -1 }
+    },
+    replaceCurrent: (t) => {
+      const v = view()
+      return v ? searchReplaceCurrent(v, t) : { total: 0, current: -1 }
+    },
+    replaceAll: (t) => {
+      const v = view()
+      return v ? searchReplaceAll(v, t) : { total: 0, current: -1 }
+    },
+    clearFind: () => {
+      const v = view()
+      if (v) searchClear(v)
+    },
+
+    scrollToHeading(index) {
+      const v = view()
+      if (!v) return
+      const el = v.dom.querySelectorAll('h1,h2,h3,h4,h5,h6')[index] as HTMLElement | undefined
+      const sc = rootRef.current?.closest('.editor-scroll') as HTMLElement | null
+      if (!el || !sc) return
+      const top = sc.scrollTop + (el.getBoundingClientRect().top - sc.getBoundingClientRect().top) - 28
+      sc.scrollTo({ top, behavior: 'smooth' })
+    }
+  }))
+
+  return <div ref={rootRef} className="editor-root" />
+})

@@ -1,0 +1,149 @@
+/* ============ 主題變數：淺色（紙）/ 深色（暖炭）/ 護眼 ============ */
+:root,
+:root[data-theme='light'] {
+  --bg: #fbfaf7;
+  --bg-side: #f3f1ec;
+  --bg-elev: #ffffff;
+  --fg: #26241f;
+  --fg-muted: #6f6b62;
+  --fg-faint: #a29d92;
+  --line: rgba(38, 36, 31, 0.09);
+  --line-strong: rgba(38, 36, 31, 0.18);
+  --hover: rgba(38, 36, 31, 0.06);
+  --active: rgba(38, 36, 31, 0.1);
+  --accent: #b5412c;
+  --accent-soft: rgba(181, 65, 44, 0.12);
+  --code-bg: #f1eee8;
+  --code-fg: #8a3a26;
+  --block-bg: #f6f4ef;
+  --shadow: 0 12px 40px rgba(38, 36, 31, 0.14), 0 2px 8px rgba(38, 36, 31, 0.06);
+  --glass-bg: rgba(255, 255, 255, 0.52);
+  --glass-bg-strong: rgba(255, 255, 255, 0.78);
+  --glass-side: rgba(243, 241, 236, 0.6);
+  --glass-edge: rgba(38, 36, 31, 0.08);
+  --glass-shadow: 0 10px 34px rgba(38, 36, 31, 0.13), 0 1px 3px rgba(38, 36, 31, 0.06);
+  --rim-hi: rgba(255, 255, 255, 0.95);
+  --rim-lo: rgba(255, 255, 255, 0.45);
+  --pill-bg: rgba(255, 255, 255, 0.62);
+  --trough: rgba(38, 36, 31, 0.07);
+  --spot: rgba(255, 255, 255, 0.7);
+  --edge-hot: rgba(255, 255, 255, 1);
+  --beam-a: #e8836a;
+  --beam-b: #ffd9a8;
+  --blob-a: rgba(181, 65, 44, 0.13);
+  --blob-b: rgba(70, 120, 170, 0.12);
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  --bg: #1c1b19;
+  --bg-side: #171614;
+  --bg-elev: #262522;
+  --fg: #d9d5cc;
+  --fg-muted: #8f8a80;
+  --fg-faint: #5f5b53;
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.15);
+  --hover: rgba(255, 255, 255, 0.06);
+  --active: rgba(255, 255, 255, 0.1);
+  --accent: #e0715a;
+  --accent-soft: rgba(224, 113, 90, 0.16);
+  --code-bg: #262522;
+  --code-fg: #e9a592;
+  --block-bg: #22211f;
+  --shadow: 0 16px 48px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --glass-bg: rgba(52, 50, 46, 0.5);
+  --glass-bg-strong: rgba(44, 42, 38, 0.82);
+  --glass-side: rgba(23, 22, 20, 0.6);
+  --glass-edge: rgba(0, 0, 0, 0.45);
+  --glass-shadow: 0 14px 44px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --rim-hi: rgba(255, 255, 255, 0.26);
+  --rim-lo: rgba(255, 255, 255, 0.07);
+  --pill-bg: rgba(255, 255, 255, 0.15);
+  --trough: rgba(0, 0, 0, 0.3);
+  --spot: rgba(255, 255, 255, 0.13);
+  --edge-hot: rgba(255, 255, 255, 0.7);
+  --beam-a: #ff8a6b;
+  --beam-b: #ffe3b0;
+  --blob-a: rgba(224, 113, 90, 0.17);
+  --blob-b: rgba(90, 130, 200, 0.14);
+  color-scheme: dark;
+}
+:root[data-theme='sepia'] {
+  --bg: #e9efe1;
+  --bg-side: #dfe7d6;
+  --bg-elev: #f2f6ec;
+  --fg: #2f3a2d;
+  --fg-muted: #5f6e59;
+  --fg-faint: #8d9b86;
+  --line: rgba(47, 58, 45, 0.11);
+  --line-strong: rgba(47, 58, 45, 0.2);
+  --hover: rgba(47, 58, 45, 0.07);
+  --active: rgba(47, 58, 45, 0.12);
+  --accent: #4b7a3a;
+  --accent-soft: rgba(75, 122, 58, 0.15);
+  --code-bg: #dbe4d0;
+  --code-fg: #3c5f2e;
+  --block-bg: #e0e8d6;
+  --shadow: 0 12px 40px rgba(47, 58, 45, 0.16), 0 2px 8px rgba(47, 58, 45, 0.08);
+  --glass-bg: rgba(244, 248, 238, 0.55);
+  --glass-bg-strong: rgba(240, 245, 233, 0.8);
+  --glass-side: rgba(223, 231, 214, 0.6);
+  --glass-edge: rgba(47, 58, 45, 0.1);
+  --glass-shadow: 0 10px 34px rgba(47, 58, 45, 0.15), 0 1px 3px rgba(47, 58, 45, 0.07);
+  --rim-hi: rgba(255, 255, 255, 0.9);
+  --rim-lo: rgba(255, 255, 255, 0.4);
+  --pill-bg: rgba(255, 255, 255, 0.55);
+  --trough: rgba(47, 58, 45, 0.08);
+  --spot: rgba(255, 255, 255, 0.65);
+  --edge-hot: rgba(255, 255, 255, 1);
+  --beam-a: #6fae55;
+  --beam-b: #e4f6bd;
+  --blob-a: rgba(75, 122, 58, 0.16);
+  --blob-b: rgba(190, 170, 90, 0.14);
+  color-scheme: light;
+}
+
+:root {
+  --fs: 17px;
+  --lh: 1.85;
+  --maxw: 760px;
+  --font-ui: 'Inter Variable', 'PingFang TC', 'Microsoft JhengHei', 'Noto Sans TC', system-ui, sans-serif;
+  --font-body: var(--font-ui);
+  --font-mono: 'JetBrains Mono Variable', 'SF Mono', Consolas, 'PingFang TC', 'Microsoft JhengHei', monospace;
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 切換主題時的短暫全域過渡 */
+.theme-anim,
+.theme-anim *,
+.theme-anim *::before,
+.theme-anim *::after {
+  transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, fill 0.35s ease !important;
+}
+
+/* ============ 將主題變數映射給 Milkdown Crepe ============ */
+.milkdown {
+  --crepe-color-background: var(--bg);
+  --crepe-color-on-background: var(--fg);
+  --crepe-color-surface: var(--bg-elev);
+  --crepe-color-surface-low: var(--block-bg);
+  --crepe-color-on-surface: var(--fg);
+  --crepe-color-on-surface-variant: var(--fg-muted);
+  --crepe-color-outline: var(--fg-faint);
+  --crepe-color-primary: var(--accent);
+  --crepe-color-secondary: var(--accent-soft);
+  --crepe-color-on-secondary: var(--fg);
+  --crepe-color-inverse: var(--fg);
+  --crepe-color-on-inverse: var(--bg);
+  --crepe-color-inline-code: var(--code-fg);
+  --crepe-color-error: #d4503c;
+  --crepe-color-hover: var(--hover);
+  --crepe-color-selected: var(--active);
+  --crepe-color-inline-area: var(--code-bg);
+  --crepe-font-title: var(--font-body);
+  --crepe-font-default: var(--font-ui);
+  --crepe-font-code: var(--font-mono);
+  --crepe-shadow-1: var(--shadow);
+  --crepe-shadow-2: var(--shadow);
+}
