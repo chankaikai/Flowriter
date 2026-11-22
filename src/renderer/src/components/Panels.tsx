@@ -6,6 +6,7 @@ import { lastDays, streak, type WritingData, dayKey } from '@/lib/writing'
 import type { HistoryItem, SearchHit } from '../../../shared/types'
 import { basename, stripExt } from '@/lib/path'
 import { AiSetup } from './AiSetup'
+import { collectTasks } from '@/lib/tasks'
 import { resolveAi, type AiPrefs } from '@/lib/ai'
 
 /** 停靠欄上方的浮動玻璃面板，一次只開一個。 */
@@ -415,6 +416,24 @@ export function LinksPanel({
       ) : (
         <p className="pop-empty">目前沒有其他筆記連到這裡。</p>
       )}
+    </>
+  )
+}
+
+export function TasksPanel({ md, onJump }: { md: string; onJump(text: string): void }) {
+  const tasks = useMemo(() => collectTasks(md), [md])
+  const open = tasks.filter((t) => !t.checked)
+  const done = tasks.length - open.length
+  return (
+    <>
+      <div className="hist-hint">
+        {tasks.length ? `待辦 ${open.length} 項，已完成 ${done} 項（點擊跳到該行）` : '這份文件還沒有 - [ ] 任務'}
+      </div>
+      <div className="link-list task-list">
+        {open.map((t) => (
+          <button key={t.line} onClick={() => onJump(t.text)}>{t.text}</button>
+        ))}
+      </div>
     </>
   )
 }

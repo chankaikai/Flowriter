@@ -182,3 +182,11 @@
 .fn-tip { position: fixed; z-index: 60; max-width: 300px; padding: 8px 12px; border-radius: 12px; font-size: 13px; line-height: 1.5;
   background: var(--glass-bg, rgba(255,255,255,.8)); backdrop-filter: blur(18px) saturate(1.4); border: 1px solid var(--line);
   box-shadow: 0 8px 28px rgba(0,0,0,.16); color: var(--fg); pointer-events: none; }
+
+/* ---- front matter 徽章 / 任務清單 ---- */
+.fm-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 14px; user-select: none; }
+.fm-chip { font-size: 12px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--fg-muted);
+  background: color-mix(in srgb, var(--fg) 4%, transparent); }
+.fm-chip.fm-bool { cursor: pointer; transition: background .2s, color .2s; }
+.fm-chip.on { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.task-list button { text-align: left; }

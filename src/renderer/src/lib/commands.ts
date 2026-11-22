@@ -2,7 +2,7 @@ import type { FormatName } from '@/editor/MarkdownEditor'
 import type { SidebarTab, ThemeName } from './settings'
 
 export type ExportKind = 'html' | 'pdf' | 'docx' | 'md' | 'png'
-export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links'
+export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks'
 
 export interface Actions {
   newDoc(): void
@@ -89,6 +89,7 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'panel.ai', title: 'AI 改寫選取文字', group: '面板', keys: ['Mod+Alt+I'], run: () => a.openPanel('ai') },
     { id: 'panel.focus', title: '專注：番茄鐘與氛圍音', group: '面板', keys: ['Mod+Alt+P'], run: () => a.openPanel('focus') },
     { id: 'panel.dashboard', title: '寫作儀表板', group: '面板', keys: ['Mod+Alt+D'], run: () => a.openPanel('dashboard') },
+    { id: 'panel.tasks', title: '任務收集', group: '面板', keys: ['Mod+Alt+J'], run: () => a.openPanel('tasks') },
     { id: 'panel.links', title: '連結與反向連結', group: '面板', keys: ['Mod+Alt+L'], run: () => a.openPanel('links') },
     { id: 'app.settings', title: '偏好設定', group: '檢視', keys: ['Mod+Comma'], run: a.openSettings },
 
@@ -118,6 +119,8 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'fmt.table', title: '插入表格', group: F, keys: ['Mod+T'], editorOnly: true, run: fmt('table') },
     { id: 'fmt.toc', title: '插入目錄 [TOC]', group: F, editorOnly: true, run: fmt('toc') },
     { id: 'fmt.footnote', title: '插入腳註', group: F, keys: ['Mod+Alt+F'], editorOnly: true, run: fmt('footnote') },
+    { id: 'table.sortAsc', title: '表格依目前欄位升序排序', group: F, editorOnly: true, run: fmt('sortasc') },
+    { id: 'table.sortDesc', title: '表格依目前欄位降序排序', group: F, editorOnly: true, run: fmt('sortdesc') },
     { id: 'fmt.bilingual', title: '插入雙語對照', group: F, editorOnly: true, run: fmt('bilingual') },
     { id: 'fmt.callout', title: '插入提示框', group: F, editorOnly: true, run: fmt('callout') },
     { id: 'fmt.frontmatter', title: '插入 YAML 前置資料', group: F, editorOnly: true, run: fmt('frontmatter') },

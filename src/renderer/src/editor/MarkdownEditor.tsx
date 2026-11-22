@@ -39,7 +39,7 @@ import {
   type SearchInfo
 } from './plugins'
 import { TextSelection } from '@milkdown/kit/prose/state'
-import { BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
+import { gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
 import { renderMermaid } from '@/lib/mermaid'
 import { LARGE_DOC } from '@/lib/markdown'
 
@@ -47,7 +47,7 @@ export type FormatName =
   | 'strong' | 'em' | 'strike' | 'code' | 'link'
   | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p'
   | 'quote' | 'ul' | 'ol' | 'task' | 'codeblock' | 'math' | 'table' | 'hr'
-  | 'undo' | 'redo' | 'toc' | 'footnote' | 'frontmatter' | 'bilingual' | 'callout'
+  | 'undo' | 'redo' | 'toc' | 'footnote' | 'frontmatter' | 'bilingual' | 'callout' | 'sortasc' | 'sortdesc'
 
 export interface EditorHandle {
   getMarkdown(): string
@@ -68,6 +68,8 @@ export interface EditorHandle {
   getCaret(): number
   /** 把游標移到指定位置並捲動到可見處；超出範圍會夾住。成功回傳 true */
   setCaret(pos: number): boolean
+  /** 跳到文字相符的任務項目 */
+  gotoTask(text: string): boolean
   /** 游標的螢幕座標，沒有編輯器或找不到時回傳 null */
   caretRect(): { left: number; top: number; bottom: number } | null
 }
@@ -276,6 +278,8 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
         case 'math': c.editor.action(insert('$$\n\n$$')); break
         case 'table': run(insertTableCommand.key, { row: 3, col: 3 }); break
         case 'hr': run(insertHrCommand.key); break
+        case 'sortasc': { const v = view(); if (v && !sortTable(v, 'asc')) return; break }
+        case 'sortdesc': { const v = view(); if (v && !sortTable(v, 'desc')) return; break }
         case 'bilingual': c.editor.action(insert(BILINGUAL_SNIPPET)); break
         case 'callout': c.editor.action(insert('> [!NOTE]\n> ')); break
         case 'toc': c.editor.action(insert('[TOC]')); break
@@ -313,6 +317,11 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
     clearFind: () => {
       const v = view()
       if (v) searchClear(v)
+    },
+
+    gotoTask(text) {
+      const v = view()
+      return v ? gotoTask(v, text) : false
     },
 
     scrollToHeading(index) {

@@ -13,6 +13,8 @@ import { Plugin, PluginKey } from '@milkdown/kit/prose/state'
 import { Decoration, DecorationSet } from '@milkdown/kit/prose/view'
 import type { EditorView } from '@milkdown/kit/prose/view'
 import { calcTransform, calloutTransform, bilingualTransform, CALLOUT_TYPES } from '@/lib/mdTransforms'
+import { sortOrder } from '@/lib/tableSort'
+import { parseFrontMatter, toggleBool } from '@/lib/frontMatter'
 import { collectVars, evaluate, formatNumber } from '@/lib/calc'
 import remarkFrontmatter from 'remark-frontmatter'
 
@@ -512,6 +514,105 @@ export const footnoteTipPlugin = $prose(() => {
   })
 })
 
+/* ------------------------------ 任務跳轉 / 表格排序（都是一般 transaction，可復原） ------------------------------ */
+
+export function gotoTask(view: EditorView, text: string): boolean {
+  let found = -1
+  view.state.doc.descendants((n: any, pos: number) => {
+    if (found >= 0) return false
+    if (n.type.name === 'list_item' && n.attrs.checked != null && n.textContent.trim() === text.trim()) {
+      found = pos
+      return false
+    }
+    return true
+  })
+  if (found < 0) return false
+  const sel = (view.state.selection.constructor as any).near(view.state.doc.resolve(found + 2))
+  view.dispatch(view.state.tr.setSelection(sel).scrollIntoView())
+  view.focus()
+  return true
+}
+
+/** 依游標所在欄排序表格資料列（表頭不動）。 */
+export function sortTable(view: EditorView, dir: 'asc' | 'desc'): boolean {
+  const { $from } = view.state.selection
+  let tableDepth = -1
+  let col = 0
+  for (let d = $from.depth; d > 0; d--) {
+    const n = $from.node(d)
+    if (/^table_(cell|header)$/.test(n.type.name)) col = $from.index(d - 1)
+    if (n.type.name === 'table') {
+      tableDepth = d
+      break
+    }
+  }
+  if (tableDepth < 0) return false
+  const table = $from.node(tableDepth)
+  const pos = $from.before(tableDepth)
+  if (table.childCount < 3) return false
+  const rows: any[] = []
+  for (let i = 1; i < table.childCount; i++) rows.push(table.child(i))
+  const keys = rows.map((r) => (r.maybeChild(col)?.textContent ?? '').trim())
+  const order = sortOrder(keys, dir)
+  if (order.every((v, i) => v === i)) return true
+  const next = table.type.create(table.attrs, [table.child(0), ...order.map((i) => rows[i])], table.marks)
+  view.dispatch(view.state.tr.replaceWith(pos, pos + table.nodeSize, next).scrollIntoView())
+  view.focus()
+  return true
+}
+
+/* ------------------------------ front matter 徽章（畫面裝飾；布林可點擊切換） ------------------------------ */
+
+export const frontMatterBadgePlugin = $prose(() => {
+  const key = new PluginKey('inkwell-fm-badges')
+  return new Plugin({
+    key,
+    props: {
+      decorations(state) {
+        const first = state.doc.firstChild
+        if (!first || first.type.name !== 'inkwell_front_matter') return null
+        const fields = parseFrontMatter(first.textContent)
+        if (!fields.length) return null
+        return DecorationSet.create(state.doc, [
+          Decoration.widget(
+            first.nodeSize,
+            (view) => {
+              const box = document.createElement('div')
+              box.className = 'fm-badges'
+              box.contentEditable = 'false'
+              for (const f of fields) {
+                const chip = document.createElement('span')
+                chip.className = `fm-chip fm-${f.kind}`
+                if (f.kind === 'bool') {
+                  chip.textContent = `${f.key}: ${f.value ? '是' : '否'}`
+                  chip.classList.toggle('on', f.value === true)
+                  chip.title = '點擊切換'
+                  chip.addEventListener('mousedown', (e) => {
+                    e.preventDefault()
+                    const cur = view.state.doc.firstChild
+                    if (!cur || cur.type.name !== 'inkwell_front_matter') return
+                    const next = toggleBool(cur.textContent, f.key)
+                    if (next == null) return
+                    const tr = view.state.tr.replaceWith(1, 1 + cur.content.size, view.state.schema.text(next))
+                    view.dispatch(tr)
+                  })
+                } else if (f.kind === 'list') {
+                  chip.textContent = `${f.key}: ${(f.items || []).map((t) => '#' + t).join(' ')}`
+                } else {
+                  chip.textContent = `${f.key}: ${String(f.value)}`
+                }
+                box.appendChild(chip)
+              }
+              return box
+            },
+            { side: -1, key: 'fm-' + fields.map((f) => f.key + String(f.value)).join('|'), ignoreSelection: true }
+          )
+        ])
+      }
+    }
+  })
+})
+
 export const extraPlugins = [
   frontMatterRemark,
   tocRemark,
@@ -529,5 +630,6 @@ export const extraPlugins = [
   biBlockNode,
   calloutPlugin,
   calcPlugin,
-  footnoteTipPlugin
+  footnoteTipPlugin,
+  frontMatterBadgePlugin
 ].flat()

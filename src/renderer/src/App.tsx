@@ -9,7 +9,7 @@ import { SettingsPanel } from '@/components/SettingsPanel'
 import { Icon } from '@/components/Icon'
 import { Dock, type DockItem } from '@/components/Dock'
 import { usePill } from '@/lib/pill'
-import { AiPanel, DashboardPanel, FocusPanel, HistoryPanel, LinksPanel, Popover } from '@/components/Panels'
+import { AiPanel, DashboardPanel, FocusPanel, HistoryPanel, LinksPanel, Popover, TasksPanel } from '@/components/Panels'
 import { usePomodoro } from '@/lib/pomodoro'
 import { type AmbientKind, setAmbient } from '@/lib/ambient'
 import { addWords, loadWriting } from '@/lib/writing'
@@ -1066,6 +1066,7 @@ export default function App() {
     ],
     [
       { key: 'p-history', label: '版本時光機', icon: 'history', hint: hint('panel.history'), toggled: panel === 'history', run: () => openPanel('history') },
+      { key: 'p-tasks', label: '任務收集', icon: 'tasks', hint: hint('panel.tasks'), toggled: panel === 'tasks', run: () => openPanel('tasks') },
       { key: 'p-links', label: '連結與反向連結', icon: 'link', hint: hint('panel.links'), toggled: panel === 'links', run: () => openPanel('links') },
       { key: 'p-ai', label: 'AI 改寫', icon: 'sparkle', hint: hint('panel.ai'), toggled: panel === 'ai', run: () => openPanel('ai') }
     ],
@@ -1359,6 +1360,17 @@ export default function App() {
                   replaceContent(c)
                   setPanel(null)
                   showToast('已還原，原本的內容也留在時光機裡')
+                }}
+              />
+            )}
+          </Popover>
+          <Popover open={panel === 'tasks'} icon="tasks" title="任務收集" onClose={() => setPanel(null)}>
+            {panel === 'tasks' && (
+              <TasksPanel
+                md={mdRef.current}
+                onJump={(t) => {
+                  setPanel(null)
+                  editorRef.current?.gotoTask(t)
                 }}
               />
             )}
