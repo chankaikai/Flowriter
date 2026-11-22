@@ -24,6 +24,7 @@ const api: InkwellApi = {
   exportPdf: (o) => inv('export:pdf', o),
   getLaunchFile: () => inv('app:launchFile'),
   pathForFile: (f) => webUtils.getPathForFile(f),
+  setSticky: (on) => inv('window:sticky', on),
   setDirty: (d) => ipcRenderer.send('doc:dirty', d),
   setChrome: (c) => ipcRenderer.send('chrome:set', c),
   getMaterialSupport: () => inv('window:materialSupport'),

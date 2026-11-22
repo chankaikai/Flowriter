@@ -70,7 +70,8 @@
 .editor-col .milkdown .milkdown-table-block tbody tr:hover { background: var(--hover); }
 
 /* ---------- 聚焦模式：淡化非當前區塊 ---------- */
-.focus-mode .editor-col .milkdown .ProseMirror > *:not(.is-active-block) { opacity: 0.3; }
+.focus-mode .editor-col .milkdown .ProseMirror > * { transition: opacity 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.focus-mode .editor-col .milkdown .ProseMirror > *:not(.is-active-block) { opacity: 0.38; }
 
 /* ---------- 查找高亮 ---------- */
 .search-hit { background: rgba(250, 190, 40, 0.38); border-radius: 3px; }

@@ -67,6 +67,8 @@ export interface InkwellApi {
   getLaunchFile(): Promise<string | null>
   pathForFile(file: File): string
   setDirty(dirty: boolean): void
+  /** 迷你置頂便籤：縮小視窗並置頂；關閉時還原原本的大小與位置 */
+  setSticky(on: boolean): Promise<void>
   setChrome(c: {
     color: string
     symbolColor: string

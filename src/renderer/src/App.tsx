@@ -15,6 +15,11 @@ import { type AmbientKind, setAmbient } from '@/lib/ambient'
 import { addWords, loadWriting } from '@/lib/writing'
 import { moveSection } from '@/lib/markdown'
 import { SHARE_CSS } from '@/export/exportStyles'
+import { Ruler } from '@/components/Ruler'
+import { SelectionBubble } from '@/components/SelectionBubble'
+import { ResumeBubble } from '@/components/ResumeBubble'
+import { TextPrompt, type PromptRequest } from '@/components/TextPrompt'
+import { getBookmark, saveCaret, setHint } from '@/lib/bookmarks'
 import { htmlToMarkdown, shouldConvertHtml } from '@/lib/htmlToMarkdown'
 import { loadRecent, loadSession, pushRecent, saveSession } from '@/lib/session'
 import { buildCommands, type Actions, type ExportKind, type PanelName } from '@/lib/commands'
@@ -113,6 +118,11 @@ export default function App() {
   const [ambient, setAmbientKind] = useState<AmbientKind>('off')
   const [reading, setReading] = useState(false)
   const lastSnap = useRef<Record<string, number>>({})
+  const [sticky, setSticky] = useState(false)
+  const sidebarBeforeSticky = useRef(true)
+  const [promptReq, setPromptReq] = useState<PromptRequest | null>(null)
+  const [resume, setResume] = useState<{ hint: string | null; rect: { left: number; top: number; bottom: number } } | null>(null)
+  const resumeTab = useRef<number | null>(null)
   const prevWords = useRef<{ key: number; n: number } | null>(null)
   const sidebarBeforeReading = useRef(true)
   const [editorReady, setEditorReady] = useState<EditorHandle | null>(null)
@@ -280,6 +290,14 @@ export default function App() {
 
   /* ------------------------------ 多分頁 ------------------------------ */
 
+  /** 記下目前檔案的落筆位置（冷啟動書籤）。 */
+  const saveCaretNow = useCallback(() => {
+    const p = docRef.current.path
+    if (!p || modeRef.current !== 'wysiwyg' || !editorRef.current) return
+    const pos = editorRef.current.getCaret()
+    if (pos > 1) saveCaret(p, pos)
+  }, [])
+
   /** 把目前分頁的即時狀態寫回 tabsRef（切換、關閉前呼叫）。 */
   const snapshotActive = useCallback(() => {
     syncFromEditor()
@@ -290,10 +308,11 @@ export default function App() {
     t.md = mdRef.current
     t.saved = savedRef.current
     t.scroll = scrollRef.current?.scrollTop ?? 0
+    saveCaretNow()
     // 記下這個實例目前持有的內容；之後分頁內容若被外部改掉（還原版本等），才知道要重建
     const e = poolRef.current.find((p) => p.tabId === t.id)
     if (e) e.md = t.md
-  }, [syncFromEditor])
+  }, [syncFromEditor, saveCaretNow])
 
   /**
    * 讓某分頁有可用的編輯器。已有實例且內容沒被外部改過就直接沿用（回傳 false），
@@ -330,6 +349,8 @@ export default function App() {
       mdRef.current = t.md
       lastLen.current = t.md.length
       const fresh = mountEditor(t.id, t.md)
+      resumeTab.current = fresh && t.path ? t.id : null
+      setResume(null)
       setLoading(fresh && t.md.length > LARGE_DOC)
       savedRef.current = t.saved
       dirtyRef.current = t.md !== t.saved
@@ -537,6 +558,22 @@ export default function App() {
     }
   }, [activate, publishTabs, showToast, syncFromEditor])
 
+  /** Electron 沒有 window.prompt，用玻璃對話框取得一行文字；取消回傳 null。 */
+  const askText = useCallback(
+    (title: string, opts: Partial<Omit<PromptRequest, 'title' | 'resolve'>> = {}) =>
+      new Promise<string | null>((resolve) => {
+        setPromptReq({
+          title,
+          ...opts,
+          resolve: (v) => {
+            setPromptReq(null)
+            resolve(v)
+          }
+        })
+      }),
+    []
+  )
+
   const openFolder = useCallback(async () => {
     const p = await window.api.openFolder()
     if (!p) return
@@ -691,6 +728,29 @@ export default function App() {
     [folder, openPath, showToast]
   )
 
+  const toggleSticky = useCallback(() => {
+    const next = !sticky
+    if (next) {
+      sidebarBeforeSticky.current = settingsRef.current.sidebarOpen
+      update({ sidebarOpen: false })
+      setPanel(null)
+    } else update({ sidebarOpen: sidebarBeforeSticky.current })
+    setSticky(next)
+    document.body.classList.toggle('mode-sticky', next)
+    void window.api.setSticky(next)
+  }, [sticky, update])
+
+  const setResumeHintCmd = useCallback(async () => {
+    const p = docRef.current.path
+    if (!p) return showToast('先儲存檔案，才能設定接續提示')
+    const cur = getBookmark(p)?.hint ?? ''
+    const v = await askText('接續提示：寫給下次打開時的自己', { initial: cur, placeholder: '例如：先把第三章的數據補上', okLabel: '儲存' })
+    if (v == null) return
+    saveCaretNow()
+    setHint(p, v)
+    showToast(v.trim() ? '已儲存接續提示' : '已清除接續提示')
+  }, [askText, saveCaretNow, showToast])
+
   const openPanel = useCallback(
     (p: PanelName) => {
       syncFromEditor()
@@ -751,6 +811,8 @@ export default function App() {
     fullscreen: () => window.api.toggleFullscreen(),
     closeTab: () => void closeTab(activeIdRef.current),
     toggleReading: () => toggleReading(),
+    toggleSticky: () => toggleSticky(),
+    setResumeHint: () => void setResumeHintCmd(),
     openPanel: (p) => openPanel(p),
     cycleTab: (d) => {
       const l = tabsRef.current
@@ -826,6 +888,7 @@ export default function App() {
   // 關閉前保存工作狀態；回到視窗時檢查外部修改
   useEffect(() => {
     const onUnload = () => {
+      saveCaretNow()
       syncFromEditor()
       persistSession(true)
     }
@@ -928,6 +991,19 @@ export default function App() {
     if (pendingFind.current) {
       setFind('find')
       setFindSignal((n) => n + 1)
+      return
+    }
+    // 冷啟動書籤：游標回到上次落筆處，並顯示接續提示
+    const path = docRef.current.path
+    if (path && resumeTab.current === activeIdRef.current && editorRef.current) {
+      resumeTab.current = null
+      const bm = getBookmark(path)
+      if (bm && bm.pos > 20 && editorRef.current.setCaret(bm.pos)) {
+        requestAnimationFrame(() => {
+          const rect = editorRef.current?.caretRect()
+          if (rect) setResume({ hint: bm.hint ?? null, rect })
+        })
+      }
     }
   }, [])
 
@@ -1037,10 +1113,20 @@ export default function App() {
   useEffect(() => {
     if (!settings.inkRipple || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     let last = 0
+    let lastKey = 0
+    let cps = 0
+    const root = document.documentElement
     const onInput = (e: Event) => {
       const t = e.target as HTMLElement
       if (!t.closest?.('.milkdown .ProseMirror')) return
       const now = performance.now()
+      // 打字速度（每秒字元數）：用指數平滑，停頓超過 1.5 秒就歸零
+      const dt = now - lastKey
+      lastKey = now
+      cps = dt > 1500 ? 1 : cps * 0.7 + Math.min(14, 1000 / Math.max(dt, 60)) * 0.3
+      root.style.setProperty('--caret-glow-radius', `${Math.round(Math.min(56, 18 + cps * 4.2))}px`)
+      root.style.setProperty('--accent-pulse-brightness', `${Math.min(0.85, 0.3 + cps * 0.05).toFixed(2)}`)
+      root.style.setProperty('--glow-color', cps > 7 ? '#00f2fe' : 'var(--accent)')
       if (now - last < 90) return
       last = now
       const sel = window.getSelection()
@@ -1173,6 +1259,7 @@ export default function App() {
         </header>
 
         <div className="stage">
+          {mode === 'wysiwyg' && <Ruler scrollRef={scrollRef} rev={`${session.key}-${outline.length}-${stats.chars >> 9}`} />}
           <div className="editor-scroll" ref={scrollRef}>
             {mode === 'wysiwyg' ? (
               pool.map((entry) => {
@@ -1246,6 +1333,14 @@ export default function App() {
             <i />
             <span>正在載入大型文件…</span>
           </div>
+          <SelectionBubble />
+          <TextPrompt req={promptReq} />
+          <ResumeBubble hint={resume?.hint ?? null} rect={resume?.rect ?? null} onDone={() => setResume(null)} />
+          {sticky && (
+            <button className="sticky-chip" onClick={toggleSticky} title="還原視窗">
+              取消置頂
+            </button>
+          )}
           {reading && <div className="reading-prog" />}
           {reading && (
             <div className="reading-chip">

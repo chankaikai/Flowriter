@@ -38,6 +38,7 @@ import {
   typewriterPlugin,
   type SearchInfo
 } from './plugins'
+import { TextSelection } from '@milkdown/kit/prose/state'
 import { extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
 import { renderMermaid } from '@/lib/mermaid'
 import { LARGE_DOC } from '@/lib/markdown'
@@ -63,6 +64,12 @@ export interface EditorHandle {
   /** 目前選取的純文字（沒有選取時為空字串） */
   selectionText(): string
   setReadonly(ro: boolean): void
+  /** 游標位置（ProseMirror 位置，不是字元偏移） */
+  getCaret(): number
+  /** 把游標移到指定位置並捲動到可見處；超出範圍會夾住。成功回傳 true */
+  setCaret(pos: number): boolean
+  /** 游標的螢幕座標，沒有編輯器或找不到時回傳 null */
+  caretRect(): { left: number; top: number; bottom: number } | null
 }
 
 interface Props {
@@ -218,6 +225,28 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       if (!v) return ''
       const { from, to, empty } = v.state.selection
       return empty ? '' : v.state.doc.textBetween(from, to, '\n\n')
+    },
+    getCaret: () => view()?.state.selection.head ?? 0,
+    setCaret: (pos) => {
+      const v = view()
+      if (!v) return false
+      const p = Math.max(1, Math.min(pos, v.state.doc.content.size))
+      try {
+        v.dispatch(v.state.tr.setSelection(TextSelection.near(v.state.doc.resolve(p))).scrollIntoView())
+        return true
+      } catch {
+        return false
+      }
+    },
+    caretRect: () => {
+      const v = view()
+      if (!v) return null
+      try {
+        const c = v.coordsAtPos(v.state.selection.head)
+        return { left: c.left, top: c.top, bottom: c.bottom }
+      } catch {
+        return null
+      }
     },
     setReadonly: (ro) => {
       const v = view()

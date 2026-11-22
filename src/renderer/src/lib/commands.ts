@@ -27,6 +27,8 @@ export interface Actions {
   closeTab(): void
   cycleTab(dir: 1 | -1): void
   toggleReading(): void
+  toggleSticky(): void
+  setResumeHint(): void
   openPanel(p: PanelName): void
 }
 
@@ -81,6 +83,8 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'theme.sepia', title: '主題：護眼', group: '主題', run: () => a.setTheme('sepia') },
     { id: 'theme.system', title: '主題：跟隨系統', group: '主題', run: () => a.setTheme('system') },
     { id: 'view.reading', title: '閱讀模式', group: '檢視', keys: ['Mod+Alt+R'], run: a.toggleReading },
+    { id: 'view.sticky', title: '迷你置頂便籤模式', group: '檢視', keys: ['Mod+Alt+M'], run: a.toggleSticky },
+    { id: 'doc.resumeHint', title: '設定接續提示（下次打開時顯示）', group: '文件', run: a.setResumeHint },
     { id: 'panel.history', title: '版本時光機', group: '面板', keys: ['Mod+Alt+H'], run: () => a.openPanel('history') },
     { id: 'panel.ai', title: 'AI 改寫選取文字', group: '面板', keys: ['Mod+Alt+I'], run: () => a.openPanel('ai') },
     { id: 'panel.focus', title: '專注：番茄鐘與氛圍音', group: '面板', keys: ['Mod+Alt+P'], run: () => a.openPanel('focus') },

@@ -571,6 +571,27 @@ function registerIpc(): void {
     dirty = !!d
   })
 
+  let stickyPrev: { bounds: Electron.Rectangle; min: number[]; max: boolean } | null = null
+  ipcMain.handle('window:sticky', (e, on: boolean) => {
+    const w = BrowserWindow.fromWebContents(e.sender)
+    if (!w) return
+    if (on && !stickyPrev) {
+      stickyPrev = { bounds: w.getBounds(), min: w.getMinimumSize(), max: w.isMaximized() }
+      if (stickyPrev.max) w.unmaximize()
+      w.setMinimumSize(300, 180)
+      const b = w.getBounds()
+      // 縮到右上角附近，不擋住主要內容
+      w.setBounds({ x: b.x + Math.max(0, b.width - 420), y: b.y, width: 400, height: 560 }, true)
+      w.setAlwaysOnTop(true, 'floating')
+    } else if (!on && stickyPrev) {
+      w.setAlwaysOnTop(false)
+      w.setMinimumSize(stickyPrev.min[0], stickyPrev.min[1])
+      w.setBounds(stickyPrev.bounds, true)
+      if (stickyPrev.max) w.maximize()
+      stickyPrev = null
+    }
+  })
+
   ipcMain.handle('window:materialSupport', () => MATERIAL)
 
   ipcMain.on('window:setMaterial', (e, o: { enabled: boolean; kind: 'acrylic' | 'mica' }) => {
