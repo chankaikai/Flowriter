@@ -112,6 +112,9 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'fmt.codeblock', title: '代碼塊', group: F, keys: ['Mod+Shift+K'], editorOnly: true, run: fmt('codeblock') },
     { id: 'fmt.math', title: '數學公式塊', group: F, keys: ['Mod+Shift+M'], editorOnly: true, run: fmt('math') },
     { id: 'fmt.table', title: '插入表格', group: F, keys: ['Mod+T'], editorOnly: true, run: fmt('table') },
+    { id: 'fmt.toc', title: '插入目錄 [TOC]', group: F, editorOnly: true, run: fmt('toc') },
+    { id: 'fmt.footnote', title: '插入腳註', group: F, keys: ['Mod+Alt+F'], editorOnly: true, run: fmt('footnote') },
+    { id: 'fmt.frontmatter', title: '插入 YAML 前置資料', group: F, editorOnly: true, run: fmt('frontmatter') },
     { id: 'fmt.hr', title: '分隔線', group: F, editorOnly: true, run: fmt('hr') }
   ]
 }

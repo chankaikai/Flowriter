@@ -38,6 +38,7 @@ import {
   typewriterPlugin,
   type SearchInfo
 } from './plugins'
+import { extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
 import { renderMermaid } from '@/lib/mermaid'
 import { LARGE_DOC } from '@/lib/markdown'
 
@@ -45,7 +46,7 @@ export type FormatName =
   | 'strong' | 'em' | 'strike' | 'code' | 'link'
   | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p'
   | 'quote' | 'ul' | 'ol' | 'task' | 'codeblock' | 'math' | 'table' | 'hr'
-  | 'undo' | 'redo'
+  | 'undo' | 'redo' | 'toc' | 'footnote' | 'frontmatter'
 
 export interface EditorHandle {
   getMarkdown(): string
@@ -127,6 +128,7 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       .use(typewriterPlugin)
       .use(searchPlugin)
       .use(wikiPlugin)
+      .use(extraPlugins)
       .use(makeChangePlugin(() => propsRef.current.onEdit()))
 
     const start = async () => {
@@ -193,6 +195,11 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
     const root = rootRef.current
     if (!root) return
     const onClick = (e: MouseEvent) => {
+      const t = e.target as HTMLElement
+      if (t.closest('.fn-ref, .fn-label')) {
+        const v = view()
+        if (v && jumpFootnote(v, t)) return
+      }
       if (!(e.ctrlKey || e.metaKey)) return
       const a = (e.target as HTMLElement).closest('a[href]') as HTMLAnchorElement | null
       if (!a) return
@@ -240,6 +247,9 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
         case 'math': c.editor.action(insert('$$\n\n$$')); break
         case 'table': run(insertTableCommand.key, { row: 3, col: 3 }); break
         case 'hr': run(insertHrCommand.key); break
+        case 'toc': c.editor.action(insert('[TOC]')); break
+        case 'footnote': { const v = view(); if (v) insertFootnote(v); return }
+        case 'frontmatter': { const v = view(); if (v) insertFrontMatter(v); return }
         case 'undo': run(undoCommand.key); break
         case 'redo': run(redoCommand.key); break
       }

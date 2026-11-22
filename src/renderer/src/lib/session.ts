@@ -3,6 +3,10 @@ export interface SavedTab {
   name: string
   /** 只有未命名分頁才保存內容；有路徑的分頁重開時從磁碟讀取 */
   md?: string
+  /** 有路徑的分頁若有未儲存的更改，這裡保留一份（約每 5 秒更新），崩潰後可恢復 */
+  dirtyMd?: string
+  /** 保存當時磁碟檔案的修改時間，恢復時用來判斷檔案是否在這之後被外部改過 */
+  base?: number
   scroll: number
 }
 export interface SavedSession {

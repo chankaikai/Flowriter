@@ -46,3 +46,11 @@ body { max-width: none; margin: 0; padding: 48px; background: linear-gradient(13
   box-shadow: 0 24px 60px rgba(40,40,70,.16), inset 0 1px 0 #fff; }
 .share-foot { margin: 22px 0 0; text-align: center; font-size: 12px; letter-spacing: .18em; color: #8a8478; }
 `
+
+/** [TOC] 目錄樣式 */
+export const TOC_CSS = `
+.toc { margin: 1.4em 0; padding: 14px 18px; border-radius: 10px; background: rgba(120,120,120,.08); }
+.toc-title { font-weight: 600; margin-bottom: 6px; }
+.toc a { display: block; padding: 2px 0; color: inherit; text-decoration: none; opacity: .85; }
+.toc a:hover { text-decoration: underline; }
+`

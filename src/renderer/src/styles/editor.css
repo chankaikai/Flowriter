@@ -128,3 +128,34 @@
   animation: veil 1.1s var(--ease) infinite;
 }
 @keyframes veil { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+
+/* ---------- front matter / 腳註 / [TOC] ---------- */
+.milkdown .ProseMirror pre.front-matter {
+  margin: 0 0 1.6em; padding: 12px 16px; border-radius: 12px; font: 13px/1.7 var(--font-mono, ui-monospace, monospace);
+  color: var(--fg-muted); background: color-mix(in srgb, var(--accent) 7%, transparent);
+  border: 1px dashed var(--line-strong); white-space: pre-wrap;
+}
+.milkdown .ProseMirror pre.front-matter::before {
+  content: 'FRONT MATTER'; display: block; margin-bottom: 4px; font-size: 10px; letter-spacing: .14em; opacity: .55;
+}
+.milkdown .ProseMirror sup.fn-ref {
+  color: var(--accent); cursor: pointer; font-size: .72em; padding: 0 1px; font-weight: 600;
+}
+.milkdown .ProseMirror sup.fn-ref::before { content: '['; opacity: .5; }
+.milkdown .ProseMirror sup.fn-ref::after { content: ']'; opacity: .5; }
+.milkdown .ProseMirror .fn-def { display: flex; gap: 10px; margin: .4em 0; font-size: .92em; color: var(--fg-muted); }
+.milkdown .ProseMirror .fn-def:first-of-type { margin-top: 2em; padding-top: 1em; border-top: 1px solid var(--line); }
+.milkdown .ProseMirror .fn-label { flex: none; color: var(--accent); cursor: pointer; font-weight: 600; user-select: none; }
+.milkdown .ProseMirror .fn-label::after { content: '.'; }
+.milkdown .ProseMirror .fn-body { flex: 1; min-width: 0; }
+.milkdown .ProseMirror .fn-body > p { margin: 0; }
+.fn-flash { animation: fnflash 1.2s ease; }
+@keyframes fnflash { 0%, 40% { background: color-mix(in srgb, var(--accent) 28%, transparent); } 100% { background: transparent; } }
+.milkdown .ProseMirror .md-toc {
+  margin: 1.2em 0; padding: 14px 18px; border-radius: 14px; background: color-mix(in srgb, var(--fg) 4.5%, transparent);
+  border: 1px solid var(--line);
+}
+.md-toc-title { font-size: 12px; letter-spacing: .12em; color: var(--fg-muted); margin-bottom: 6px; }
+.md-toc-item { display: block; padding: 3px 0; color: var(--fg); opacity: .82; cursor: pointer; text-decoration: none; }
+.md-toc-item:hover { color: var(--accent); opacity: 1; }
+.md-toc-empty { color: var(--fg-muted); font-size: 13px; }

@@ -65,13 +65,34 @@ function readAsDataUrl(file: File): Promise<string> {
   })
 }
 
+interface PoolEntry {
+  key: number
+  tabId: number
+  /** 建立編輯器時使用的初始內容 */
+  initial: string
+  /** 離開分頁時記下的內容，用來判斷之後是否可直接沿用實例 */
+  md: string
+  used: number
+}
+const MAX_LIVE = 5
+
 export default function App() {
   const [settings, update] = useSettings()
   const [matKind, setMatKind] = useState<MaterialSupport>('none')
   const resolvedTheme = useApplySettings(settings, matKind !== 'none')
 
   const [doc, setDoc] = useState<DocMeta>({ path: null, name: '未命名' })
-  const [session, setSession] = useState({ key: 1, initial: WELCOME })
+  // 每個分頁各自保留一個編輯器實例（最近用過的 MAX_LIVE 個），切換分頁時撤銷歷史、選區都不會丟
+  const [pool, setPool] = useState<PoolEntry[]>([{ key: 1, tabId: 1, initial: WELCOME, md: WELCOME, used: 1 }])
+  const [activeTabId, setActiveTabId] = useState(1)
+  const [srcKey, setSrcKey] = useState(0)
+  const poolRef = useRef(pool)
+  poolRef.current = pool
+  const poolKey = useRef(1)
+  const poolTick = useRef(1)
+  const activeEntry = pool.find((p) => p.tabId === activeTabId)
+  /** 目前分頁的編輯器身分：換分頁、重新建立編輯器都會改變 */
+  const session = { key: activeEntry ? activeEntry.key : -srcKey }
   const [mode, setMode] = useState<Mode>('wysiwyg')
   const [dirty, setDirty] = useState(false)
   const [stats, setStats] = useState<DocStats>(() => computeStats(WELCOME))
@@ -135,7 +156,7 @@ export default function App() {
   }, [toast])
 
   /** 把分頁狀態寫入 localStorage，供下次啟動還原。還原完成前不寫入，避免覆蓋舊資料。 */
-  const persistSession = useCallback(() => {
+  const persistSession = useCallback((cleanExit = false) => {
     if (!restored.current) return
     const act = activeIdRef.current
     const kept = tabsRef.current
@@ -148,6 +169,9 @@ export default function App() {
           path,
           name: live ? docRef.current.name : t.name,
           md: path ? undefined : md.length < 300_000 ? md : '',
+          // 崩潰恢復：有路徑且有未儲存更改的分頁，把內容也留一份。正常關閉（cleanExit）時使用者已決定存或棄，不再保留
+          dirtyMd: path && !cleanExit && md !== (live ? savedRef.current : t.saved) && md.length < 300_000 ? md : undefined,
+          base: path ? t.mtime : undefined,
           scroll: live ? (scrollRef.current?.scrollTop ?? t.scroll) : t.scroll
         }
       })
@@ -266,7 +290,38 @@ export default function App() {
     t.md = mdRef.current
     t.saved = savedRef.current
     t.scroll = scrollRef.current?.scrollTop ?? 0
+    // 記下這個實例目前持有的內容；之後分頁內容若被外部改掉（還原版本等），才知道要重建
+    const e = poolRef.current.find((p) => p.tabId === t.id)
+    if (e) e.md = t.md
   }, [syncFromEditor])
+
+  /**
+   * 讓某分頁有可用的編輯器。已有實例且內容沒被外部改過就直接沿用（回傳 false），
+   * 否則建立新實例（回傳 true）。超過上限時淘汰最久沒用的背景實例。
+   */
+  const mountEditor = useCallback((tabId: number, md: string, force = false): boolean => {
+    if (modeRef.current !== 'wysiwyg') return false
+    const ex = poolRef.current.find((p) => p.tabId === tabId)
+    if (ex && !force && ex.md === md) {
+      ex.used = ++poolTick.current
+      return false
+    }
+    const entry: PoolEntry = { key: ++poolKey.current, tabId, initial: md, md, used: ++poolTick.current }
+    setPool((prev) => {
+      const alive = new Set(tabsRef.current.map((t) => t.id))
+      const next = [...prev.filter((p) => p.tabId !== tabId && alive.has(p.tabId)), entry]
+      while (next.length > MAX_LIVE) {
+        let oldest = -1
+        next.forEach((p, i) => {
+          if (p.tabId !== tabId && (oldest < 0 || p.used < next[oldest].used)) oldest = i
+        })
+        if (oldest < 0) break
+        next.splice(oldest, 1)
+      }
+      return next
+    })
+    return true
+  }, [])
 
   const activate = useCallback(
     (t: Tab) => {
@@ -274,12 +329,14 @@ export default function App() {
       activeIdRef.current = t.id
       mdRef.current = t.md
       lastLen.current = t.md.length
-      setLoading(t.md.length > LARGE_DOC && modeRef.current === 'wysiwyg')
+      const fresh = mountEditor(t.id, t.md)
+      setLoading(fresh && t.md.length > LARGE_DOC)
       savedRef.current = t.saved
       dirtyRef.current = t.md !== t.saved
       setDirty(dirtyRef.current)
       setDoc({ path: t.path, name: t.name })
-      setSession((s) => ({ key: s.key + 1, initial: t.md }))
+      setActiveTabId(t.id)
+      setSrcKey((k) => k + 1)
       setStats(computeStats(t.md))
       setOutline(parseOutline(t.md))
       setActiveHeading(-1)
@@ -287,7 +344,7 @@ export default function App() {
       const top = t.scroll
       requestAnimationFrame(() => requestAnimationFrame(() => scrollRef.current?.scrollTo({ top })))
     },
-    [publishTabs]
+    [publishTabs, mountEditor]
   )
 
   /** 離開目前分頁前：已有路徑且開啟自動儲存就先寫入磁碟。 */
@@ -359,10 +416,12 @@ export default function App() {
       if (rest.length === 0) {
         const nt: Tab = { id: nextTabId.current++, path: null, name: '未命名', md: '', saved: '', scroll: 0, mtime: 0 }
         tabsRef.current = [nt]
+        setPool([])
         activate(nt)
         return
       }
       tabsRef.current = rest
+      setPool((prev) => prev.filter((p) => p.tabId !== id))
       if (isActive) activate(rest[Math.min(idx, rest.length - 1)])
       else publishTabs()
     },
@@ -407,15 +466,24 @@ export default function App() {
     if (!sess || sess.tabs.length === 0) return
     const tabs: Tab[] = []
     let activeTab: Tab | undefined
+    let recovered = 0
+    let conflicts = 0
     for (let i = 0; i < sess.tabs.length; i++) {
       const st = sess.tabs[i]
       let t: Tab | null = null
       if (st.path) {
         const r = await window.api.readFile(st.path)
         if (r) {
+          const mt = (await window.api.statFile(st.path)) ?? 0
+          const useDirty = typeof st.dirtyMd === 'string' && st.dirtyMd !== r.content
+          if (useDirty) {
+            recovered++
+            if (st.base && mt > st.base) conflicts++
+          }
           t = {
-            id: nextTabId.current++, path: st.path, name: basename(st.path), md: r.content, saved: r.content,
-            scroll: st.scroll, mtime: (await window.api.statFile(st.path)) ?? 0
+            id: nextTabId.current++, path: st.path, name: basename(st.path),
+            md: useDirty ? (st.dirtyMd as string) : r.content, saved: r.content,
+            scroll: st.scroll, mtime: mt
           }
         }
       } else if (st.md) {
@@ -429,7 +497,13 @@ export default function App() {
     if (tabs.length === 0) return
     tabsRef.current = tabs
     activate(activeTab ?? tabs[0])
-  }, [activate])
+    if (recovered) {
+      showToast(
+        `已恢復 ${recovered} 個分頁上次未儲存的更改` +
+          (conflicts ? `，其中 ${conflicts} 個檔案之後被其他程式修改過，儲存前請留意` : '')
+      )
+    }
+  }, [activate, showToast])
 
   /** 視窗取得焦點時檢查已開啟的檔案是否被其他程式修改。 */
   const checkExternal = useCallback(async () => {
@@ -516,13 +590,17 @@ export default function App() {
   const toggleSource = useCallback(() => {
     syncFromEditor()
     if (modeRef.current === 'wysiwyg') {
+      snapshotActive()
+      setPool([])
       setMode('source')
     } else {
-      setSession((s) => ({ key: s.key + 1, initial: mdRef.current }))
+      modeRef.current = 'wysiwyg'
+      mountEditor(activeIdRef.current, mdRef.current, true)
+      setLoading(mdRef.current.length > LARGE_DOC)
       setMode('wysiwyg')
     }
     setFind(null)
-  }, [syncFromEditor])
+  }, [syncFromEditor, snapshotActive, mountEditor])
 
   const exportAs = useCallback(
     async (kind: ExportKind) => {
@@ -749,14 +827,19 @@ export default function App() {
   useEffect(() => {
     const onUnload = () => {
       syncFromEditor()
-      persistSession()
+      persistSession(true)
     }
+    // 崩潰 / 斷電保護：有未儲存內容時，每 5 秒把狀態寫一次
+    const tick = window.setInterval(() => {
+      if (dirtyRef.current || tabsRef.current.some((t) => t.md !== t.saved)) persistSession()
+    }, 5000)
     const onFocus = () => void checkExternal()
     window.addEventListener('beforeunload', onUnload)
     window.addEventListener('focus', onFocus)
     return () => {
       window.removeEventListener('beforeunload', onUnload)
       window.removeEventListener('focus', onFocus)
+      window.clearInterval(tick)
     }
   }, [checkExternal, persistSession, syncFromEditor])
 
@@ -833,6 +916,11 @@ export default function App() {
       autosaveTimer.current = window.setTimeout(() => void save(true), Math.max(1200, lastLen.current / 100))
     }
   }, [markDirty, refreshDerived, save])
+
+  // 切到已存在的實例時不會再觸發 onReady，這裡補上
+  useEffect(() => {
+    setEditorReady(editorRef.current)
+  }, [session.key])
 
   const onEditorReady = useCallback(() => {
     setLoading(false)
@@ -1086,9 +1174,13 @@ export default function App() {
         <div className="stage">
           <div className="editor-scroll" ref={scrollRef}>
             {mode === 'wysiwyg' ? (
+              pool.map((entry) => {
+                const isActive = entry.tabId === activeTabId
+                return (
               <div
-                className={`editor-col doc-in${stats.chars > 100_000 ? ' big-doc' : ''}`}
-                key={session.key}
+                className={`editor-col doc-in${isActive && stats.chars > 100_000 ? ' big-doc' : ''}`}
+                style={isActive ? undefined : { display: 'none' }}
+                key={entry.key}
                 onClick={(e) => {
                   const w = (e.target as HTMLElement).closest('.wikilink') as HTMLElement | null
                   if (w && (reading || e.ctrlKey || e.metaKey)) {
@@ -1125,9 +1217,9 @@ export default function App() {
                 }}
               >
                 <MarkdownEditor
-                  ref={editorRef}
-                  initialValue={session.initial}
-                  autofocus
+                  ref={isActive ? editorRef : undefined}
+                  initialValue={entry.initial}
+                  autofocus={isActive}
                   isDark={resolvedTheme === 'dark'}
                   onEdit={onEdit}
                   onReady={onEditorReady}
@@ -1135,8 +1227,10 @@ export default function App() {
                   resolveImageUrl={resolveImageUrl}
                 />
               </div>
+                )
+              })
             ) : (
-              <div className="source-col doc-in" key={`src-${session.key}`}>
+              <div className="source-col doc-in" key={`src-${srcKey}`}>
                 <SourceEditor ref={sourceRef} value={mdRef.current} onEdit={onEdit} />
               </div>
             )}
