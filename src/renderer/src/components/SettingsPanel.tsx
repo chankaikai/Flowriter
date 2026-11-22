@@ -4,6 +4,8 @@ import { formatKeys } from '@/lib/keys'
 import type { Settings, ThemeName } from '@/lib/settings'
 import { ExpandCard } from './ExpandCard'
 import { Icon } from './Icon'
+import { AiSetup } from './AiSetup'
+import { resolveAi } from '@/lib/ai'
 import { Segmented } from './Segmented'
 
 const THEMES: { value: ThemeName; label: string; bg: string; fg: string }[] = [
@@ -187,21 +189,12 @@ export function SettingsPanel({
             <ExpandCard
               icon="sparkle"
               title="AI 改寫"
-              summary={settings.aiKey ? `已設定金鑰 · ${settings.aiModel}` : '尚未設定 Anthropic API 金鑰'}
+              summary={(() => {
+                const r = resolveAi(settings)
+                return r.missing ? `${r.provider.label} · 尚未完成設定` : `${r.provider.label} · ${r.model}`
+              })()}
             >
-              <Row label="API 金鑰（只保存在這台電腦，經由本機程序直連 Anthropic）">
-                <input
-                  className="ai-input" type="password" autoComplete="off" spellCheck={false}
-                  placeholder="sk-ant-…" value={settings.aiKey}
-                  onChange={(e) => update({ aiKey: e.target.value.trim() })}
-                />
-              </Row>
-              <Row label="模型">
-                <input
-                  className="ai-input" spellCheck={false} value={settings.aiModel}
-                  onChange={(e) => update({ aiModel: e.target.value.trim() })}
-                />
-              </Row>
+              <AiSetup s={settings} update={update} />
             </ExpandCard>
 
             <ExpandCard

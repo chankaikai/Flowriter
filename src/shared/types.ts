@@ -31,6 +31,9 @@ export interface HistoryItem {
 }
 
 export interface AiRequest {
+  /** anthropic = Claude 原生介面；openai = OpenAI 相容的 /chat/completions */
+  kind: 'anthropic' | 'openai'
+  baseUrl: string
   apiKey: string
   model: string
   instruction: string

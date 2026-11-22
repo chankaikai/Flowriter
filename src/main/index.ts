@@ -440,36 +440,64 @@ function registerIpc(): void {
     }
   })
 
-  /* ---------- AI 改寫（Claude API，金鑰只留在本機） ---------- */
+  /* ---------- AI 改寫（金鑰只留在本機，請求由主程序直連服務商） ---------- */
+  const AI_SYSTEM =
+    '你是嚴謹的文字編輯。依指示處理使用者提供的 Markdown 片段，保留原有的 Markdown 語法與連結，只輸出處理後的正文，不要任何解釋、前言或程式碼圍欄。'
+
   ipcMain.handle(
     'ai:rewrite',
-    async (_e, r: { apiKey: string; model: string; instruction: string; text: string }) => {
-      if (!r.apiKey) return { error: '請先在偏好設定填入 Anthropic API 金鑰' }
+    async (
+      _e,
+      r: { kind: 'anthropic' | 'openai'; baseUrl: string; apiKey: string; model: string; instruction: string; text: string }
+    ) => {
+      const user = `${r.instruction}\n\n---\n${r.text}`
+      const ctl = new AbortController()
+      const timer = setTimeout(() => ctl.abort(), 120_000)
       try {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'x-api-key': r.apiKey,
-            'anthropic-version': '2023-06-01'
-          },
-          body: JSON.stringify({
-            model: r.model || 'claude-sonnet-5-5',
-            max_tokens: 4096,
-            system:
-              '你是嚴謹的文字編輯。依指示處理使用者提供的 Markdown 片段，保留原有的 Markdown 語法與連結，只輸出處理後的正文，不要任何解釋、前言或程式碼圍欄。',
-            messages: [{ role: 'user', content: `${r.instruction}\n\n---\n${r.text}` }]
+        if (r.kind === 'anthropic') {
+          const res = await fetch(`${r.baseUrl}/v1/messages`, {
+            method: 'POST',
+            signal: ctl.signal,
+            headers: { 'content-type': 'application/json', 'x-api-key': r.apiKey, 'anthropic-version': '2023-06-01' },
+            body: JSON.stringify({ model: r.model, max_tokens: 4096, system: AI_SYSTEM, messages: [{ role: 'user', content: user }] })
           })
-        })
-        const j = (await res.json()) as {
-          content?: { type: string; text?: string }[]
-          error?: { message?: string }
+          const j = (await res.json()) as { content?: { type: string; text?: string }[]; error?: { message?: string } }
+          if (!res.ok) return { error: j.error?.message || `請求失敗（${res.status}）` }
+          const text = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('')
+          return text ? { text } : { error: '模型沒有回傳內容' }
         }
-        if (!res.ok) return { error: j.error?.message || `請求失敗（${res.status}）` }
-        const text = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('')
+        const headers: Record<string, string> = { 'content-type': 'application/json' }
+        if (r.apiKey) headers.authorization = `Bearer ${r.apiKey}`
+        const body: Record<string, unknown> = {
+          model: r.model,
+          temperature: 0.3,
+          messages: [
+            { role: 'system', content: AI_SYSTEM },
+            { role: 'user', content: user }
+          ]
+        }
+        // 通義千問的開源 Qwen3 系列在非串流請求下必須關閉思考模式
+        if (/dashscope/i.test(r.baseUrl)) body.enable_thinking = false
+        const res = await fetch(`${r.baseUrl}/chat/completions`, { method: 'POST', signal: ctl.signal, headers, body: JSON.stringify(body) })
+        const raw = await res.text()
+        let j: { choices?: { message?: { content?: string } }[]; error?: { message?: string } | string } = {}
+        try {
+          j = JSON.parse(raw)
+        } catch {
+          return { error: `服務回傳了無法解析的內容（${res.status}）` }
+        }
+        if (!res.ok) {
+          const m = typeof j.error === 'string' ? j.error : j.error?.message
+          return { error: m || `請求失敗（${res.status}）` }
+        }
+        // 部分推理模型會把思考過程包在 <think> 裡，這裡去掉
+        const text = (j.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '').trim()
         return text ? { text } : { error: '模型沒有回傳內容' }
       } catch (err) {
-        return { error: `網路錯誤：${(err as Error).message}` }
+        const e = err as Error
+        return { error: e.name === 'AbortError' ? '請求逾時' : `網路錯誤：${e.message}` }
+      } finally {
+        clearTimeout(timer)
       }
     }
   )

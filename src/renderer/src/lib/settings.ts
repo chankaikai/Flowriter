@@ -22,8 +22,10 @@ export interface Settings {
   autoTheme: boolean
   inkRipple: boolean
   dailyGoal: number
-  aiKey: string
-  aiModel: string
+  aiProvider: string
+  aiKeys: Record<string, string>
+  aiModels: Record<string, string>
+  aiBaseUrls: Record<string, string>
   lastFolder: string | null
 }
 
@@ -47,14 +49,24 @@ export const DEFAULT_SETTINGS: Settings = {
   autoTheme: false,
   inkRipple: true,
   dailyGoal: 800,
-  aiKey: '',
-  aiModel: 'claude-sonnet-5-5',
+  aiProvider: 'anthropic',
+  aiKeys: {},
+  aiModels: {},
+  aiBaseUrls: {},
   lastFolder: null
 }
 
 function load(): Settings {
   try {
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(KEY) || '{}') }
+    const j = JSON.parse(localStorage.getItem(KEY) || '{}')
+    // 舊版只有單一 Claude 金鑰：搬到新的分服務商結構
+    if (j.aiKey && !j.aiKeys) {
+      j.aiKeys = { anthropic: j.aiKey }
+      if (j.aiModel) j.aiModels = { anthropic: j.aiModel }
+    }
+    delete j.aiKey
+    delete j.aiModel
+    return { ...DEFAULT_SETTINGS, ...j }
   } catch {
     return DEFAULT_SETTINGS
   }

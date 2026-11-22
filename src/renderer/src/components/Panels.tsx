@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Icon, type IconName } from './Icon'
-import { setAmbient, setAmbientVolume, type AmbientKind } from '@/lib/ambient'
-import { fmtClock, type PomoState } from '@/lib/pomodoro'
+import { AMBIENT_LIST, setAmbient, setAmbientVolume, type AmbientKind } from '@/lib/ambient'
+import { fmtClock, PRESETS, type PomoConfig, type PomoState } from '@/lib/pomodoro'
 import { lastDays, streak, type WritingData, dayKey } from '@/lib/writing'
 import type { HistoryItem, SearchHit } from '../../../shared/types'
 import { basename, stripExt } from '@/lib/path'
+import { AiSetup } from './AiSetup'
+import { resolveAi, type AiPrefs } from '@/lib/ai'
 
 /** 停靠欄上方的浮動玻璃面板，一次只開一個。 */
 export function Popover({
@@ -180,50 +182,86 @@ export function DashboardPanel({
 
 /* ------------------------------ 專注：番茄鐘 + 氛圍音 ------------------------------ */
 
-const AMBIENT: { k: AmbientKind; label: string }[] = [
-  { k: 'off', label: '靜音' }, { k: 'rain', label: '雨聲' }, { k: 'brown', label: '深沉白噪' }, { k: 'cafe', label: '咖啡館' }
-]
+const NumField = ({
+  label, value, min, max, onChange, unit
+}: { label: string; value: number; min: number; max: number; unit?: string; onChange(n: number): void }) => (
+  <label className="num-field">
+    <span>{label}</span>
+    <input
+      type="number" min={min} max={max} value={value}
+      onChange={(e) => e.target.value !== '' && onChange(+e.target.value)}
+    />
+    {unit && <em>{unit}</em>}
+  </label>
+)
 
 export function FocusPanel({
-  st, toggle, reset, setLengths, ambient, setAmbientKind
+  st, toggle, reset, skip, setConfig, ambient, setAmbientKind
 }: {
   st: PomoState
   toggle(): void
   reset(): void
-  setLengths(w: number, r: number): void
+  skip(): void
+  setConfig(p: Partial<PomoConfig>): void
   ambient: AmbientKind
   setAmbientKind(k: AmbientKind): void
 }) {
   const [vol, setVol] = useState(0.35)
+  const [custom, setCustom] = useState(false)
   const volRef = useRef(vol)
   volRef.current = vol
   useEffect(() => {
     setAmbient(ambient, volRef.current)
   }, [ambient])
-  const presets: [number, number][] = [[25, 5], [50, 10], [15, 3]]
+  const isPreset = PRESETS.some((p) => p.work === st.workMin && p.rest === st.restMin)
+  const phaseLabel = st.phase === 'work' ? '專注' : st.long ? '長休息' : '休息'
   return (
     <>
       <div className="pomo">
         <Ring value={1 - st.left / st.total} size={132}>
           <b className="clock">{fmtClock(st.left)}</b>
-          <small>{st.phase === 'work' ? '專注' : '休息'} · 今日 {st.rounds} 輪</small>
+          <small>{phaseLabel} · 今日 {st.rounds} 輪</small>
         </Ring>
         <div className="pomo-ctl">
           <button className="btn" onClick={toggle}>{st.running ? '暫停' : '開始'}</button>
           <button className="btn ghost" onClick={reset}>重設</button>
+          <button className="btn ghost" onClick={skip}>跳過</button>
         </div>
-        <div className="chips">
-          {presets.map(([w, r]) => (
-            <button key={w} className={`chip${st.workMin === w ? ' on' : ''}`} onClick={() => setLengths(w, r)}>
-              {w} / {r}
+        <div className="chips center">
+          {PRESETS.map((p) => (
+            <button
+              key={p.label}
+              className={`chip${!custom && st.workMin === p.work && st.restMin === p.rest ? ' on' : ''}`}
+              onClick={() => {
+                setCustom(false)
+                setConfig({ workMin: p.work, restMin: p.rest })
+              }}
+            >
+              {p.label}
             </button>
           ))}
+          <button className={`chip${custom || !isPreset ? ' on' : ''}`} onClick={() => setCustom(!custom)}>
+            自訂
+          </button>
         </div>
+        {(custom || !isPreset) && (
+          <div className="pomo-cfg">
+            <NumField label="專注" unit="分" value={st.workMin} min={1} max={180} onChange={(n) => setConfig({ workMin: n })} />
+            <NumField label="休息" unit="分" value={st.restMin} min={1} max={60} onChange={(n) => setConfig({ restMin: n })} />
+            <NumField label="每" unit="輪" value={st.longEvery} min={0} max={12} onChange={(n) => setConfig({ longEvery: n })} />
+            <NumField label="長休息" unit="分" value={st.longMin} min={1} max={90} onChange={(n) => setConfig({ longMin: n })} />
+          </div>
+        )}
+        <label className="check-row">
+          <input type="checkbox" checked={st.auto} onChange={(e) => setConfig({ auto: e.target.checked })} />
+          階段結束後自動開始下一階段
+        </label>
+        {st.longEvery === 0 && <div className="hist-hint">「每 0 輪」表示不使用長休息。</div>}
       </div>
       <div className="set-sep" />
       <div className="hist-hint">氛圍音（即時合成，無需網路）</div>
       <div className="chips">
-        {AMBIENT.map((a) => (
+        {AMBIENT_LIST.map((a) => (
           <button key={a.k} className={`chip${ambient === a.k ? ' on' : ''}`} onClick={() => setAmbientKind(a.k)}>
             {a.label}
           </button>
@@ -252,52 +290,61 @@ const AI_PRESETS: { label: string; prompt: string }[] = [
 ]
 
 export function AiPanel({
-  selection, apiKey, model, onApply
-}: { selection: string; apiKey: string; model: string; onApply(md: string): void }) {
+  selection, prefs, update, onApply
+}: { selection: string; prefs: AiPrefs; update(patch: Partial<AiPrefs>): void; onApply(md: string): void }) {
   const [custom, setCustom] = useState('')
   const [busy, setBusy] = useState(false)
   const [out, setOut] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  const cfg = resolveAi(prefs)
 
   const run = async (instruction: string) => {
-    if (!instruction.trim() || busy) return
+    if (!instruction.trim() || busy || cfg.missing) return
     setBusy(true)
     setErr(null)
     setOut(null)
-    const r = await window.api.aiRewrite({ apiKey, model, instruction, text: selection })
+    const r = await window.api.aiRewrite({
+      kind: cfg.kind, baseUrl: cfg.baseUrl, apiKey: cfg.apiKey, model: cfg.model, instruction, text: selection
+    })
     setBusy(false)
     if ('error' in r) setErr(r.error)
     else setOut(r.text.trim())
   }
 
-  if (!apiKey) return <p className="pop-empty">請先到「偏好設定 → AI」填入 Anthropic API 金鑰。金鑰只保存在這台電腦。</p>
-  if (!selection) return <p className="pop-empty">先在編輯器中選取一段文字，再打開這個面板。</p>
   return (
     <>
-      <div className="ai-src">{selection.length > 260 ? `${selection.slice(0, 260)}…` : selection}</div>
-      <div className="chips">
-        {AI_PRESETS.map((p) => (
-          <button key={p.label} className="chip" disabled={busy} onClick={() => void run(p.prompt)}>
-            {p.label}
-          </button>
-        ))}
-      </div>
-      <div className="ai-row">
-        <input
-          className="ai-input" placeholder="或輸入自訂指示，Enter 送出" value={custom}
-          onChange={(e) => setCustom(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && void run(custom)}
-        />
-      </div>
-      {busy && <div className="ai-busy"><i /><span>Claude 正在改寫…</span></div>}
-      {err && <div className="ai-err">{err}</div>}
-      {out && (
+      <AiSetup s={prefs} update={update} compact />
+      {cfg.missing && <p className="pop-empty">{cfg.missing}。</p>}
+      {!selection ? (
+        <p className="pop-empty">先在編輯器中選取一段文字，再打開這個面板。</p>
+      ) : (
         <>
-          <div className="ai-out">{out}</div>
-          <div className="pop-actions">
-            <button className="btn" onClick={() => onApply(out)}>取代選取內容</button>
-            <button className="btn ghost" onClick={() => void navigator.clipboard.writeText(out)}>複製</button>
+          <div className="ai-src">{selection.length > 260 ? `${selection.slice(0, 260)}…` : selection}</div>
+          <div className="chips">
+            {AI_PRESETS.map((p) => (
+              <button key={p.label} className="chip" disabled={busy || !!cfg.missing} onClick={() => void run(p.prompt)}>
+                {p.label}
+              </button>
+            ))}
           </div>
+          <div className="ai-row">
+            <input
+              className="ai-input" placeholder="或輸入自訂指示，Enter 送出" value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && void run(custom)}
+            />
+          </div>
+          {busy && <div className="ai-busy"><i /><span>{cfg.provider.label} 正在改寫…</span></div>}
+          {err && <div className="ai-err">{err}</div>}
+          {out && (
+            <>
+              <div className="ai-out">{out}</div>
+              <div className="pop-actions">
+                <button className="btn" onClick={() => onApply(out)}>取代選取內容</button>
+                <button className="btn ghost" onClick={() => void navigator.clipboard.writeText(out)}>複製</button>
+              </div>
+            </>
+          )}
         </>
       )}
     </>

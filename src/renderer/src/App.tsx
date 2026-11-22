@@ -969,8 +969,10 @@ export default function App() {
     return () => document.removeEventListener('input', onInput, true)
   }, [settings.inkRipple])
 
-  const pomo = usePomodoro((phase) =>
-    showToast(phase === 'work' ? '專注完成，休息一下吧' : '休息結束，繼續書寫')
+  const pomo = usePomodoro((phase, nextLong) =>
+    showToast(
+      phase === 'work' ? (nextLong ? '專注完成，該好好休息一下了（長休息）' : '專注完成，休息一下吧') : '休息結束，繼續書寫'
+    )
   )
   useEffect(() => () => setAmbient('off', 0), [])
 
@@ -1186,8 +1188,8 @@ export default function App() {
             {panel === 'ai' && (
               <AiPanel
                 selection={aiSel}
-                apiKey={settings.aiKey}
-                model={settings.aiModel}
+                prefs={settings}
+                update={update}
                 onApply={(md) => {
                   editorRef.current?.insert(md)
                   setPanel(null)
