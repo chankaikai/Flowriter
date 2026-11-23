@@ -7,7 +7,7 @@
  * 這裡用自訂節點讓它們可以原樣往返（Markdown → 編輯器 → Markdown）。
  * 節點名稱都加上 inkwell 前綴，避免與未來預設 preset 的同名節點衝突。
  */
-import { $inputrule, $node, $prose, $remark, $view } from '@milkdown/kit/utils'
+import { $inputRule, $node, $prose, $remark, $view } from '@milkdown/kit/utils'
 import { InputRule } from '@milkdown/kit/prose/inputrules'
 import { Plugin, PluginKey } from '@milkdown/kit/prose/state'
 import { Decoration, DecorationSet } from '@milkdown/kit/prose/view'
@@ -114,7 +114,7 @@ export const footnoteDefNode = $node('inkwell_fndef', () => ({
 }))
 
 /** 輸入 [^名稱] 時自動變成腳註引用 */
-export const footnoteInputRule = $inputrule(
+export const footnoteInputRule = $inputRule(
   (ctx) =>
     new InputRule(/\[\^([^\]\s]{1,30})\]$/, (state, match, start, end) => {
       const type = footnoteRefNode.type(ctx)
