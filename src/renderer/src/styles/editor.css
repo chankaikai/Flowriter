@@ -195,3 +195,11 @@
 .fm-chip.fm-bool { cursor: pointer; transition: background .2s, color .2s; }
 .fm-chip.on { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
 .task-list button { text-align: left; }
+
+/* ---- 段落權重：左側細條，越長越粗越深（body.show-weight 時才顯示） ---- */
+body.show-weight .milkdown .ProseMirror p.pw { border-left: 3px solid transparent; padding-left: 10px; margin-left: -13px; transition: border-color .3s; }
+body.show-weight .milkdown .ProseMirror p.pw-1 { border-left-color: color-mix(in srgb, var(--accent) 10%, transparent); }
+body.show-weight .milkdown .ProseMirror p.pw-2 { border-left-color: color-mix(in srgb, var(--accent) 22%, transparent); }
+body.show-weight .milkdown .ProseMirror p.pw-3 { border-left-color: color-mix(in srgb, var(--accent) 38%, transparent); }
+body.show-weight .milkdown .ProseMirror p.pw-4 { border-left-color: color-mix(in srgb, var(--accent) 58%, transparent); }
+body.show-weight .milkdown .ProseMirror p.pw-5 { border-left-color: var(--accent); }

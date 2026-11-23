@@ -561,6 +561,103 @@ export function sortTable(view: EditorView, dir: 'asc' | 'desc'): boolean {
   return true
 }
 
+/** 在文件裡找第一處包含 text 的文字並選取（用來從診斷結果、朗讀跳到對應位置）。 */
+export function gotoText(view: EditorView, text: string, from = 0): boolean {
+  const needle = text.trim()
+  if (!needle) return false
+  let hit: { from: number; to: number } | null = null
+  view.state.doc.descendants((node: any, pos: number) => {
+    if (hit) return false
+    if (!node.isTextblock) return true
+    let str = ''
+    const map: number[] = []
+    node.forEach((child: any, offset: number) => {
+      if (child.isText) {
+        for (let i = 0; i < child.text.length; i++) map.push(pos + 1 + offset + i)
+        str += child.text
+      } else {
+        map.push(pos + 1 + offset)
+        str += '\ufffc'
+      }
+    })
+    const at = str.indexOf(needle.length > 80 ? needle.slice(0, 80) : needle)
+    if (at >= 0 && pos + 1 + at >= from) {
+      const len = Math.min(needle.length, 80)
+      hit = { from: map[at], to: (map[at + len - 1] ?? map[at]) + 1 }
+    }
+    return false
+  })
+  if (!hit) return false
+  const h = hit as { from: number; to: number }
+  const TS = (view.state.selection.constructor as any)
+  const sel = (TS as any).create ? TS.create(view.state.doc, h.from, h.to) : TS.near(view.state.doc.resolve(h.from))
+  view.dispatch(view.state.tr.setSelection(sel).scrollIntoView())
+  return true
+}
+
+/** 從游標所在的段落開始到文末的純文字（每個區塊一行）。 */
+export function textFromCaret(view: EditorView): string {
+  const { doc, selection } = view.state
+  const start = selection.$from.start(Math.min(1, selection.$from.depth)) - (selection.$from.depth ? 1 : 0)
+  const parts: string[] = []
+  doc.nodesBetween(Math.max(0, start), doc.content.size, (node: any) => {
+    if (node.isTextblock) {
+      if (node.type.name !== 'inkwell_front_matter' && !node.type.spec.code) parts.push(node.textContent)
+      return false
+    }
+    return true
+  })
+  return parts.join('\n')
+}
+
+/* ------------------------------ 段落權重（只加 class，由 CSS 決定要不要顯示） ------------------------------ */
+
+export const weightPlugin = $prose(() => {
+  const key = new PluginKey('inkwell-weight')
+  const build = (doc: any): DecorationSet => {
+    const lens: number[] = []
+    doc.forEach((n: any) => lens.push(n.type.name === 'paragraph' ? n.textContent.length : 0))
+    const sorted = lens.filter((n) => n > 0).sort((a, b) => a - b)
+    if (sorted.length < 4) return DecorationSet.empty
+    const q = (p: number) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))]
+    const cuts = [q(0.2), q(0.4), q(0.6), q(0.8)]
+    const decos: Decoration[] = []
+    let pos = 0
+    doc.forEach((n: any, _o: number, i: number) => {
+      const len = lens[i]
+      if (len > 0) {
+        const w = 1 + cuts.filter((c) => len > c).length // 1..5
+        decos.push(Decoration.node(pos, pos + n.nodeSize, { class: `pw pw-${w}` }))
+      }
+      pos += n.nodeSize
+    })
+    return DecorationSet.create(doc, decos)
+  }
+  let timer = 0
+  return new Plugin({
+    key,
+    state: {
+      init: (_c, st) => build(st.doc),
+      apply(tr, old) {
+        const meta = tr.getMeta(key)
+        if (meta) return meta as DecorationSet
+        return tr.docChanged ? old.map(tr.mapping, tr.doc) : old
+      }
+    },
+    props: { decorations: (st) => key.getState(st) },
+    view: () => ({
+      update(view, prev) {
+        if (prev.doc === view.state.doc || !document.body.classList.contains('show-weight')) return
+        window.clearTimeout(timer)
+        timer = window.setTimeout(() => {
+          if (!view.isDestroyed) view.dispatch(view.state.tr.setMeta(key, build(view.state.doc)).setMeta('addToHistory', false))
+        }, 600)
+      },
+      destroy: () => window.clearTimeout(timer)
+    })
+  })
+})
+
 /* ------------------------------ front matter 徽章（畫面裝飾；布林可點擊切換） ------------------------------ */
 
 export const frontMatterBadgePlugin = $prose(() => {
@@ -631,5 +728,6 @@ export const extraPlugins = [
   calloutPlugin,
   calcPlugin,
   footnoteTipPlugin,
-  frontMatterBadgePlugin
+  frontMatterBadgePlugin,
+  weightPlugin
 ].flat()

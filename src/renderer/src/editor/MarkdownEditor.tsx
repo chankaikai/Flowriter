@@ -39,7 +39,7 @@ import {
   type SearchInfo
 } from './plugins'
 import { TextSelection } from '@milkdown/kit/prose/state'
-import { gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
+import { gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
 import { renderMermaid } from '@/lib/mermaid'
 import { LARGE_DOC } from '@/lib/markdown'
 
@@ -70,6 +70,10 @@ export interface EditorHandle {
   setCaret(pos: number): boolean
   /** 跳到文字相符的任務項目 */
   gotoTask(text: string): boolean
+  /** 找到並選取第一處包含該文字的位置 */
+  gotoText(text: string): boolean
+  /** 從游標所在段落到文末的純文字 */
+  textFromCaret(): string
   /** 游標的螢幕座標，沒有編輯器或找不到時回傳 null */
   caretRect(): { left: number; top: number; bottom: number } | null
 }
@@ -317,6 +321,16 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
     clearFind: () => {
       const v = view()
       if (v) searchClear(v)
+    },
+
+    gotoText(text) {
+      const v = view()
+      return v ? gotoText(v, text) : false
+    },
+
+    textFromCaret() {
+      const v = view()
+      return v ? textFromCaret(v) : ''
     },
 
     gotoTask(text) {

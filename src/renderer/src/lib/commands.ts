@@ -2,7 +2,7 @@ import type { FormatName } from '@/editor/MarkdownEditor'
 import type { SidebarTab, ThemeName } from './settings'
 
 export type ExportKind = 'html' | 'pdf' | 'docx' | 'md' | 'png'
-export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks' | 'vault'
+export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks' | 'vault' | 'diag' | 'clips'
 
 export interface Actions {
   newDoc(): void
@@ -30,6 +30,8 @@ export interface Actions {
   toggleSticky(): void
   setResumeHint(): void
   milestone(): void
+  toggleWeight(): void
+  toggleSpeak(): void
   openPanel(p: PanelName): void
 }
 
@@ -93,6 +95,10 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'panel.tasks', title: '任務收集', group: '面板', keys: ['Mod+Alt+J'], run: () => a.openPanel('tasks') },
     { id: 'panel.vault', title: '時間膠囊與加密抽屜', group: '面板', keys: ['Mod+Alt+V'], run: () => a.openPanel('vault') },
     { id: 'doc.milestone', title: '標記目前版本為里程碑…', group: '檔案', run: a.milestone },
+    { id: 'panel.diag', title: '文件健檢、排版與文風', group: '面板', keys: ['Mod+Alt+K'], run: () => a.openPanel('diag') },
+    { id: 'panel.clips', title: '剪貼簿收集', group: '面板', keys: ['Mod+Alt+B'], run: () => a.openPanel('clips') },
+    { id: 'view.weight', title: '顯示／隱藏段落權重', group: '檢視', keys: ['Mod+Alt+W'], run: a.toggleWeight },
+    { id: 'doc.speak', title: '朗讀校對（選取處或從游標開始）', group: '檔案', keys: ['Mod+Alt+Y'], run: a.toggleSpeak },
     { id: 'panel.links', title: '連結與反向連結', group: '面板', keys: ['Mod+Alt+L'], run: () => a.openPanel('links') },
     { id: 'app.settings', title: '偏好設定', group: '檢視', keys: ['Mod+Comma'], run: a.openSettings },
 

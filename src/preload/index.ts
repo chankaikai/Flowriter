@@ -49,6 +49,12 @@ const api: InkwellApi = {
   aiTest: (r) => inv('ai:test', r),
   aiBalance: (r) => inv('ai:balance', r),
   exportImage: (o) => inv('export:image', o),
+  clipWatch: (on) => inv('clip:watch', on),
+  onClip: (cb) => {
+    const handler = (_e: unknown, text: string) => cb(text)
+    ipcRenderer.on('clip', handler)
+    return () => ipcRenderer.removeListener('clip', handler)
+  },
   onMenu: (cb) => {
     const handler = (_e: unknown, action: string) => cb(action)
     ipcRenderer.on('menu', handler)

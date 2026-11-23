@@ -117,5 +117,7 @@ export interface InkwellApi {
   aiTest(req: AiRequest): Promise<{ ok: true; reply: string; ms: number } | { ok: false; error: string; ms: number }>
   /** 把 HTML 渲染成長圖（PNG）並讓使用者選擇儲存位置 */
   exportImage(opts: { name: string; html: string; width: number }): Promise<string | null>
+  clipWatch(on: boolean): Promise<boolean>
+  onClip(cb: (text: string) => void): () => void
   onMenu(cb: (action: string) => void): () => void
 }

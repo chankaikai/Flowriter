@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, protocol, shell } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, net, protocol, shell } from 'electron'
 import { balanceKind } from '../shared/aiHosts'
 import { basename, dirname, extname, join, relative, sep } from 'node:path'
 import { promises as fs } from 'node:fs'
@@ -537,6 +537,30 @@ function registerIpc(): void {
       return null
     }
   })
+
+  /* ---------- 剪貼簿收集（使用者手動開啟才會輪詢；內容只送到視窗、不落地） ---------- */
+  let clipTimer: ReturnType<typeof setInterval> | null = null
+  let clipLast = ''
+  const clipStop = () => {
+    if (clipTimer) clearInterval(clipTimer)
+    clipTimer = null
+  }
+  ipcMain.handle('clip:watch', (e, on: boolean) => {
+    clipStop()
+    if (!on) return true
+    const wc = e.sender
+    clipLast = clipboard.readText() // 開啟當下已在剪貼簿的內容不收，避免把舊的機密收進來
+    clipTimer = setInterval(() => {
+      if (wc.isDestroyed()) return clipStop()
+      const t = clipboard.readText()
+      if (t && t !== clipLast) {
+        clipLast = t
+        wc.send('clip', t.slice(0, 20000))
+      }
+    }, 700)
+    return true
+  })
+  app.on('before-quit', clipStop)
 
   /* ---------- 時間膠囊（軟鎖：依本機時鐘，到期前不回傳內容） ---------- */
   const capDir = () => join(app.getPath('userData'), 'capsules')

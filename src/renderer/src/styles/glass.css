@@ -421,3 +421,10 @@ body.mode-sticky .editor-col { --maxw: 100%; padding-left: 10px; padding-right: 
 .ai-quota { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
 .ai-quota-title { font-size: 12px; font-weight: 600; color: var(--fg); }
 .ai-quota a { color: var(--accent); }
+
+/* ---- 診斷列 ---- */
+.diag-row { display: flex; gap: 8px; text-align: left; padding: 6px 8px; border-radius: 8px; background: var(--hover); font-size: 12.5px; line-height: 1.5; }
+.diag-row b { flex: none; font-size: 11px; padding: 0 6px; border-radius: 6px; height: 18px; line-height: 18px; }
+.diag-row.lv-error b { background: color-mix(in srgb, #d6455d 20%, transparent); color: #d6455d; }
+.diag-row.lv-warn b { background: color-mix(in srgb, #d8902a 22%, transparent); color: #b87414; }
+.diag-row.lv-info b { background: color-mix(in srgb, var(--fg) 8%, transparent); color: var(--fg-muted); }

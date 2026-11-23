@@ -10,6 +10,9 @@ import { Icon } from '@/components/Icon'
 import { Dock, type DockItem } from '@/components/Dock'
 import { usePill } from '@/lib/pill'
 import { AiPanel, DashboardPanel, FocusPanel, LinksPanel, Popover, TasksPanel } from '@/components/Panels'
+import { ClipPanel, DiagnosticsPanel, useClipStack } from '@/components/FlowPanels'
+import { checkImages, healthCheck } from '@/lib/health'
+import { speak, splitSentences, ttsAvailable, type SpeakHandle } from '@/lib/tts'
 import { TimeMachine } from '@/components/TimeMachine'
 import { VaultPanel } from '@/components/VaultPanel'
 import { usePomodoro } from '@/lib/pomodoro'
@@ -27,7 +30,7 @@ import { loadRecent, loadSession, pushRecent, saveSession } from '@/lib/session'
 import { buildCommands, type Actions, type ExportKind, type PanelName } from '@/lib/commands'
 import { formatKeys, matchKey } from '@/lib/keys'
 import { LARGE_DOC, computeStats, parseOutline, type DocStats, type OutlineItem } from '@/lib/markdown'
-import { basename, dirname, stripExt, toDisplayUrl } from '@/lib/path'
+import { basename, dirname, stripExt, toAbsolutePath, toDisplayUrl } from '@/lib/path'
 import { useApplySettings, useSettings, type SidebarTab, type ThemeName } from '@/lib/settings'
 import { WELCOME } from '@/lib/welcome'
 import { buildHtmlDocument, renderHtmlBody } from '@/export/exportHtml'
@@ -647,6 +650,16 @@ export default function App() {
       const md = mdRef.current
       const base = stripExt(docRef.current.name)
       const dir = docRef.current.path ? dirname(docRef.current.path) : null
+      if (kind !== 'md') {
+        // 匯出前健檢：有「錯誤」等級的問題先問一聲
+        const h = healthCheck(md)
+        const miss = await checkImages(h.images, (src) => toAbsolutePath(dir, src), async (p) => (await window.api.statFile(p)) != null)
+        const errs = [...miss, ...h.issues].filter((i) => i.level === 'error')
+        if (errs.length && !window.confirm(`文件健檢發現 ${errs.length} 個錯誤，例如：\n${errs[0].message}\n\n仍要匯出嗎？（取消會打開健檢面板）`)) {
+          setPanel('diag')
+          return
+        }
+      }
       try {
         let out: string | null = null
         if (kind === 'md') {
@@ -753,6 +766,38 @@ export default function App() {
     showToast(v.trim() ? '已儲存接續提示' : '已清除接續提示')
   }, [askText, saveCaretNow, showToast])
 
+  const clipStack = useClipStack()
+  const speakRef = useRef<SpeakHandle | null>(null)
+  const [, setSpeaking] = useState(false)
+  useEffect(() => () => speakRef.current?.stop(), [])
+
+  const toggleSpeak = useCallback(() => {
+    if (speakRef.current) {
+      speakRef.current.stop()
+      return
+    }
+    const ed = editorRef.current
+    if (!ed) return showToast('朗讀只能在所見即所得模式使用')
+    if (!ttsAvailable()) return showToast('這台電腦沒有可用的語音合成')
+    const sentences = splitSentences(ed.selectionText() || ed.textFromCaret())
+    if (!sentences.length) return showToast('沒有可朗讀的文字')
+    setSpeaking(true)
+    speakRef.current = speak(sentences, {
+      rate: 1,
+      onSentence: (t) => editorRef.current?.gotoText(t),
+      onEnd: (why) => {
+        speakRef.current = null
+        setSpeaking(false)
+        if (why === 'error') showToast('朗讀失敗：可能沒有安裝中文語音')
+      }
+    })
+  }, [showToast])
+
+  const toggleWeight = useCallback(() => {
+    const on = document.body.classList.toggle('show-weight')
+    showToast(on ? '已顯示段落權重（左側色條越深，段落越長）' : '已隱藏段落權重')
+  }, [showToast])
+
   const milestoneCmd = useCallback(async () => {
     const path = docRef.current.path
     if (!path) return showToast('先儲存檔案，才能標記里程碑')
@@ -826,6 +871,8 @@ export default function App() {
     toggleSticky: () => toggleSticky(),
     setResumeHint: () => void setResumeHintCmd(),
     milestone: () => void milestoneCmd(),
+    toggleWeight: () => toggleWeight(),
+    toggleSpeak: () => toggleSpeak(),
     openPanel: (p) => openPanel(p),
     cycleTab: (d) => {
       const l = tabsRef.current
@@ -1079,6 +1126,8 @@ export default function App() {
     ],
     [
       { key: 'p-history', label: '版本時光機', icon: 'history', hint: hint('panel.history'), toggled: panel === 'history', run: () => openPanel('history') },
+      { key: 'p-diag', label: '健檢與排版', icon: 'diag', hint: hint('panel.diag'), toggled: panel === 'diag', run: () => openPanel('diag') },
+      { key: 'p-clips', label: clipStack.on ? '剪貼簿收集中' : '剪貼簿收集', icon: 'clip', hint: hint('panel.clips'), toggled: clipStack.on || panel === 'clips', run: () => openPanel('clips') },
       { key: 'p-vault', label: '膠囊與抽屜', icon: 'lock', hint: hint('panel.vault'), toggled: panel === 'vault', run: () => openPanel('vault') },
       { key: 'p-tasks', label: '任務收集', icon: 'tasks', hint: hint('panel.tasks'), toggled: panel === 'tasks', run: () => openPanel('tasks') },
       { key: 'p-links', label: '連結與反向連結', icon: 'link', hint: hint('panel.links'), toggled: panel === 'links', run: () => openPanel('links') },
@@ -1382,6 +1431,22 @@ export default function App() {
                 }}
               />
             )}
+          </Popover>
+          <Popover open={panel === 'diag'} icon="diag" title="文件健檢、排版與文風" onClose={() => setPanel(null)} wide>
+            {panel === 'diag' && (
+              <DiagnosticsPanel
+                md={mdRef.current}
+                docDir={doc.path ? dirname(doc.path) : null}
+                onJump={(t) => { if (!editorRef.current?.gotoText(t)) showToast('找不到對應位置（可能內含格式符號）') }}
+                onReplace={(m) => {
+                  replaceContent(m)
+                  showToast('已修正，原本的內容留在時光機裡')
+                }}
+              />
+            )}
+          </Popover>
+          <Popover open={panel === 'clips'} icon="clip" title="剪貼簿收集" onClose={() => setPanel(null)}>
+            <ClipPanel stack={clipStack} onInsert={(t) => editorRef.current?.insert(t)} />
           </Popover>
           <Popover open={panel === 'vault'} icon="lock" title="時間膠囊與加密抽屜" onClose={() => setPanel(null)}>
             {panel === 'vault' && (
