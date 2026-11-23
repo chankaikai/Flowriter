@@ -26,6 +26,8 @@ export interface Settings {
   aiKeys: Record<string, string>
   aiModels: Record<string, string>
   aiBaseUrls: Record<string, string>
+  /** AI 回覆長度上限（token）。推理模型思考很長，需要調大 */
+  aiMaxTokens: number
   lastFolder: string | null
 }
 
@@ -53,6 +55,7 @@ export const DEFAULT_SETTINGS: Settings = {
   aiKeys: {},
   aiModels: {},
   aiBaseUrls: {},
+  aiMaxTokens: 4096,
   lastFolder: null
 }
 

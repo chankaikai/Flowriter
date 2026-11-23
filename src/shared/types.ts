@@ -49,7 +49,14 @@ export interface AiRequest {
   model: string
   instruction: string
   text: string
+  /** 回覆長度上限（推理模型需要較大的值）；預設 4096 */
+  maxTokens?: number
 }
+
+export type AiBalance =
+  | { ok: true; lines: string[] }
+  | { ok: false; unsupported: true }
+  | { ok: false; error: string; unsupported?: undefined }
 
 export interface InkwellApi {
   platform: string
@@ -105,7 +112,8 @@ export interface InkwellApi {
   drawerRead(): Promise<string | null>
   drawerWrite(blob: string): Promise<boolean>
   /** 以 Claude API 改寫文字，錯誤時回傳 { error } */
-  aiRewrite(req: AiRequest): Promise<{ text: string } | { error: string }>
+  aiRewrite(req: AiRequest): Promise<{ text: string; usage?: { in: number; out: number } } | { error: string }>
+  aiBalance(req: { baseUrl: string; apiKey: string }): Promise<AiBalance>
   aiTest(req: AiRequest): Promise<{ ok: true; reply: string; ms: number } | { ok: false; error: string; ms: number }>
   /** 把 HTML 渲染成長圖（PNG）並讓使用者選擇儲存位置 */
   exportImage(opts: { name: string; html: string; width: number }): Promise<string | null>

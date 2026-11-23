@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, protocol, shell } from 'electron'
+import { balanceKind } from '../shared/aiHosts'
 import { basename, dirname, extname, join, relative, sep } from 'node:path'
 import { promises as fs } from 'node:fs'
 import { pathToFileURL } from 'node:url'
@@ -599,7 +600,8 @@ function registerIpc(): void {
   const AI_SYSTEM =
     '你是嚴謹的文字編輯。依指示處理使用者提供的 Markdown 片段，保留原有的 Markdown 語法與連結，只輸出處理後的正文，不要任何解釋、前言或程式碼圍欄。'
 
-  type AiReq = { kind: 'anthropic' | 'openai'; baseUrl: string; apiKey: string; model: string; instruction: string; text: string }
+  type AiReq = { kind: 'anthropic' | 'openai'; baseUrl: string; apiKey: string; model: string; instruction: string; text: string; maxTokens?: number }
+  type AiUsage = { in: number; out: number }
 
   /** 組出請求網址：容忍結尾斜線，也容忍使用者貼成完整的 /chat/completions 或 /v1/messages。 */
   const aiUrl = (kind: AiReq['kind'], base: string): string => {
@@ -613,7 +615,7 @@ function registerIpc(): void {
   const snippet = (raw: string) => raw.replace(/\s+/g, ' ').trim().slice(0, 200)
 
   /** 呼叫模型。錯誤訊息會帶上實際請求的網址與回應片段（不含金鑰），方便判斷是網址、模型名還是金鑰的問題。 */
-  const callAi = async (r: AiReq, maxTokens: number): Promise<{ text: string } | { error: string; reasoning?: boolean }> => {
+  const callAi = async (r: AiReq, maxTokens: number): Promise<{ text: string; usage?: AiUsage } | { error: string; reasoning?: boolean }> => {
     if (!r.baseUrl.trim()) return { error: '還沒有填服務網址（Base URL）' }
     if (!r.model.trim()) return { error: '還沒有填模型名稱' }
     const url = aiUrl(r.kind, r.baseUrl)
@@ -679,7 +681,11 @@ function registerIpc(): void {
       }
       // 部分推理模型會把思考過程包在 <think> 裡，這裡去掉
       text = String(text).replace(/<think>[\s\S]*?<\/think>/g, '').trim()
-      if (text) return { text }
+      const u = j.usage
+      const usage: AiUsage | undefined = u
+        ? { in: Number(u.prompt_tokens ?? u.input_tokens ?? 0), out: Number(u.completion_tokens ?? u.output_tokens ?? 0) }
+        : undefined
+      if (text) return { text, usage }
       // 推理模型把額度全花在思考上（content 空、reasoning_content 有字、finish_reason=length）
       const ch = j.choices?.[0]
       if (ch?.message?.reasoning_content || ch?.finish_reason === 'length') {
@@ -694,7 +700,59 @@ function registerIpc(): void {
     }
   }
 
-  ipcMain.handle('ai:rewrite', (_e, r: AiReq) => callAi(r, 4096))
+  ipcMain.handle('ai:rewrite', (_e, r: AiReq) => callAi(r, Math.max(256, Math.min(32768, Math.floor(r.maxTokens || 4096)))))
+
+  /** 查詢帳戶餘額。只有少數服務商有公開介面；其餘回報 unsupported，由介面引導到控制台。 */
+  ipcMain.handle('ai:balance', async (_e, r: { baseUrl: string; apiKey: string }) => {
+    const kind = balanceKind(r.baseUrl)
+    if (!kind) return { ok: false as const, unsupported: true as const }
+    if (!r.apiKey) return { ok: false as const, error: '請先填入 API 金鑰' }
+    const origin = new URL(r.baseUrl).origin
+    const url =
+      kind === 'deepseek' ? 'https://api.deepseek.com/user/balance'
+      : kind === 'moonshot' ? `${origin}/v1/users/me/balance`
+      : kind === 'siliconflow' ? `${origin}/v1/user/info`
+      : 'https://openrouter.ai/api/v1/credits'
+    const ctl = new AbortController()
+    const timer = setTimeout(() => ctl.abort(), 15_000)
+    try {
+      const res = await fetch(url, { signal: ctl.signal, headers: { authorization: `Bearer ${r.apiKey}` } })
+      const raw = await res.text()
+      let j: any = null
+      try {
+        j = JSON.parse(raw)
+      } catch {
+        /* 下面回報 */
+      }
+      if (!res.ok || !j) {
+        return { ok: false as const, error: `${res.status} ${new URL(url).host} — ${raw.replace(/\s+/g, ' ').slice(0, 160)}` }
+      }
+      const lines: string[] = []
+      if (kind === 'deepseek') {
+        for (const b of j.balance_infos || []) {
+          lines.push(`${b.currency} 餘額 ${b.total_balance}（儲值 ${b.topped_up_balance}，贈送 ${b.granted_balance}）`)
+        }
+        if (j.is_available === false) lines.push('目前餘額不足，無法呼叫')
+      } else if (kind === 'moonshot') {
+        const d = j.data || {}
+        lines.push(`可用餘額 ${d.available_balance}（現金 ${d.cash_balance}，代金券 ${d.voucher_balance}）`)
+      } else if (kind === 'siliconflow') {
+        const d = j.data || {}
+        lines.push(`總餘額 ${d.totalBalance}（贈送 ${d.balance}，儲值 ${d.chargeBalance}）`)
+      } else {
+        const d = j.data || {}
+        const total = Number(d.total_credits)
+        const used = Number(d.total_usage)
+        lines.push(`已購點數 ${total}，已用 ${used}，剩餘 ${Math.round((total - used) * 10000) / 10000}（美元）`)
+      }
+      return lines.length ? { ok: true as const, lines } : { ok: false as const, error: '服務沒有回傳餘額資料' }
+    } catch (err) {
+      const e = err as Error
+      return { ok: false as const, error: e.name === 'AbortError' ? '查詢逾時' : `網路錯誤：${e.message}` }
+    } finally {
+      clearTimeout(timer)
+    }
+  })
 
   /** 測試連線：送一個極短的請求，回報耗時與模型的回覆。 */
   ipcMain.handle('ai:test', async (_e, r: AiReq) => {

@@ -417,3 +417,7 @@ body.mode-sticky .editor-col { --maxw: 100%; padding-left: 10px; padding-right: 
 .ai-test { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
 .ai-test-ok { color: #2fa96b; font-size: 12px; line-height: 1.6; padding-top: 6px; }
 .ai-test-err { color: #d6455d; font-size: 12px; line-height: 1.6; padding-top: 6px; word-break: break-all; flex: 1 1 100%; }
+
+.ai-quota { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
+.ai-quota-title { font-size: 12px; font-weight: 600; color: var(--fg); }
+.ai-quota a { color: var(--accent); }

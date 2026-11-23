@@ -172,3 +172,11 @@ GitHub Actions（`.github/workflows/ci.yml`）在每次推送與 PR 上跑單元
 ## 開發疑難
 
 - Windows 出現 `listen EACCES ... ::1:5173`：開發伺服器現在固定綁 `127.0.0.1:38417`。若仍被拒絕，用 `netsh interface ipv4 show excludedportrange protocol=tcp` 查系統保留的埠，改 `electron.vite.config.ts` 的 `port`。
+
+## AI 額度與用量
+
+- **本機模型**（localhost / 區域網路位址）：顯示「無帳戶額度」。
+- **有公開餘額介面的服務商**：DeepSeek、Kimi（月之暗面）、SiliconFlow、OpenRouter 可直接「查詢帳戶餘額」。
+- **其他服務商**（Claude、OpenAI、Qwen、智譜、Gemini、訊飛…）沒有公開的餘額介面，只能顯示「到控制台查看」的連結。
+- **本機用量統計**：每次改寫後記錄輸入 / 輸出 tokens，顯示今日與累計（只存在這台電腦）。
+- **回覆長度上限**：偏好設定可調（預設 4096），推理型模型建議調大。

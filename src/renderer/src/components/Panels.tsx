@@ -6,6 +6,7 @@ import { lastDays, streak, type WritingData, dayKey } from '@/lib/writing'
 import type { HistoryItem, SearchHit } from '../../../shared/types'
 import { basename, stripExt } from '@/lib/path'
 import { AiSetup } from './AiSetup'
+import { recordUsage, fmtTokens } from '@/lib/aiUsage'
 import { collectTasks } from '@/lib/tasks'
 import { resolveAi, type AiPrefs } from '@/lib/ai'
 
@@ -308,6 +309,7 @@ export function AiPanel({
   const [busy, setBusy] = useState(false)
   const [out, setOut] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  const [last, setLast] = useState<{ in: number; out: number } | null>(null)
   const cfg = resolveAi(prefs)
 
   const run = async (instruction: string) => {
@@ -316,11 +318,17 @@ export function AiPanel({
     setErr(null)
     setOut(null)
     const r = await window.api.aiRewrite({
-      kind: cfg.kind, baseUrl: cfg.baseUrl, apiKey: cfg.apiKey, model: cfg.model, instruction, text: selection
+      kind: cfg.kind, baseUrl: cfg.baseUrl, apiKey: cfg.apiKey, model: cfg.model, maxTokens: cfg.maxTokens, instruction, text: selection
     })
     setBusy(false)
     if ('error' in r) setErr(r.error)
-    else setOut(r.text.trim())
+    else {
+      setOut(r.text.trim())
+      if (r.usage && (r.usage.in || r.usage.out)) {
+        recordUsage(cfg.provider.id, r.usage, dayKey())
+        setLast(r.usage)
+      }
+    }
   }
 
   return (
@@ -351,6 +359,7 @@ export function AiPanel({
           {out && (
             <>
               <div className="ai-out">{out}</div>
+              {last && <div className="hist-hint">本次用量：輸入 {fmtTokens(last.in)}、輸出 {fmtTokens(last.out)} tokens</div>}
               <div className="pop-actions">
                 <button className="btn" onClick={() => onApply(out)}>取代選取內容</button>
                 <button className="btn ghost" onClick={() => void navigator.clipboard.writeText(out)}>複製</button>
