@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { Crepe } from '@milkdown/crepe'
-import { editorViewCtx } from '@milkdown/kit/core'
+import { editorViewCtx, parserCtx } from '@milkdown/kit/core'
 import { callCommand, insert } from '@milkdown/kit/utils'
 import {
   createCodeBlockCommand,
@@ -298,7 +298,33 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
     insert(markdown) {
       const c = crepeRef.current
       if (!c) return
-      c.editor.action(insert(markdown))
+      // 取代選取 / 插入：自己解析 Markdown 後用一般 transaction 寫入。
+      // 先前直接用 Milkdown 的 insert()，在某些選取狀態下會丟出 "reading 'lastChild' of null"。
+      let done = false
+      try {
+        c.editor.action((ctx) => {
+          const v = ctx.get(editorViewCtx)
+          const doc = ctx.get(parserCtx)(markdown)
+          if (!doc || !doc.content || doc.content.childCount === 0) return
+          const { from, to } = v.state.selection
+          const frag = doc.content
+          const only = frag.childCount === 1 ? frag.firstChild : null
+          // 單一段落 → 當成行內文字替換，不會多出空段落
+          const body = only && only.type.name === 'paragraph' ? only.content : frag
+          v.dispatch(v.state.tr.replaceWith(from, to, body).scrollIntoView())
+          done = true
+        })
+      } catch (e) {
+        console.warn('[inkwell] insert via transaction failed, falling back', e)
+      }
+      if (!done) {
+        try {
+          c.editor.action(insert(markdown))
+        } catch {
+          const v = view()
+          if (v) v.dispatch(v.state.tr.insertText(markdown))
+        }
+      }
       view()?.focus()
     },
 
