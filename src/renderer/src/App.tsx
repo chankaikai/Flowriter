@@ -7,6 +7,8 @@ import { FindBar } from '@/components/FindBar'
 import { Palette } from '@/components/Palette'
 import { SettingsPanel } from '@/components/SettingsPanel'
 import { Icon } from '@/components/Icon'
+import { NotesPanel } from '@/components/NotesPanel'
+import { addNote, emptyNotes, parseNotes, removeNote, serializeNotes, updateNote, type NotesFile } from '@/lib/notes'
 import { MenuBar } from '@/components/MenuBar'
 import { Ribbon } from '@/components/Ribbon'
 import logo from './assets/logo.png'
@@ -816,7 +818,7 @@ export default function App() {
   const openPanel = useCallback(
     (p: PanelName) => {
       syncFromEditor()
-      if (p === 'ai' || p === 'vault') {
+      if (p === 'ai' || p === 'vault' || p === 'notes') {
         setAiSel(editorRef.current?.selectionText() ?? '')
       }
       setPanel((cur) => (cur === p ? null : p))
@@ -1118,6 +1120,32 @@ export default function App() {
     )
   )
   useEffect(() => () => setAmbient('off', 0), [])
+
+  // 頁邊便條：載入／儲存 .inkwell/notes.json（依文件所在資料夾）
+  const [notesFile, setNotesFile] = useState<NotesFile>(emptyNotes)
+  const notesLoaded = useRef<string | null>(null)
+  useEffect(() => {
+    const path = doc.path
+    notesLoaded.current = null
+    if (!path) {
+      setNotesFile(emptyNotes())
+      return
+    }
+    let dead = false
+    void window.api.notesRead(path).then((raw) => {
+      if (dead) return
+      setNotesFile(parseNotes(raw))
+      notesLoaded.current = path
+    })
+    return () => {
+      dead = true
+    }
+  }, [doc.path])
+  const commitNotes = (next: NotesFile) => {
+    setNotesFile(next)
+    if (doc.path && notesLoaded.current === doc.path) void window.api.notesWrite(doc.path, serializeNotes(next))
+  }
+  const notesKey = doc.path ? basename(doc.path) : ''
 
   const checks: Record<string, boolean> = {
     sidebar: settings.sidebarOpen,
@@ -1462,6 +1490,20 @@ export default function App() {
                   editorRef.current?.insert(t)
                   setPanel(null)
                 }}
+              />
+            )}
+          </Popover>
+          <Popover open={panel === 'notes'} icon="pen" title="頁邊便條" onClose={() => setPanel(null)}>
+            {panel === 'notes' && (
+              <NotesPanel
+                saved={!!doc.path}
+                notes={notesFile.files[notesKey] ?? []}
+                md={mdRef.current}
+                selection={aiSel}
+                onAdd={(q, t) => commitNotes(addNote(notesFile, notesKey, q, t))}
+                onToggle={(id, done) => commitNotes(updateNote(notesFile, notesKey, id, { done }))}
+                onRemove={(id) => commitNotes(removeNote(notesFile, notesKey, id))}
+                onJump={(q) => { if (!editorRef.current?.gotoText(q)) showToast('找不到對應位置（可能內含格式符號）') }}
               />
             )}
           </Popover>

@@ -95,6 +95,8 @@ export interface InkwellApi {
   getMaterialSupport(): Promise<MaterialSupport>
   setMaterial(o: { enabled: boolean; kind: 'acrylic' | 'mica' }): void
   toggleFullscreen(): void
+  notesRead(docPath: string): Promise<string>
+  notesWrite(docPath: string, json: string): Promise<boolean>
   editRole(role: 'cut' | 'copy' | 'paste' | 'selectAll'): void
   closeWindow(): void
   openExternal(url: string): void

@@ -905,6 +905,26 @@ function registerIpc(): void {
     const win = BrowserWindow.fromWebContents(e.sender)
     win?.setFullScreen(!win.isFullScreen())
   })
+  // 頁邊便條：存在文件旁的 .inkwell/notes.json，不碰 .md 本身
+  const notesFile = (p: string) => join(dirname(p), '.inkwell', 'notes.json')
+  ipcMain.handle('notes:read', async (_e, p: string) => {
+    try {
+      return await fs.readFile(notesFile(p), 'utf8')
+    } catch {
+      return ''
+    }
+  })
+  ipcMain.handle('notes:write', async (_e, p: string, json: string) => {
+    if (typeof json !== 'string' || json.length > 2_000_000) return false
+    try {
+      const f = notesFile(p)
+      await fs.mkdir(dirname(f), { recursive: true })
+      await fs.writeFile(f, json, 'utf8')
+      return true
+    } catch {
+      return false
+    }
+  })
   ipcMain.on('win:edit', (e, role: string) => {
     const w = e.sender
     if (role === 'cut') w.cut()
