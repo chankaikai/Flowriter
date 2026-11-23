@@ -1489,7 +1489,7 @@ export default function App() {
             )}
           </Popover>
           <Popover open={panel === 'clips'} icon="clip" title="剪貼簿收集" onClose={() => setPanel(null)}>
-            <ClipPanel stack={clipStack} onInsert={(t) => editorRef.current?.insert(t)} />
+            <ClipPanel stack={clipStack} prefs={settings} onInsert={(t) => editorRef.current?.insert(t)} />
           </Popover>
           <Popover open={panel === 'vault'} icon="lock" title="時間膠囊與加密抽屜" onClose={() => setPanel(null)}>
             {panel === 'vault' && (

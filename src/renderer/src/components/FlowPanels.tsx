@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { applyFixes, styleIssues, typographyIssues, type Issue } from '@/lib/lint'
 import { checkImages, healthCheck, type HealthIssue } from '@/lib/health'
 import { toAbsolutePath } from '@/lib/path'
+import { buildStitch, type StitchStyle } from '@/lib/stitch'
+import { resolveAi, type AiPrefs } from '@/lib/ai'
+import { recordUsage } from '@/lib/aiUsage'
+import { dayKey } from '@/lib/writing'
 
 type Tab = 'health' | 'typo' | 'style'
 
@@ -126,7 +130,43 @@ export function useClipStack() {
   }
 }
 
-export function ClipPanel({ stack, onInsert }: { stack: ReturnType<typeof useClipStack>; onInsert(t: string): void }) {
+export function ClipPanel({
+  stack, onInsert, prefs
+}: { stack: ReturnType<typeof useClipStack>; onInsert(t: string): void; prefs: AiPrefs }) {
+  const [picked, setPicked] = useState<Set<number>>(new Set())
+  const [style, setStyle] = useState<StitchStyle>('plain')
+  const [busy, setBusy] = useState(false)
+  const [out, setOut] = useState<string | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+  const cfg = resolveAi(prefs)
+  const chosen = stack.items.filter((_, i) => picked.has(i))
+  const toggle = (i: number) =>
+    setPicked((p) => {
+      const n = new Set(p)
+      if (n.has(i)) n.delete(i)
+      else n.add(i)
+      return n
+    })
+
+  const stitch = async () => {
+    if (busy || cfg.missing || chosen.length < 2) return
+    const req = buildStitch(chosen, style)
+    setBusy(true)
+    setErr(null)
+    setOut(null)
+    const r = await window.api.aiRewrite({
+      kind: cfg.kind, baseUrl: cfg.baseUrl, apiKey: cfg.apiKey, model: cfg.model, maxTokens: cfg.maxTokens,
+      instruction: req.instruction, text: req.text
+    })
+    setBusy(false)
+    if ('error' in r) setErr(r.error)
+    else {
+      setOut(r.text.trim())
+      if (r.usage && (r.usage.in || r.usage.out)) recordUsage(cfg.provider.id, r.usage, dayKey())
+      if (req.truncated) setErr(`有 ${req.truncated} 則片段因長度被截短或略過`)
+    }
+  }
+
   return (
     <>
       <div className="hist-hint">
@@ -135,20 +175,50 @@ export function ClipPanel({ stack, onInsert }: { stack: ReturnType<typeof useCli
       </div>
       <div className="pop-actions">
         <button className={`btn${stack.on ? '' : ' ghost'}`} onClick={stack.toggle}>{stack.on ? '收集中，點擊停止' : '開始收集'}</button>
-        <button className="btn ghost" disabled={!stack.items.length} onClick={stack.clear}>清空</button>
+        <button className="btn ghost" disabled={!stack.items.length} onClick={() => { stack.clear(); setPicked(new Set()) }}>清空</button>
       </div>
       <div className="tm-list">
         {stack.items.map((t, i) => (
           <div key={i} className="tm-card">
+            <label className="clip-pick">
+              <input type="checkbox" checked={picked.has(i)} onChange={() => toggle(i)} /> 選取以縫合
+            </label>
             <div style={{ whiteSpace: 'pre-wrap', maxHeight: 90, overflow: 'hidden' }}>{t.length > 300 ? t.slice(0, 300) + '…' : t}</div>
             <div className="pop-actions">
               <button className="btn ghost" onClick={() => onInsert(t)}>插入游標處</button>
-              <button className="btn ghost" onClick={() => stack.remove(i)}>移除</button>
+              <button className="btn ghost" onClick={() => { stack.remove(i); setPicked(new Set()) }}>移除</button>
             </div>
           </div>
         ))}
         {stack.on && !stack.items.length && <p className="pop-empty">等你複製…</p>}
       </div>
+      {stack.items.length > 1 && (
+        <>
+          <div className="set-sep" />
+          <div className="hist-hint">AI 片段縫合：勾選 2 則以上，合成一段。按下後選取的片段會送到你設定的 AI 服務。</div>
+          <div className="pop-actions">
+            <select className="sb-select" value={style} onChange={(e) => setStyle(e.target.value as StitchStyle)}>
+              <option value="plain">連貫段落</option>
+              <option value="bullets">條列整理</option>
+              <option value="outline">大綱</option>
+            </select>
+            <button className="btn" disabled={busy || chosen.length < 2 || !!cfg.missing} onClick={() => void stitch()}>
+              {busy ? '縫合中…' : `縫合 ${chosen.length} 則`}
+            </button>
+          </div>
+          {cfg.missing && <p className="pop-empty">{cfg.missing}</p>}
+          {err && <p className="pop-empty">{err}</p>}
+          {out && (
+            <div className="tm-card">
+              <div style={{ whiteSpace: 'pre-wrap' }}>{out}</div>
+              <div className="pop-actions">
+                <button className="btn" onClick={() => onInsert(out)}>插入游標處</button>
+                <button className="btn ghost" onClick={() => setOut(null)}>捨棄</button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </>
   )
 }
