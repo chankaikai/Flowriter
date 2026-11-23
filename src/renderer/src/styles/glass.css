@@ -397,3 +397,18 @@ body.mode-sticky .editor-col { --maxw: 100%; padding-left: 10px; padding-right: 
   margin: calc(var(--caret-glow-radius, 26px) / -2) 0 0 calc(var(--caret-glow-radius, 26px) / -2);
   background: radial-gradient(circle, color-mix(in srgb, var(--glow-color, var(--accent)) calc(var(--accent-pulse-brightness, 0.4) * 100%), transparent) 0%, transparent 70%);
 }
+
+/* ---- 時光機分頁 / 段落回滾 / 保險庫 ---- */
+.tm-tabs { margin-bottom: 8px; }
+.tm-select { width: 100%; height: 30px; border-radius: 10px; background: var(--hover); color: var(--fg); border: 1px solid var(--line); padding: 0 8px; margin-bottom: 6px; }
+.tm-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow: auto; margin: 6px 0; }
+.tm-hunk { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; }
+.tm-hunk pre, .tm-card { white-space: pre-wrap; word-break: break-word; margin: 0 0 4px; padding: 6px 8px; border-radius: 8px; font: inherit; }
+.tm-del { background: color-mix(in srgb, #d6455d 14%, transparent); text-decoration: line-through; opacity: .8; }
+.tm-add { background: color-mix(in srgb, #2fa96b 14%, transparent); }
+.tm-when { color: var(--fg-muted); display: block; margin-bottom: 2px; }
+.tm-card { background: var(--hover); display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+.tm-row { width: 100%; display: flex; justify-content: space-between; padding: 6px 8px; border-radius: 8px; background: var(--hover); font-size: 12.5px; }
+.tm-row .up { color: #2fa96b; font-style: normal; } .tm-row .down { color: #d6455d; font-style: normal; }
+.vault-input { width: 100%; height: 32px; border-radius: 10px; background: var(--hover); border: 1px solid var(--line); color: var(--fg); padding: 0 10px; }
+.vault-text { width: 100%; min-height: 150px; border-radius: 10px; background: var(--hover); border: 1px solid var(--line); color: var(--fg); padding: 8px 10px; resize: vertical; font: inherit; font-size: 13px; }

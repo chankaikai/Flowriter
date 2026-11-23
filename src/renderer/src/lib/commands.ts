@@ -2,7 +2,7 @@ import type { FormatName } from '@/editor/MarkdownEditor'
 import type { SidebarTab, ThemeName } from './settings'
 
 export type ExportKind = 'html' | 'pdf' | 'docx' | 'md' | 'png'
-export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks'
+export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks' | 'vault'
 
 export interface Actions {
   newDoc(): void
@@ -29,6 +29,7 @@ export interface Actions {
   toggleReading(): void
   toggleSticky(): void
   setResumeHint(): void
+  milestone(): void
   openPanel(p: PanelName): void
 }
 
@@ -90,6 +91,8 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'panel.focus', title: '專注：番茄鐘與氛圍音', group: '面板', keys: ['Mod+Alt+P'], run: () => a.openPanel('focus') },
     { id: 'panel.dashboard', title: '寫作儀表板', group: '面板', keys: ['Mod+Alt+D'], run: () => a.openPanel('dashboard') },
     { id: 'panel.tasks', title: '任務收集', group: '面板', keys: ['Mod+Alt+J'], run: () => a.openPanel('tasks') },
+    { id: 'panel.vault', title: '時間膠囊與加密抽屜', group: '面板', keys: ['Mod+Alt+V'], run: () => a.openPanel('vault') },
+    { id: 'doc.milestone', title: '標記目前版本為里程碑…', group: '檔案', run: a.milestone },
     { id: 'panel.links', title: '連結與反向連結', group: '面板', keys: ['Mod+Alt+L'], run: () => a.openPanel('links') },
     { id: 'app.settings', title: '偏好設定', group: '檢視', keys: ['Mod+Comma'], run: a.openSettings },
 

@@ -419,20 +419,54 @@ function registerIpc(): void {
     join(app.getPath('userData'), 'history', createHash('sha1').update(p).digest('hex').slice(0, 16))
   const HIST_KEEP = 200
 
+  const tagOf = async (dir: string, ts: number): Promise<string | undefined> => {
+    try {
+      return (await fs.readFile(join(dir, `${ts}.tag`), 'utf8')).trim() || undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  const histWrite = async (p: string, content: string, force: boolean): Promise<number | null> => {
+    const dir = histDir(p)
+    await fs.mkdir(dir, { recursive: true })
+    await fs.writeFile(join(dir, 'name.txt'), basename(p), 'utf8').catch(() => {})
+    const names = (await fs.readdir(dir)).filter((n) => /^\d+\.md$/.test(n)).sort()
+    if (names.length) {
+      const last = names[names.length - 1]
+      const prev = await fs.readFile(join(dir, last), 'utf8')
+      if (prev === content) return force ? Number(last.slice(0, -3)) : null
+    }
+    const ts = Date.now()
+    await fs.writeFile(join(dir, `${ts}.md`), content, 'utf8')
+    // 只保留最近 HIST_KEEP 份；有標籤的里程碑不會被清掉
+    const all = [...names]
+    for (let i = 0; all.length >= HIST_KEEP && i < all.length; ) {
+      const n = all[i]
+      if (await tagOf(dir, Number(n.slice(0, -3)))) {
+        i++
+        continue
+      }
+      all.splice(i, 1)
+      await fs.unlink(join(dir, n)).catch(() => {})
+    }
+    return ts
+  }
+
   ipcMain.handle('history:save', async (_e, p: string, content: string) => {
     try {
-      const dir = histDir(p)
-      await fs.mkdir(dir, { recursive: true })
-      const names = (await fs.readdir(dir)).filter((n) => n.endsWith('.md')).sort()
-      if (names.length) {
-        const last = names[names.length - 1]
-        const prev = await fs.readFile(join(dir, last), 'utf8')
-        if (prev === content) return false
-      }
-      await fs.writeFile(join(dir, `${Date.now()}.md`), content, 'utf8')
-      // 只保留最近 HIST_KEEP 份
-      const all = [...names]
-      while (all.length >= HIST_KEEP) await fs.unlink(join(dir, all.shift()!)).catch(() => {})
+      return (await histWrite(p, content, false)) != null
+    } catch {
+      return false
+    }
+  })
+
+  /** 把目前內容存成有名字的里程碑（內容與最近一版相同時，直接替那一版加標籤）。 */
+  ipcMain.handle('history:milestone', async (_e, p: string, content: string, tag: string) => {
+    try {
+      const ts = await histWrite(p, content, true)
+      if (ts == null) return false
+      await fs.writeFile(join(histDir(p), `${ts}.tag`), tag.trim().slice(0, 60), 'utf8')
       return true
     } catch {
       return false
@@ -444,7 +478,10 @@ function registerIpc(): void {
       const dir = histDir(p)
       const names = (await fs.readdir(dir)).filter((n) => /^\d+\.md$/.test(n)).sort()
       return await Promise.all(
-        names.map(async (n) => ({ ts: Number(n.slice(0, -3)), size: (await fs.stat(join(dir, n))).size }))
+        names.map(async (n) => {
+          const ts = Number(n.slice(0, -3))
+          return { ts, size: (await fs.stat(join(dir, n))).size, tag: await tagOf(dir, ts) }
+        })
       )
     } catch {
       return []
@@ -456,6 +493,105 @@ function registerIpc(): void {
       return await fs.readFile(join(histDir(p), `${Math.floor(ts)}.md`), 'utf8')
     } catch {
       return null
+    }
+  })
+
+  /** 這份文件最近 limit 版的全文（新到舊），供段落回滾 / 垃圾桶 / 章節演進使用。 */
+  ipcMain.handle('history:readAll', async (_e, p: string, limit: number) => {
+    try {
+      const dir = histDir(p)
+      const names = (await fs.readdir(dir)).filter((n) => /^\d+\.md$/.test(n)).sort().reverse().slice(0, Math.min(limit, 120))
+      return await Promise.all(
+        names.map(async (n) => ({ ts: Number(n.slice(0, -3)), md: await fs.readFile(join(dir, n), 'utf8') }))
+      )
+    } catch {
+      return []
+    }
+  })
+
+  /** 所有文件的快照索引（不含內容），給「那年今天」用。 */
+  ipcMain.handle('history:index', async () => {
+    try {
+      const root = join(app.getPath('userData'), 'history')
+      const out: { key: string; name: string; ts: number; size: number }[] = []
+      for (const key of await fs.readdir(root)) {
+        const dir = join(root, key)
+        const name = await fs.readFile(join(dir, 'name.txt'), 'utf8').catch(() => '未命名')
+        for (const n of await fs.readdir(dir).catch(() => [] as string[])) {
+          if (!/^\d+\.md$/.test(n)) continue
+          out.push({ key, name, ts: Number(n.slice(0, -3)), size: (await fs.stat(join(dir, n))).size })
+        }
+      }
+      return out
+    } catch {
+      return []
+    }
+  })
+
+  ipcMain.handle('history:readKey', async (_e, key: string, ts: number) => {
+    if (!/^[0-9a-f]{16}$/.test(key)) return null
+    try {
+      return await fs.readFile(join(app.getPath('userData'), 'history', key, `${Math.floor(ts)}.md`), 'utf8')
+    } catch {
+      return null
+    }
+  })
+
+  /* ---------- 時間膠囊（軟鎖：依本機時鐘，到期前不回傳內容） ---------- */
+  const capDir = () => join(app.getPath('userData'), 'capsules')
+  ipcMain.handle('capsule:create', async (_e, title: string, text: string, unlockAt: number) => {
+    try {
+      await fs.mkdir(capDir(), { recursive: true })
+      const id = `${Date.now()}`
+      await fs.writeFile(
+        join(capDir(), `${id}.json`),
+        JSON.stringify({ id, title: String(title).slice(0, 80), text, createdAt: Date.now(), unlockAt }),
+        'utf8'
+      )
+      return id
+    } catch {
+      return null
+    }
+  })
+  ipcMain.handle('capsule:list', async () => {
+    try {
+      const out = []
+      for (const n of await fs.readdir(capDir())) {
+        if (!/^\d+\.json$/.test(n)) continue
+        const o = JSON.parse(await fs.readFile(join(capDir(), n), 'utf8'))
+        out.push({ id: o.id, title: o.title, createdAt: o.createdAt, unlockAt: o.unlockAt })
+      }
+      return out.sort((a, b) => a.unlockAt - b.unlockAt)
+    } catch {
+      return []
+    }
+  })
+  ipcMain.handle('capsule:open', async (_e, id: string) => {
+    if (!/^\d+$/.test(id)) return { ok: false as const }
+    try {
+      const o = JSON.parse(await fs.readFile(join(capDir(), `${id}.json`), 'utf8'))
+      if (Date.now() < o.unlockAt) return { ok: false as const, unlockAt: o.unlockAt as number }
+      return { ok: true as const, title: o.title as string, text: o.text as string }
+    } catch {
+      return { ok: false as const }
+    }
+  })
+  ipcMain.handle('capsule:delete', async (_e, id: string) => {
+    if (!/^\d+$/.test(id)) return false
+    return fs.unlink(join(capDir(), `${id}.json`)).then(() => true, () => false)
+  })
+
+  /* ---------- 加密抽屜（主程序只存取密文；加解密在渲染端用 WebCrypto） ---------- */
+  const drawerFile = () => join(app.getPath('userData'), 'drawer.enc')
+  ipcMain.handle('drawer:read', async () => fs.readFile(drawerFile(), 'utf8').catch(() => null))
+  ipcMain.handle('drawer:write', async (_e, blob: string) => {
+    try {
+      const tmp = drawerFile() + '.tmp'
+      await fs.writeFile(tmp, blob, 'utf8')
+      await fs.rename(tmp, drawerFile())
+      return true
+    } catch {
+      return false
     }
   })
 

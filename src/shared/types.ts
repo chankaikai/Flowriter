@@ -28,7 +28,18 @@ export type MaterialSupport = 'vibrancy' | 'win' | 'none'
 export interface HistoryItem {
   ts: number
   size: number
+  /** 里程碑名稱（沒有標籤就是一般快照） */
+  tag?: string
 }
+
+export interface CapsuleMeta {
+  id: string
+  title: string
+  createdAt: number
+  unlockAt: number
+}
+
+export type CapsuleOpen = { ok: true; title: string; text: string } | { ok: false; unlockAt?: number }
 
 export interface AiRequest {
   /** anthropic = Claude 原生介面；openai = OpenAI 相容的 /chat/completions */
@@ -83,6 +94,16 @@ export interface InkwellApi {
   historySave(path: string, content: string): Promise<boolean>
   historyList(path: string): Promise<HistoryItem[]>
   historyRead(path: string, ts: number): Promise<string | null>
+  historyMilestone(path: string, content: string, tag: string): Promise<boolean>
+  historyReadAll(path: string, limit: number): Promise<{ ts: number; md: string }[]>
+  historyIndex(): Promise<{ key: string; name: string; ts: number; size: number }[]>
+  historyReadKey(key: string, ts: number): Promise<string | null>
+  capsuleCreate(title: string, text: string, unlockAt: number): Promise<string | null>
+  capsuleList(): Promise<CapsuleMeta[]>
+  capsuleOpen(id: string): Promise<CapsuleOpen>
+  capsuleDelete(id: string): Promise<boolean>
+  drawerRead(): Promise<string | null>
+  drawerWrite(blob: string): Promise<boolean>
   /** 以 Claude API 改寫文字，錯誤時回傳 { error } */
   aiRewrite(req: AiRequest): Promise<{ text: string } | { error: string }>
   /** 把 HTML 渲染成長圖（PNG）並讓使用者選擇儲存位置 */

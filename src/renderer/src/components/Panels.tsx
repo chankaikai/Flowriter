@@ -63,7 +63,7 @@ const Ring = ({ value, size = 120, children }: { value: number; size?: number; c
 
 /* ------------------------------ 時光機 ------------------------------ */
 
-const fmtTime = (ts: number) => {
+export const fmtTime = (ts: number) => {
   const d = new Date(ts)
   const today = dayKey() === dayKey(d)
   const hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
@@ -71,12 +71,13 @@ const fmtTime = (ts: number) => {
 }
 
 export function HistoryPanel({
-  path, current, onRestore
-}: { path: string | null; current: () => string; onRestore(content: string): void }) {
+  path, current, onRestore, onMilestone
+}: { path: string | null; current: () => string; onRestore(content: string): void; onMilestone(): Promise<void> }) {
   const [items, setItems] = useState<HistoryItem[] | null>(null)
   const [idx, setIdx] = useState(0)
   const [text, setText] = useState<string | null>(null)
   const cur = useMemo(() => current(), [current, items])
+  const [reload, setReload] = useState(0)
 
   useEffect(() => {
     let live = true
@@ -92,7 +93,7 @@ export function HistoryPanel({
     return () => {
       live = false
     }
-  }, [path])
+  }, [path, reload])
 
   const sel = items?.[idx]
   useEffect(() => {
@@ -114,11 +115,18 @@ export function HistoryPanel({
   return (
     <>
       <div className="hist-meta">
-        <b>{sel ? fmtTime(sel.ts) : ''}</b>
+        <b>{sel ? fmtTime(sel.ts) : ''}{sel?.tag ? ` · ★ ${sel.tag}` : ''}</b>
         <span>
           第 {idx + 1} / {items.length} 版 · {sel ? Math.round(sel.size / 100) / 10 : 0} KB
         </span>
       </div>
+      {items.some((x) => x.tag) && (
+        <div className="chips">
+          {items.map((x, i) => x.tag && (
+            <button key={x.ts} className={`chip${i === idx ? ' on' : ''}`} onClick={() => setIdx(i)}>★ {x.tag}</button>
+          ))}
+        </div>
+      )}
       <input
         type="range" className="hist-slider" min={0} max={items.length - 1} step={1} value={idx}
         onChange={(e) => setIdx(+e.target.value)}
@@ -137,6 +145,9 @@ export function HistoryPanel({
       <div className="pop-actions">
         <button className="btn" disabled={text == null || text === cur} onClick={() => text != null && onRestore(text)}>
           還原到此版本
+        </button>
+        <button className="btn ghost" onClick={() => void onMilestone().then(() => setReload((n) => n + 1))}>
+          標記目前為里程碑
         </button>
       </div>
     </>
