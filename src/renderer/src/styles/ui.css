@@ -343,3 +343,13 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
 
 .refs-in { width: 100%; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--bg-elev); color: var(--fg); padding: 6px 8px; font: inherit; font-size: 12.5px; }
 .note-quote a { color: var(--accent); }
+
+/* 代碼塊執行器 */
+.runner-code { margin: 8px 0; padding: 8px 10px; max-height: 180px; overflow: auto; border-radius: 8px; background: var(--code-bg); color: var(--code-fg); font: 12px/1.5 var(--font-mono, monospace); white-space: pre; }
+.runner-warn { margin: 6px 0; padding: 6px 9px; border-radius: 8px; background: var(--accent-soft); color: var(--fg); font-size: 12px; }
+.runner-out { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.runner-status { font-size: 11px; color: var(--fg-faint); }
+.runner-line { margin: 0; padding: 3px 8px; border-radius: 6px; background: var(--block-bg); font: 12px/1.5 var(--font-mono, monospace); white-space: pre-wrap; word-break: break-word; }
+.runner-line.warn { border-left: 3px solid #d8a02a; }
+.runner-line.error { border-left: 3px solid #d0463a; }
+.runner-line.result { color: var(--accent); }

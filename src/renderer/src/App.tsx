@@ -7,6 +7,7 @@ import { FindBar } from '@/components/FindBar'
 import { Palette } from '@/components/Palette'
 import { SettingsPanel } from '@/components/SettingsPanel'
 import { Icon } from '@/components/Icon'
+import { RunnerPanel } from '@/components/RunnerPanel'
 import { RefsPanel } from '@/components/RefsPanel'
 import { addRef, emptyRefs, parseRefs, removeRef, serializeRefs, type RefsFile } from '@/lib/refs'
 import { NotesPanel } from '@/components/NotesPanel'
@@ -127,6 +128,7 @@ export default function App() {
   const [panel, setPanel] = useState<PanelName | null>(null)
   const [aiSel, setAiSel] = useState('')
   const [radarQ, setRadarQ] = useState('')
+  const [runBlock, setRunBlock] = useState<{ lang: string; code: string } | null>(null)
   const [writing, setWriting] = useState(loadWriting)
   const [ambient, setAmbientKind] = useState<AmbientKind>('off')
   const [reading, setReading] = useState(false)
@@ -824,6 +826,7 @@ export default function App() {
       if (p === 'ai' || p === 'vault' || p === 'notes' || p === 'refs') {
         setAiSel(editorRef.current?.selectionText() ?? '')
       }
+      if (p === 'runner') setRunBlock(editorRef.current?.codeAtCaret() ?? null)
       if (p === 'radar') {
         const sel = editorRef.current?.selectionText() ?? ''
         setRadarQ((sel || editorRef.current?.textFromCaret() || mdRef.current).slice(0, 600))
@@ -1552,6 +1555,9 @@ export default function App() {
                 }}
               />
             )}
+          </Popover>
+          <Popover open={panel === 'runner'} icon="code" title="執行代碼塊" onClose={() => setPanel(null)}>
+            {panel === 'runner' && <RunnerPanel block={runBlock} />}
           </Popover>
           <Popover open={panel === 'notes'} icon="pen" title="頁邊便條" onClose={() => setPanel(null)}>
             {panel === 'notes' && (

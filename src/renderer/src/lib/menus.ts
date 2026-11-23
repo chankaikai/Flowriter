@@ -139,6 +139,7 @@ export const MENUS: MenuDef[] = [
       c('panel.tasks'),
       c('panel.notes'),
       c('panel.refs'),
+      c('panel.runner'),
       SEP,
       c('panel.clips'),
       c('panel.vault'),
@@ -300,7 +301,8 @@ export const RIBBON: RibbonTab[] = [
         items: [
           r('panel.ai', 'AI 改寫', { icon: 'sparkle', lg: true }),
           r('panel.diag', '健檢排版', { icon: 'diag', lg: true }),
-          r('doc.speak', '朗讀校對', { icon: 'speaker', lg: true })
+          r('doc.speak', '朗讀校對', { icon: 'speaker', lg: true }),
+          r('panel.runner', '執行代碼塊', { glyph: '▶', lg: true })
         ]
       },
       {

@@ -74,6 +74,8 @@ export interface EditorHandle {
   gotoText(text: string): boolean
   /** 從游標所在段落到文末的純文字 */
   textFromCaret(): string
+  /** 游標所在代碼塊的語言與內容（唯讀；不在代碼塊內回傳 null） */
+  codeAtCaret(): { lang: string; code: string } | null
   /** 游標的螢幕座標，沒有編輯器或找不到時回傳 null */
   caretRect(): { left: number; top: number; bottom: number } | null
 }
@@ -349,6 +351,16 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       if (v) searchClear(v)
     },
 
+    codeAtCaret() {
+      const v = view()
+      if (!v) return null
+      const { $from } = v.state.selection
+      for (let d = $from.depth; d >= 0; d--) {
+        const n = $from.node(d)
+        if (n.type.name === 'code_block') return { lang: String(n.attrs.language ?? ''), code: n.textContent }
+      }
+      return null
+    },
     gotoText(text) {
       const v = view()
       return v ? gotoText(v, text) : false
