@@ -97,6 +97,12 @@ export interface InkwellApi {
   toggleFullscreen(): void
   notesRead(docPath: string): Promise<string>
   notesWrite(docPath: string, json: string): Promise<boolean>
+  /** 全域快捷鍵 Ctrl/⌘+Alt+Space 叫出收件匣小視窗；回傳是否註冊成功（可能被其他程式占用） */
+  inboxSetup(enabled: boolean): Promise<boolean>
+  inboxShow(): Promise<void>
+  inboxPath(): Promise<string>
+  inboxAppend(text: string): Promise<boolean>
+  inboxClose(): void
   editRole(role: 'cut' | 'copy' | 'paste' | 'selectAll'): void
   closeWindow(): void
   openExternal(url: string): void

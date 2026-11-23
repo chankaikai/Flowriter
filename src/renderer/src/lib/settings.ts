@@ -16,6 +16,8 @@ export interface Settings {
   focusMode: boolean
   typewriter: boolean
   autosave: boolean
+  /** 全域快捷鍵叫出收件匣小視窗 */
+  inboxShortcut: boolean
   translucent: boolean
   surfaceOpacity: number
   winMaterial: 'acrylic' | 'mica'
@@ -45,6 +47,7 @@ export const DEFAULT_SETTINGS: Settings = {
   focusMode: false,
   typewriter: false,
   autosave: true,
+  inboxShortcut: false,
   translucent: true,
   surfaceOpacity: 0.72,
   winMaterial: 'acrylic',
@@ -60,7 +63,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lastFolder: null
 }
 
-function load(): Settings {
+export function loadSettings(): Settings {
   try {
     const j = JSON.parse(localStorage.getItem(KEY) || '{}')
     // 舊版只有單一 Claude 金鑰：搬到新的分服務商結構
@@ -77,7 +80,7 @@ function load(): Settings {
 }
 
 export function useSettings() {
-  const [s, setS] = useState<Settings>(load)
+  const [s, setS] = useState<Settings>(loadSettings)
   const update = useCallback((patch: Partial<Settings>) => {
     setS((prev) => {
       const next = { ...prev, ...patch }

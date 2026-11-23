@@ -5,6 +5,7 @@ import { existsSync, promises as fs } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { release, tmpdir } from 'node:os'
 import { createHash } from 'node:crypto'
+import { setupInbox } from './inbox'
 import type { DirEntry, FileListItem, MaterialSupport, SearchHit } from '../shared/types'
 
 // 改名 Inkwell → Flowiter：沿用舊的使用者資料夾，設定、歷史版本、加密抽屜才不會「不見」
@@ -938,6 +939,7 @@ function registerIpc(): void {
 }
 
 app.whenReady().then(() => {
+  setupInbox()
   protocol.handle('inkwell', (req) => {
     try {
       const u = new URL(req.url)

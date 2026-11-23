@@ -862,6 +862,8 @@ export default function App() {
     setTheme: (t) => update({ theme: t }),
     editRole: (r) => window.api.editRole(r),
     quit: () => window.api.closeWindow(),
+    inboxCapture: () => void window.api.inboxShow(),
+    inboxOpen: () => void window.api.inboxPath().then((p) => openPath(p)),
     openPalette: (m) => setPalette(m),
     openFind: (replace) => {
       if (modeRef.current === 'source') {
@@ -1120,6 +1122,13 @@ export default function App() {
     )
   )
   useEffect(() => () => setAmbient('off', 0), [])
+
+  // 全域快捷鍵（開啟時才註冊；被其他程式占用會提示）
+  useEffect(() => {
+    void window.api.inboxSetup(settings.inboxShortcut).then((ok) => {
+      if (!ok) showToast('Ctrl/⌘+Alt+Space 已被其他程式占用，收件匣快捷鍵無法啟用')
+    })
+  }, [settings.inboxShortcut, showToast])
 
   // 頁邊便條：載入／儲存 .inkwell/notes.json（依文件所在資料夾）
   const [notesFile, setNotesFile] = useState<NotesFile>(emptyNotes)

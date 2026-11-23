@@ -178,6 +178,9 @@ export function SettingsPanel({
               <Row label="自動儲存（已有檔案）">
                 <Toggle on={settings.autosave} onChange={(v) => update({ autosave: v })} />
               </Row>
+              <Row label="全域快捷鍵 Ctrl/⌘+Alt+Space 叫出收件匣（任何程式中都可用）">
+                <Toggle on={settings.inboxShortcut} onChange={(v) => update({ inboxShortcut: v })} />
+              </Row>
               <Row label="聚焦模式">
                 <Toggle on={settings.focusMode} onChange={(v) => update({ focusMode: v })} />
               </Row>

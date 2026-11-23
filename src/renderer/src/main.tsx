@@ -42,7 +42,8 @@ class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
 }
 
 // 動態載入 App：連模組載入階段的錯誤（匯入失敗、頂層程式碼拋錯）也能顯示出來
-import('./App')
+const isInbox = location.hash === '#inbox'
+;(isInbox ? import('./components/InboxWindow') : import('./App'))
   .then(({ default: App }) => {
     createRoot(document.getElementById('root')!).render(
       <StrictMode>
