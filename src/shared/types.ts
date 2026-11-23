@@ -103,6 +103,8 @@ export interface InkwellApi {
   inboxPath(): Promise<string>
   inboxAppend(text: string): Promise<boolean>
   inboxClose(): void
+  refsRead(docPath: string): Promise<string>
+  refsWrite(docPath: string, json: string): Promise<boolean>
   editRole(role: 'cut' | 'copy' | 'paste' | 'selectAll'): void
   closeWindow(): void
   openExternal(url: string): void

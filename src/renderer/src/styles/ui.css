@@ -340,3 +340,6 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
 .inbox-foot { font-size: 11px; color: var(--fg-faint); }
 
 .radar-q { width: 100%; resize: vertical; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--bg-elev); color: var(--fg); padding: 8px; font: inherit; font-size: 12.5px; margin-bottom: 8px; }
+
+.refs-in { width: 100%; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--bg-elev); color: var(--fg); padding: 6px 8px; font: inherit; font-size: 12.5px; }
+.note-quote a { color: var(--accent); }

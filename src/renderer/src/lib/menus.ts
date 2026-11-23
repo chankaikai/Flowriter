@@ -138,6 +138,7 @@ export const MENUS: MenuDef[] = [
       c('panel.radar'),
       c('panel.tasks'),
       c('panel.notes'),
+      c('panel.refs'),
       SEP,
       c('panel.clips'),
       c('panel.vault'),
@@ -310,6 +311,7 @@ export const RIBBON: RibbonTab[] = [
           r('panel.radar', '知識雷達', { icon: 'search', lg: true }),
           r('panel.tasks', '任務', { icon: 'tasks', lg: true }),
           r('panel.notes', '頁邊便條', { icon: 'pen', lg: true }),
+          r('panel.refs', '參考抽屜', { icon: 'book', lg: true }),
           r('doc.milestone', '里程碑', { icon: 'flag', lg: true })
         ]
       },

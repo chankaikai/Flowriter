@@ -7,6 +7,8 @@ import { FindBar } from '@/components/FindBar'
 import { Palette } from '@/components/Palette'
 import { SettingsPanel } from '@/components/SettingsPanel'
 import { Icon } from '@/components/Icon'
+import { RefsPanel } from '@/components/RefsPanel'
+import { addRef, emptyRefs, parseRefs, removeRef, serializeRefs, type RefsFile } from '@/lib/refs'
 import { NotesPanel } from '@/components/NotesPanel'
 import { addNote, emptyNotes, parseNotes, removeNote, serializeNotes, updateNote, type NotesFile } from '@/lib/notes'
 import { MenuBar } from '@/components/MenuBar'
@@ -819,7 +821,7 @@ export default function App() {
   const openPanel = useCallback(
     (p: PanelName) => {
       syncFromEditor()
-      if (p === 'ai' || p === 'vault' || p === 'notes') {
+      if (p === 'ai' || p === 'vault' || p === 'notes' || p === 'refs') {
         setAiSel(editorRef.current?.selectionText() ?? '')
       }
       if (p === 'radar') {
@@ -1158,6 +1160,30 @@ export default function App() {
   const commitNotes = (next: NotesFile) => {
     setNotesFile(next)
     if (doc.path && notesLoaded.current === doc.path) void window.api.notesWrite(doc.path, serializeNotes(next))
+  }
+  // 參考資料抽屜
+  const [refsFile, setRefsFile] = useState<RefsFile>(emptyRefs)
+  const refsLoaded = useRef<string | null>(null)
+  useEffect(() => {
+    const path = doc.path
+    refsLoaded.current = null
+    if (!path) {
+      setRefsFile(emptyRefs())
+      return
+    }
+    let dead = false
+    void window.api.refsRead(path).then((raw) => {
+      if (dead) return
+      setRefsFile(parseRefs(raw))
+      refsLoaded.current = path
+    })
+    return () => {
+      dead = true
+    }
+  }, [doc.path])
+  const commitRefs = (next: RefsFile) => {
+    setRefsFile(next)
+    if (doc.path && refsLoaded.current === doc.path) void window.api.refsWrite(doc.path, serializeRefs(next))
   }
   const notesKey = doc.path ? basename(doc.path) : ''
 
@@ -1510,6 +1536,21 @@ export default function App() {
           <Popover open={panel === 'radar'} icon="search" title="本地知識雷達" onClose={() => setPanel(null)}>
             {panel === 'radar' && (
               <RadarPanel folder={folder} docPath={doc.path} query={radarQ} onOpen={(p) => void openPath(p)} />
+            )}
+          </Popover>
+          <Popover open={panel === 'refs'} icon="book" title="參考資料抽屜" onClose={() => setPanel(null)}>
+            {panel === 'refs' && (
+              <RefsPanel
+                saved={!!doc.path}
+                refs={refsFile.files[notesKey] ?? []}
+                selection={aiSel}
+                onAdd={(r) => commitRefs(addRef(refsFile, notesKey, r))}
+                onRemove={(id) => commitRefs(removeRef(refsFile, notesKey, id))}
+                onInsert={(md) => {
+                  editorRef.current?.insert(md)
+                  setPanel(null)
+                }}
+              />
             )}
           </Popover>
           <Popover open={panel === 'notes'} icon="pen" title="頁邊便條" onClose={() => setPanel(null)}>

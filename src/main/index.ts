@@ -926,6 +926,26 @@ function registerIpc(): void {
       return false
     }
   })
+  // 參考資料抽屜：同樣放在文件旁的 .inkwell/refs.json
+  const refsFile = (p: string) => join(dirname(p), '.inkwell', 'refs.json')
+  ipcMain.handle('refs:read', async (_e, p: string) => {
+    try {
+      return await fs.readFile(refsFile(p), 'utf8')
+    } catch {
+      return ''
+    }
+  })
+  ipcMain.handle('refs:write', async (_e, p: string, json: string) => {
+    if (typeof json !== 'string' || json.length > 4_000_000) return false
+    try {
+      const f = refsFile(p)
+      await fs.mkdir(dirname(f), { recursive: true })
+      await fs.writeFile(f, json, 'utf8')
+      return true
+    } catch {
+      return false
+    }
+  })
   ipcMain.on('win:edit', (e, role: string) => {
     const w = e.sender
     if (role === 'cut') w.cut()
