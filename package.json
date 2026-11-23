@@ -1,7 +1,7 @@
 {
-  "name": "inkwell",
+  "name": "flowiter",
   "version": "0.1.0",
-  "description": "Inkwell — 所見即所得的 Markdown 編輯器",
+  "description": "Flowiter — 所見即所得的 Markdown 編輯器",
   "main": "./out/main/index.js",
   "license": "MIT",
   "scripts": {
@@ -63,10 +63,11 @@
     "remark-stringify": "^11.0.0"
   },
   "build": {
-    "appId": "app.inkwell.editor",
-    "productName": "Inkwell",
+    "appId": "app.flowiter.editor",
+    "productName": "Flowiter",
     "files": [
-      "out/**"
+      "out/**",
+      "build/icon.png"
     ],
     "fileAssociations": [
       {
@@ -104,6 +105,6 @@
       "allowToChangeInstallationDirectory": true
     }
   },
-  "author": "Inkwell <inkwell@example.com>",
-  "homepage": "https://example.com/inkwell"
+  "author": "Flowiter <flowiter@example.com>",
+  "homepage": "https://github.com/chenjun122148/Inkwell"
 }

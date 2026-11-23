@@ -422,6 +422,8 @@ export interface SidebarProps {
   searchFocusSignal: number
 }
 
+import logo from '../assets/logo.png'
+
 export function Sidebar(p: SidebarProps) {
   const [newSignal, setNewSignal] = useState(0)
   return (
@@ -429,7 +431,7 @@ export function Sidebar(p: SidebarProps) {
       <div className="sidebar-inner">
         <div className="sidebar-head">
           <span className="folder-name" title={p.folder ?? ''}>
-            {p.folder ? basename(p.folder) : 'Inkwell'}
+            {p.folder ? basename(p.folder) : (<><img className="brand-logo" src={logo} alt="" />Flowiter</>)}
           </span>
           <div className="head-actions">
             {p.folder && (

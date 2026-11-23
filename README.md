@@ -1,4 +1,6 @@
-# Inkwell
+# Flowiter
+
+> 前身為 Inkwell。為了讓你的設定與歷史版本不會消失，程式會繼續使用舊的使用者資料夾；內部的 `inkwell://` 圖片協議與資料鍵名也沒有更動。
 
 所見即所得的 Markdown 桌面編輯器（Electron + React + Milkdown/ProseMirror）。
 

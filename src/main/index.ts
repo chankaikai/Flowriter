@@ -1,11 +1,18 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, net, protocol, shell } from 'electron'
 import { balanceKind } from '../shared/aiHosts'
 import { basename, dirname, extname, join, relative, sep } from 'node:path'
-import { promises as fs } from 'node:fs'
+import { existsSync, promises as fs } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { release, tmpdir } from 'node:os'
 import { createHash } from 'node:crypto'
 import type { DirEntry, FileListItem, MaterialSupport, SearchHit } from '../shared/types'
+
+// 改名 Inkwell → Flowiter：沿用舊的使用者資料夾，設定、歷史版本、加密抽屜才不會「不見」
+app.setName('Flowiter')
+{
+  const legacy = ['inkwell', 'Inkwell'].map((n) => join(app.getPath('appData'), n)).find((p) => existsSync(p))
+  if (legacy) app.setPath('userData', legacy)
+}
 
 // 自訂協議：讓編輯器能顯示相對路徑的本機圖片（開發模式下 http 頁面無法直接載入 file://）
 protocol.registerSchemesAsPrivileged([
@@ -46,7 +53,8 @@ function createWindow(): BrowserWindow {
     minWidth: 860,
     minHeight: 420,
     show: false,
-    title: 'Inkwell',
+    title: 'Flowiter',
+    icon: join(app.getAppPath(), 'build', 'icon.png'),
     // 支援系統材質時視窗先設為透明，由渲染進程決定要不要鋪實色
     backgroundColor: MATERIAL === 'none' ? '#fbfaf7' : '#00000000',
     titleBarStyle: 'hidden',

@@ -1,4 +1,4 @@
-export const WELCOME = `# 歡迎使用 Inkwell
+export const WELCOME = `# 歡迎使用 Flowiter
 
 在這裡直接書寫。輸入的 Markdown 會**即時變成排版後的樣子**，不需要切換視窗。
 
@@ -13,7 +13,7 @@ export const WELCOME = `# 歡迎使用 Inkwell
 
 ## 任務與表格
 
-- [x] 開啟 Inkwell
+- [x] 開啟 Flowiter
 - [ ] 寫下第一篇文章
 
 | 功能 | 快捷鍵 |

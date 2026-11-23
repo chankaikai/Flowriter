@@ -28,7 +28,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
       - uses: actions/upload-artifact@v4
         with:
-          name: inkwell-${{ matrix.os }}
+          name: flowiter-${{ matrix.os }}
           path: |
             dist/*.exe
             dist/*.dmg

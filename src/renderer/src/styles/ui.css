@@ -245,3 +245,4 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
 .ctx-menu button { width: 100%; height: 28px; padding: 0 10px; border-radius: 6px; text-align: left; }
 .ctx-menu button:hover { background: var(--accent-soft); }
 .ctx-menu button.danger { color: #d4503c; }
+.folder-name .brand-logo { width: 18px; height: 18px; vertical-align: -4px; margin-right: 6px; border-radius: 4px; }

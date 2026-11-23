@@ -19,7 +19,7 @@ function td(): TurndownService {
 
 /** 只有剪貼簿帶有「有意義的 HTML 格式」時才轉換；編輯器內部複製與程式碼編輯器一律不碰。 */
 export function shouldConvertHtml(html: string, types: readonly string[]): boolean {
-  if (/data-pm-slice/.test(html)) return false // 從 Inkwell 自己複製的內容
+  if (/data-pm-slice/.test(html)) return false // 從 Flowiter 自己複製的內容
   if (types.includes('vscode-editor-data')) return false // VS Code 的語法高亮 HTML
   return /<(h[1-6]|ul|ol|li|a|strong|b|em|i|table|img|pre|blockquote|del|s)[\s>]/i.test(html)
 }

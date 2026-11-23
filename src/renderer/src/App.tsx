@@ -667,7 +667,7 @@ export default function App() {
         } else if (kind === 'png') {
           showToast('正在繪製長圖…')
           const body = await renderHtmlBody(md, dir)
-          const html = buildHtmlDocument(base, `<main class="share-card">${body}</main><p class="share-foot">INKWELL</p>`)
+          const html = buildHtmlDocument(base, `<main class="share-card">${body}</main><p class="share-foot">FLOWITER</p>`)
             .replace('</style>', `${SHARE_CSS}</style>`)
           out = await window.api.exportImage({ name: base, html, width: 760 })
         } else if (kind === 'docx') {
@@ -994,7 +994,7 @@ export default function App() {
 
   // 標題欄文字 = 視窗標題
   useEffect(() => {
-    document.title = `${dirty ? '● ' : ''}${stripExt(doc.name)} — Inkwell`
+    document.title = `${dirty ? '● ' : ''}${stripExt(doc.name)} — Flowiter`
   }, [doc.name, dirty])
 
   // 大綱捲動追蹤
