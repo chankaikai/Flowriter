@@ -135,6 +135,7 @@ export const MENUS: MenuDef[] = [
       c('panel.history'),
       c('panel.diag'),
       c('panel.links'),
+      c('panel.radar'),
       c('panel.tasks'),
       c('panel.notes'),
       SEP,
@@ -306,6 +307,7 @@ export const RIBBON: RibbonTab[] = [
         items: [
           r('panel.history', '時光機', { icon: 'history', lg: true }),
           r('panel.links', '連結', { icon: 'link', lg: true }),
+          r('panel.radar', '知識雷達', { icon: 'search', lg: true }),
           r('panel.tasks', '任務', { icon: 'tasks', lg: true }),
           r('panel.notes', '頁邊便條', { icon: 'pen', lg: true }),
           r('doc.milestone', '里程碑', { icon: 'flag', lg: true })

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { applyFixes, styleIssues, typographyIssues, type Issue } from '@/lib/lint'
 import { checkImages, healthCheck, type HealthIssue } from '@/lib/health'
 import { toAbsolutePath } from '@/lib/path'
+import { buildIndex, queryIndex, type RadarIndex } from '@/lib/radar'
 import { buildStitch, type StitchStyle } from '@/lib/stitch'
 import { resolveAi, type AiPrefs } from '@/lib/ai'
 import { recordUsage } from '@/lib/aiUsage'
@@ -219,6 +220,73 @@ export function ClipPanel({
           )}
         </>
       )}
+    </>
+  )
+}
+
+/* ------------------------------ 本地知識雷達 ------------------------------ */
+
+const radarCache = new Map<string, RadarIndex>()
+const RADAR_MAX_FILES = 500
+const RADAR_MAX_BYTES = 200_000
+
+export function RadarPanel({
+  folder, docPath, query, onOpen
+}: { folder: string | null; docPath: string | null; query: string; onOpen(path: string): void }) {
+  const [idx, setIdx] = useState<RadarIndex | null>(() => (folder ? radarCache.get(folder) ?? null : null))
+  const [building, setBuilding] = useState(false)
+  const [q, setQ] = useState(query)
+  useEffect(() => setQ(query), [query])
+
+  const build = async () => {
+    if (!folder || building) return
+    setBuilding(true)
+    const list = (await window.api.listAll(folder)).filter((f) => /\.(md|markdown|txt)$/i.test(f.name)).slice(0, RADAR_MAX_FILES)
+    const docs = []
+    for (const f of list) {
+      const r = await window.api.readFile(f.path)
+      if (r) docs.push({ path: f.path, name: f.name, rel: f.rel, content: r.content.slice(0, RADAR_MAX_BYTES) })
+    }
+    const built = buildIndex(docs)
+    radarCache.set(folder, built)
+    setIdx(built)
+    setBuilding(false)
+  }
+  useEffect(() => {
+    if (folder && !idx) void build()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folder])
+
+  const hits = useMemo(() => (idx ? queryIndex(idx, q, { exclude: docPath ?? undefined }) : []), [idx, q, docPath])
+
+  if (!folder) return <p className="pop-empty">先開啟一個資料夾，雷達才有範圍可以掃描。</p>
+  return (
+    <>
+      <div className="hist-hint">
+        以選取的文字（沒選取則用游標之後的段落）在資料夾內找相關筆記。索引只存在記憶體，全程在本機計算，不會上傳。
+      </div>
+      <textarea
+        className="radar-q"
+        rows={3}
+        value={q}
+        placeholder="輸入想找的內容…"
+        onChange={(e) => setQ(e.target.value)}
+      />
+      <div className="pop-actions">
+        <button className="btn ghost" disabled={building} onClick={() => void build()}>
+          {building ? '建立索引中…' : idx ? `重新建立索引（${idx.docs.length} 篇）` : '建立索引'}
+        </button>
+      </div>
+      <div className="link-list col">
+        {hits.map((h) => (
+          <button key={h.path} onClick={() => onOpen(h.path)}>
+            <b>{h.name.replace(/\.[^.]+$/, '')}</b>
+            <small>{h.snippet}</small>
+            <small>相符：{h.terms.join('、')}</small>
+          </button>
+        ))}
+        {idx && q.trim() && !hits.length && <p className="pop-empty">沒有找到相關筆記。</p>}
+      </div>
     </>
   )
 }

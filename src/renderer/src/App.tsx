@@ -14,7 +14,7 @@ import { Ribbon } from '@/components/Ribbon'
 import logo from './assets/logo.png'
 import { usePill } from '@/lib/pill'
 import { AiPanel, DashboardPanel, FocusPanel, LinksPanel, Popover, TasksPanel } from '@/components/Panels'
-import { ClipPanel, DiagnosticsPanel, useClipStack } from '@/components/FlowPanels'
+import { ClipPanel, DiagnosticsPanel, RadarPanel, useClipStack } from '@/components/FlowPanels'
 import { checkImages, healthCheck } from '@/lib/health'
 import { speak, splitSentences, ttsAvailable, type SpeakHandle } from '@/lib/tts'
 import { TimeMachine } from '@/components/TimeMachine'
@@ -124,6 +124,7 @@ export default function App() {
   const [recent, setRecent] = useState<string[]>(loadRecent)
   const [panel, setPanel] = useState<PanelName | null>(null)
   const [aiSel, setAiSel] = useState('')
+  const [radarQ, setRadarQ] = useState('')
   const [writing, setWriting] = useState(loadWriting)
   const [ambient, setAmbientKind] = useState<AmbientKind>('off')
   const [reading, setReading] = useState(false)
@@ -821,6 +822,10 @@ export default function App() {
       if (p === 'ai' || p === 'vault' || p === 'notes') {
         setAiSel(editorRef.current?.selectionText() ?? '')
       }
+      if (p === 'radar') {
+        const sel = editorRef.current?.selectionText() ?? ''
+        setRadarQ((sel || editorRef.current?.textFromCaret() || mdRef.current).slice(0, 600))
+      }
       setPanel((cur) => (cur === p ? null : p))
     },
     [syncFromEditor]
@@ -1500,6 +1505,11 @@ export default function App() {
                   setPanel(null)
                 }}
               />
+            )}
+          </Popover>
+          <Popover open={panel === 'radar'} icon="search" title="本地知識雷達" onClose={() => setPanel(null)}>
+            {panel === 'radar' && (
+              <RadarPanel folder={folder} docPath={doc.path} query={radarQ} onOpen={(p) => void openPath(p)} />
             )}
           </Popover>
           <Popover open={panel === 'notes'} icon="pen" title="頁邊便條" onClose={() => setPanel(null)}>

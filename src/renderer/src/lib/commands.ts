@@ -3,7 +3,7 @@ import type { SidebarTab, ThemeName } from './settings'
 import { THEMES } from './themes'
 
 export type ExportKind = 'html' | 'pdf' | 'docx' | 'md' | 'png'
-export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks' | 'vault' | 'diag' | 'clips' | 'notes'
+export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks' | 'vault' | 'diag' | 'clips' | 'notes' | 'radar'
 
 export interface Actions {
   newDoc(): void
@@ -95,6 +95,7 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'panel.ai', title: 'AI 改寫選取文字', group: '面板', keys: ['Mod+Alt+I'], run: () => a.openPanel('ai') },
     { id: 'panel.focus', title: '專注：番茄鐘與氛圍音', group: '面板', keys: ['Mod+Alt+P'], run: () => a.openPanel('focus') },
     { id: 'panel.dashboard', title: '寫作儀表板', group: '面板', keys: ['Mod+Alt+D'], run: () => a.openPanel('dashboard') },
+    { id: 'panel.radar', title: '本地知識雷達', group: '面板', keys: ['Mod+Alt+G'], run: () => a.openPanel('radar') },
     { id: 'panel.notes', title: '頁邊便條', group: '面板', keys: ['Mod+Alt+N'], run: () => a.openPanel('notes') },
     { id: 'panel.tasks', title: '任務收集', group: '面板', keys: ['Mod+Alt+J'], run: () => a.openPanel('tasks') },
     { id: 'panel.vault', title: '時間膠囊與加密抽屜', group: '面板', keys: ['Mod+Alt+V'], run: () => a.openPanel('vault') },
