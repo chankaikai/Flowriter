@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { extractLinks, sharedTargets, twoHopOut, type RelatedNote } from '@/lib/graph'
 import { Icon, type IconName } from './Icon'
 import { AMBIENT_LIST, setAmbient, setAmbientVolume, type AmbientKind } from '@/lib/ambient'
 import { fmtClock, PRESETS, type PomoConfig, type PomoState } from '@/lib/pomodoro'
@@ -384,6 +385,7 @@ export function LinksPanel({
   onOpenHit(path: string): void
 }) {
   const [hits, setHits] = useState<SearchHit[] | null>(null)
+  const [hop, setHop] = useState<{ shared: RelatedNote[]; out: RelatedNote[] } | null>(null)
   const stem = docPath ? stripExt(basename(docPath)) : null
   const outgoing = useMemo(() => {
     const set = new Set<string>()
@@ -405,6 +407,31 @@ export function LinksPanel({
       live = false
     }
   }, [folder, stem, docPath])
+
+  // 二跳：只讀有限數量的檔案，避免大型資料夾卡住
+  useEffect(() => {
+    let live = true
+    setHop(null)
+    if (!folder || !stem) return
+    void (async () => {
+      const direct = extractLinks(md)
+      const byTarget: Record<string, string[]> = {}
+      for (const t of direct.slice(0, 12)) {
+        const h = await window.api.searchFolder(folder, `[[${t}`)
+        byTarget[t] = h.map((x) => stripExt(x.name))
+      }
+      const back = (await window.api.searchFolder(folder, `[[${stem}`)).filter((x) => x.path !== docPath)
+      const backlinks: Record<string, string[]> = {}
+      for (const b of [...new Map(back.map((x) => [x.path, x])).values()].slice(0, 20)) {
+        const f = await window.api.readFile(b.path)
+        if (f) backlinks[stripExt(b.name)] = extractLinks(f.content)
+      }
+      if (live) setHop({ shared: sharedTargets(stem, byTarget).slice(0, 12), out: twoHopOut(stem, direct, backlinks).slice(0, 12) })
+    })()
+    return () => {
+      live = false
+    }
+  }, [folder, stem, docPath, md])
 
   return (
     <>
@@ -435,6 +462,38 @@ export function LinksPanel({
         </div>
       ) : (
         <p className="pop-empty">目前沒有其他筆記連到這裡。</p>
+      )}
+      {folder && stem && (
+        <>
+          <div className="set-sep" />
+          <div className="hist-hint">二跳關係：與本文引用相同對象的筆記</div>
+          {hop == null ? (
+            <p className="pop-empty">計算中…</p>
+          ) : hop.shared.length ? (
+            <div className="link-list col">
+              {hop.shared.map((r) => (
+                <button key={r.stem} onClick={() => onOpenLink(r.stem)}>
+                  <b>{r.stem}</b>
+                  <small>共同連到 {r.via.map((v) => `[[${v}]]`).join('、')}</small>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="pop-empty">沒有找到。</p>
+          )}
+          <div className="hist-hint">二跳關係：經由反向連結再連出的筆記</div>
+          {hop && hop.out.length > 0 && (
+            <div className="link-list col">
+              {hop.out.map((r) => (
+                <button key={r.stem} onClick={() => onOpenLink(r.stem)}>
+                  <b>[[{r.stem}]]</b>
+                  <small>經由 {r.via.map((v) => `[[${v}]]`).join('、')}</small>
+                </button>
+              ))}
+            </div>
+          )}
+          {hop && hop.out.length === 0 && <p className="pop-empty">沒有找到。</p>}
+        </>
       )}
     </>
   )
