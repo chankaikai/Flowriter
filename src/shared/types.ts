@@ -95,6 +95,8 @@ export interface InkwellApi {
   getMaterialSupport(): Promise<MaterialSupport>
   setMaterial(o: { enabled: boolean; kind: 'acrylic' | 'mica' }): void
   toggleFullscreen(): void
+  editRole(role: 'cut' | 'copy' | 'paste' | 'selectAll'): void
+  closeWindow(): void
   openExternal(url: string): void
   reveal(path: string): void
   /** 版本快照（時光機） */

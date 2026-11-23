@@ -1,19 +1,16 @@
 import type { MaterialSupport } from '../../../shared/types'
 import type { Cmd } from '@/lib/commands'
 import { formatKeys } from '@/lib/keys'
-import type { Settings, ThemeName } from '@/lib/settings'
+import type { Settings } from '@/lib/settings'
+import { THEMES } from '@/lib/themes'
 import { ExpandCard } from './ExpandCard'
 import { Icon } from './Icon'
 import { AiSetup } from './AiSetup'
 import { resolveAi } from '@/lib/ai'
 import { Segmented } from './Segmented'
 
-const THEMES: { value: ThemeName; label: string; bg: string; fg: string }[] = [
-  { value: 'light', label: '淺色', bg: '#fbfaf7', fg: '#26241f' },
-  { value: 'dark', label: '深色', bg: '#1c1b19', fg: '#d9d5cc' },
-  { value: 'sepia', label: '護眼', bg: '#e9efe1', fg: '#2f3a2d' },
-  { value: 'system', label: '跟隨系統', bg: 'linear-gradient(135deg,#fbfaf7 50%,#1c1b19 50%)', fg: '#888' }
-]
+const SYSTEM_CARD = { id: 'system', label: '跟隨系統', bg: 'linear-gradient(135deg,#fbfaf7 50%,#1c1b19 50%)', fg: '#888', accent: '#888' }
+const themeCards = (list: typeof THEMES) => list.map((t) => ({ id: t.id, label: t.label, bg: t.bg, fg: t.fg, accent: t.accent }))
 
 const FONT_LABEL = { sans: '無襯線', serif: '襯線', mono: '等寬' } as const
 
@@ -53,7 +50,7 @@ export function SettingsPanel({
   onClose(): void
 }) {
   const keyed = commands.filter((c) => c.keys?.length)
-  const themeLabel = THEMES.find((t) => t.value === settings.theme)?.label ?? ''
+  const themeLabel = [...THEMES, SYSTEM_CARD].find((t) => ('value' in t ? false : t.id === settings.theme))?.label ?? ''
   const on = (v: boolean) => (v ? '開' : '關')
 
   return (
@@ -78,28 +75,38 @@ export function SettingsPanel({
               summary={
                 <>
                   <span className="swatches">
-                    {THEMES.slice(0, 3).map((t) => (
-                      <i key={t.value} style={{ background: t.bg }} />
+                    {THEMES.filter((t) => ['word', 'ocean', 'lavender', 'midnight', 'nord'].includes(t.id)).map((t) => (
+                      <i key={t.id} style={{ background: t.bg, boxShadow: `inset -5px 0 0 ${t.accent}` }} />
                     ))}
                   </span>
                   {themeLabel}
                 </>
               }
             >
-              <div className="theme-grid">
-                {THEMES.map((t) => (
-                  <button
-                    key={t.value}
-                    className={`theme-card${settings.theme === t.value ? ' on' : ''}`}
-                    onClick={() => update({ theme: t.value })}
-                  >
-                    <span className="swatch" style={{ background: t.bg, color: t.fg }}>
-                      Aa
-                    </span>
-                    {t.label}
-                  </button>
-                ))}
-              </div>
+              {[
+                ['淺色主題', themeCards(THEMES.filter((t) => !t.dark))],
+                ['深色主題', themeCards(THEMES.filter((t) => t.dark))],
+                ['', [SYSTEM_CARD]]
+              ].map(([title, list]) => (
+                <div key={title as string}>
+                  {title && <div className="theme-title">{title as string}</div>}
+                  <div className="theme-grid">
+                    {(list as (typeof SYSTEM_CARD)[]).map((t) => (
+                      <button
+                        key={t.id}
+                        className={`theme-card${settings.theme === t.id ? ' on' : ''}`}
+                        onClick={() => update({ theme: t.id })}
+                      >
+                        <span className="swatch" style={{ background: t.bg, color: t.fg }}>
+                          Aa
+                          <i style={{ background: t.accent }} />
+                        </span>
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
 
               <div className="set-sep" />
               <Row label="依時段自動換主題（日間淺色、傍晚護眼、夜間深色）">

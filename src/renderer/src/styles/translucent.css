@@ -19,7 +19,8 @@ html.translucent body { background: transparent; }
   backdrop-filter: none;
   border-right-color: var(--line);
 }
-.translucent .statusbar { background: transparent; }
+.translucent .statusbar, .translucent .topbar, .translucent .ribbon { background: color-mix(in srgb, var(--bg-side) calc(var(--tl) * 70%), transparent); }
+.translucent .rb-body { background: color-mix(in srgb, var(--bg) calc(var(--tl) * 80%), transparent); }
 
 /* 設定頁中的分隔 */
 .set-sep { height: 1px; margin: 12px 0 4px; background: var(--line); }

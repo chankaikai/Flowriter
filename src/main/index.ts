@@ -68,7 +68,7 @@ function createWindow(): BrowserWindow {
           titleBarOverlay: {
             color: MATERIAL === 'none' ? '#fbfaf7' : '#00000000',
             symbolColor: '#26241f',
-            height: 40
+            height: 34
           },
           ...(MATERIAL === 'win' ? { backgroundMaterial: 'acrylic' as const } : {})
         }),
@@ -893,7 +893,7 @@ function registerIpc(): void {
     win.setBackgroundColor(c.color)
     if (!isMac) {
       try {
-        win.setTitleBarOverlay({ color: c.color, symbolColor: c.symbolColor, height: 40 })
+        win.setTitleBarOverlay({ color: c.color, symbolColor: c.symbolColor, height: 34 })
       } catch {
         /* 部分平台不支援 */
       }
@@ -905,6 +905,14 @@ function registerIpc(): void {
     const win = BrowserWindow.fromWebContents(e.sender)
     win?.setFullScreen(!win.isFullScreen())
   })
+  ipcMain.on('win:edit', (e, role: string) => {
+    const w = e.sender
+    if (role === 'cut') w.cut()
+    else if (role === 'copy') w.copy()
+    else if (role === 'paste') w.paste()
+    else if (role === 'selectAll') w.selectAll()
+  })
+  ipcMain.on('win:close', (e) => BrowserWindow.fromWebContents(e.sender)?.close())
   ipcMain.on('shell:external', (_e, url: string) => openExternalSafe(url))
   ipcMain.on('shell:reveal', (_e, p: string) => shell.showItemInFolder(p))
 }

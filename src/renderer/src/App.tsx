@@ -7,7 +7,9 @@ import { FindBar } from '@/components/FindBar'
 import { Palette } from '@/components/Palette'
 import { SettingsPanel } from '@/components/SettingsPanel'
 import { Icon } from '@/components/Icon'
-import { Dock, type DockItem } from '@/components/Dock'
+import { MenuBar } from '@/components/MenuBar'
+import { Ribbon } from '@/components/Ribbon'
+import logo from './assets/logo.png'
 import { usePill } from '@/lib/pill'
 import { AiPanel, DashboardPanel, FocusPanel, LinksPanel, Popover, TasksPanel } from '@/components/Panels'
 import { ClipPanel, DiagnosticsPanel, useClipStack } from '@/components/FlowPanels'
@@ -31,6 +33,7 @@ import { buildCommands, type Actions, type ExportKind, type PanelName } from '@/
 import { formatKeys, matchKey } from '@/lib/keys'
 import { LARGE_DOC, computeStats, parseOutline, type DocStats, type OutlineItem } from '@/lib/markdown'
 import { basename, dirname, stripExt, toAbsolutePath, toDisplayUrl } from '@/lib/path'
+import { THEMES, isDarkTheme } from '@/lib/themes'
 import { useApplySettings, useSettings, type SidebarTab, type ThemeName } from '@/lib/settings'
 import { WELCOME } from '@/lib/welcome'
 import { buildHtmlDocument, renderHtmlBody } from '@/export/exportHtml'
@@ -62,7 +65,7 @@ interface TabInfo {
 const underPath = (path: string | null, p: string) =>
   !!path && (path === p || path.startsWith(p + '/') || path.startsWith(p + '\\'))
 
-const THEME_ORDER: ThemeName[] = ['light', 'dark', 'sepia']
+const THEME_ORDER: ThemeName[] = THEMES.map((t) => t.id)
 const IMG_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i
 const MD_EXT = /\.(md|markdown|mdown|txt)$/i
 
@@ -793,8 +796,10 @@ export default function App() {
     })
   }, [showToast])
 
+  const [weightOn, setWeightOn] = useState(false)
   const toggleWeight = useCallback(() => {
     const on = document.body.classList.toggle('show-weight')
+    setWeightOn(on)
     showToast(on ? '已顯示段落權重（左側色條越深，段落越長）' : '已隱藏段落權重')
   }, [showToast])
 
@@ -853,6 +858,8 @@ export default function App() {
       update({ theme: THEME_ORDER[(THEME_ORDER.indexOf(cur) + 1) % THEME_ORDER.length] })
     },
     setTheme: (t) => update({ theme: t }),
+    editRole: (r) => window.api.editRole(r),
+    quit: () => window.api.closeWindow(),
     openPalette: (m) => setPalette(m),
     openFind: (replace) => {
       if (modeRef.current === 'source') {
@@ -1112,36 +1119,25 @@ export default function App() {
   )
   useEffect(() => () => setAmbient('off', 0), [])
 
-  const dockGroups: DockItem[][] = [
-    [
-      { key: 'files', label: '文件', icon: 'folder', run: navRun('files') },
-      { key: 'outline', label: '大綱', icon: 'list', hint: hint('nav.outline'), run: navRun('outline') },
-      { key: 'search', label: '搜尋', icon: 'search', hint: hint('nav.folderSearch'), run: navRun('search') }
-    ],
-    [
-      { key: 'source', label: '源碼模式', icon: 'code', hint: hint('view.source'), toggled: mode === 'source', run: toggleSource },
-      { key: 'focus', label: '聚焦模式', icon: 'focus', hint: hint('view.focus'), toggled: settings.focusMode, run: () => update({ focusMode: !settings.focusMode }) },
-      { key: 'typewriter', label: '打字機模式', icon: 'type', hint: hint('view.typewriter'), toggled: settings.typewriter, run: () => update({ typewriter: !settings.typewriter }) },
-      { key: 'reading', label: '閱讀模式', icon: 'book', hint: hint('view.reading'), toggled: reading, run: toggleReading }
-    ],
-    [
-      { key: 'p-history', label: '版本時光機', icon: 'history', hint: hint('panel.history'), toggled: panel === 'history', run: () => openPanel('history') },
-      { key: 'p-diag', label: '健檢與排版', icon: 'diag', hint: hint('panel.diag'), toggled: panel === 'diag', run: () => openPanel('diag') },
-      { key: 'p-clips', label: clipStack.on ? '剪貼簿收集中' : '剪貼簿收集', icon: 'clip', hint: hint('panel.clips'), toggled: clipStack.on || panel === 'clips', run: () => openPanel('clips') },
-      { key: 'p-vault', label: '膠囊與抽屜', icon: 'lock', hint: hint('panel.vault'), toggled: panel === 'vault', run: () => openPanel('vault') },
-      { key: 'p-tasks', label: '任務收集', icon: 'tasks', hint: hint('panel.tasks'), toggled: panel === 'tasks', run: () => openPanel('tasks') },
-      { key: 'p-links', label: '連結與反向連結', icon: 'link', hint: hint('panel.links'), toggled: panel === 'links', run: () => openPanel('links') },
-      { key: 'p-ai', label: 'AI 改寫', icon: 'sparkle', hint: hint('panel.ai'), toggled: panel === 'ai', run: () => openPanel('ai') }
-    ],
-    [
-      { key: 'p-dashboard', label: '寫作儀表板', icon: 'chart', hint: hint('panel.dashboard'), toggled: panel === 'dashboard', run: () => openPanel('dashboard') },
-      { key: 'p-focus', label: pomo.st.running ? `專注中 ${Math.ceil(pomo.st.left / 60000)} 分` : '專注', icon: 'timer', hint: hint('panel.focus'), toggled: pomo.st.running || ambient !== 'off' || panel === 'focus', run: () => openPanel('focus') }
-    ],
-    [
-      { key: 'palette', label: '命令面板', icon: 'prompt', hint: hint('nav.commands'), run: () => setPalette('commands') },
-      { key: 'settings', label: '偏好設定', icon: 'sliders', hint: hint('app.settings'), run: () => setSettingsOpen(true) }
-    ]
-  ]
+  const checks: Record<string, boolean> = {
+    sidebar: settings.sidebarOpen,
+    source: mode === 'source',
+    focus: settings.focusMode,
+    typewriter: settings.typewriter,
+    reading,
+    sticky,
+    weight: weightOn,
+    [`theme:${settings.theme}`]: true
+  }
+  const [ribbonFold, setRibbonFold] = useState(() => localStorage.getItem('flowiter.ribbonFold') === '1')
+  const foldRibbon = (v: boolean) => {
+    setRibbonFold(v)
+    try {
+      localStorage.setItem('flowiter.ribbonFold', v ? '1' : '0')
+    } catch {
+      /* 忽略 */
+    }
+  }
 
   // 閱讀模式：唯讀、隱藏介面、顯示進度；Esc 退出
   useEffect(() => {
@@ -1221,6 +1217,7 @@ export default function App() {
     tabsEl.current?.querySelector('.tab.on')?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
   }, [activeTabKey])
 
+  const cmdRun = (id: string) => commands.find((c) => c.id === id)?.run()
   const minutes = stats.minutes < 1 ? '不到 1 分鐘' : `約 ${Math.round(stats.minutes)} 分鐘`
 
   return (
@@ -1230,6 +1227,15 @@ export default function App() {
       data-sidebar={settings.sidebarOpen ? 'open' : 'closed'}
       data-mode={mode}
     >
+      <header className="topbar">
+        <img className="tb-logo" src={logo} alt="" />
+        <MenuBar commands={commands} checks={checks} editorEnabled={mode === 'wysiwyg'} />
+        <div className="tb-title" title={doc.path ?? ''}>
+          {(doc.name || '未命名') + (dirty ? ' ●' : '')} — Flowiter
+        </div>
+      </header>
+      <Ribbon commands={commands} checks={checks} editorEnabled={mode === 'wysiwyg'} collapsed={ribbonFold} onCollapse={foldRibbon} />
+      <div className="shell">
       <Sidebar
         open={settings.sidebarOpen}
         tab={settings.sidebarTab}
@@ -1277,7 +1283,7 @@ export default function App() {
       />
 
       <div className="workspace">
-        <header className="titlebar">
+        <header className="tabsbar">
           <button
             className="icon-btn"
             onClick={() => update({ sidebarOpen: !settings.sidebarOpen })}
@@ -1372,7 +1378,7 @@ export default function App() {
                   ref={isActive ? editorRef : undefined}
                   initialValue={entry.initial}
                   autofocus={isActive}
-                  isDark={resolvedTheme === 'dark'}
+                  isDark={isDarkTheme(resolvedTheme)}
                   onEdit={onEdit}
                   onReady={onEditorReady}
                   uploadImage={uploadImage}
@@ -1500,21 +1506,67 @@ export default function App() {
           <Popover open={panel === 'focus'} icon="timer" title="專注" onClose={() => setPanel(null)}>
             <FocusPanel {...pomo} ambient={ambient} setAmbientKind={setAmbientKind} />
           </Popover>
-          <Dock groups={dockGroups} currentKey={settings.sidebarOpen ? settings.sidebarTab : null} />
         </div>
 
-        <footer className="statusbar">
-          <span>{stats.words.toLocaleString()} 字</span>
-          <span className="sep" />
-          <span>閱讀 {minutes}</span>
-          <span className="grow" />
-          <span className={`save-state${dirty ? ' unsaved' : ''}`}>
-            {doc.path ? (dirty ? (settings.autosave ? '自動儲存中…' : '未儲存') : '已儲存') : dirty ? '未儲存' : ''}
-          </span>
-          <span className="sep" />
-          <span>{mode === 'source' ? '源碼' : '所見即所得'}</span>
-        </footer>
       </div>
+      </div>
+      <footer className="statusbar">
+        <button className="sb-btn gear" onClick={() => setSettingsOpen(true)} title={`偏好設定 (${hint('app.settings') ?? ''})`}>
+          <Icon name="gear" size={15} />
+          <span>設定</span>
+        </button>
+        <button className={`sb-btn${settings.sidebarOpen ? ' on' : ''}`} onClick={() => update({ sidebarOpen: !settings.sidebarOpen })} title="側邊欄">
+          <Icon name="sidebar" size={14} />
+        </button>
+        <span className="sb-text">{stats.words.toLocaleString()} 字</span>
+        <span className="sb-text">閱讀 {minutes}</span>
+        {pomo.st.running && <span className="sb-text accent">專注 {Math.ceil(pomo.st.left / 60000)} 分</span>}
+        <span className="grow" />
+        <span className={`save-state${dirty ? ' unsaved' : ''}`}>
+          {doc.path ? (dirty ? (settings.autosave ? '自動儲存中…' : '未儲存') : '已儲存') : dirty ? '未儲存' : ''}
+        </span>
+        <button className={`sb-btn${mode === 'source' ? ' on' : ''}`} onClick={toggleSource} title="源碼模式">
+          <Icon name="code" size={14} />
+          <span>{mode === 'source' ? '源碼' : '所見即所得'}</span>
+        </button>
+        <button className={`sb-btn${settings.focusMode ? ' on' : ''}`} onClick={() => update({ focusMode: !settings.focusMode })} title="聚焦模式">
+          <Icon name="focus" size={14} />
+        </button>
+        <button className={`sb-btn${settings.typewriter ? ' on' : ''}`} onClick={() => update({ typewriter: !settings.typewriter })} title="打字機模式">
+          <Icon name="type" size={14} />
+        </button>
+        <button className={`sb-btn${reading ? ' on' : ''}`} onClick={toggleReading} title="閱讀模式">
+          <Icon name="book" size={14} />
+        </button>
+        <button className={`sb-btn${sticky ? ' on' : ''}`} onClick={toggleSticky} title="迷你置頂便籤">
+          <Icon name="pin" size={14} />
+        </button>
+        <button className="sb-btn" onClick={() => cmdRun('view.zoomOut')} title="縮小字體">
+          <span>A−</span>
+        </button>
+        <span className="sb-text">{settings.fontSize}px</span>
+        <button className="sb-btn" onClick={() => cmdRun('view.zoomIn')} title="放大字體">
+          <span>A+</span>
+        </button>
+        <select
+          className="sb-select"
+          value={settings.theme}
+          onChange={(e) => update({ theme: e.target.value })}
+          title="主題"
+        >
+          <optgroup label="淺色">
+            {THEMES.filter((t) => !t.dark).map((t) => (
+              <option key={t.id} value={t.id}>{t.label}</option>
+            ))}
+          </optgroup>
+          <optgroup label="深色">
+            {THEMES.filter((t) => t.dark).map((t) => (
+              <option key={t.id} value={t.id}>{t.label}</option>
+            ))}
+          </optgroup>
+          <option value="system">跟隨系統</option>
+        </select>
+      </footer>
 
       <Palette
         mode={palette}

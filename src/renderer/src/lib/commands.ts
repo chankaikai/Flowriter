@@ -1,5 +1,6 @@
 import type { FormatName } from '@/editor/MarkdownEditor'
 import type { SidebarTab, ThemeName } from './settings'
+import { THEMES } from './themes'
 
 export type ExportKind = 'html' | 'pdf' | 'docx' | 'md' | 'png'
 export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks' | 'vault' | 'diag' | 'clips'
@@ -32,6 +33,8 @@ export interface Actions {
   milestone(): void
   toggleWeight(): void
   toggleSpeak(): void
+  editRole(r: 'cut' | 'copy' | 'paste' | 'selectAll'): void
+  quit(): void
   openPanel(p: PanelName): void
 }
 
@@ -81,9 +84,7 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'view.zoomIn', title: '放大字體', group: '檢視', keys: ['Mod+Equal', 'Mod+Shift+Equal'], run: () => a.zoom(1) },
     { id: 'view.zoomOut', title: '縮小字體', group: '檢視', keys: ['Mod+Minus'], run: () => a.zoom(-1) },
     { id: 'view.theme', title: '切換主題', group: '檢視', keys: ['Mod+Alt+T'], run: a.cycleTheme },
-    { id: 'theme.light', title: '主題：淺色', group: '主題', run: () => a.setTheme('light') },
-    { id: 'theme.dark', title: '主題：深色', group: '主題', run: () => a.setTheme('dark') },
-    { id: 'theme.sepia', title: '主題：護眼', group: '主題', run: () => a.setTheme('sepia') },
+    ...THEMES.map((t): Cmd => ({ id: `theme.${t.id}`, title: `主題：${t.label}`, group: '主題', run: () => a.setTheme(t.id) })),
     { id: 'theme.system', title: '主題：跟隨系統', group: '主題', run: () => a.setTheme('system') },
     { id: 'view.reading', title: '閱讀模式', group: '檢視', keys: ['Mod+Alt+R'], run: a.toggleReading },
     { id: 'view.sticky', title: '迷你置頂便籤模式', group: '檢視', keys: ['Mod+Alt+M'], run: a.toggleSticky },
@@ -103,6 +104,11 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'app.settings', title: '偏好設定', group: '檢視', keys: ['Mod+Comma'], run: a.openSettings },
 
     // 編輯
+    { id: 'edit.cut', title: '剪下', group: '編輯', run: () => a.editRole('cut') },
+    { id: 'edit.copy', title: '複製', group: '編輯', run: () => a.editRole('copy') },
+    { id: 'edit.paste', title: '貼上', group: '編輯', run: () => a.editRole('paste') },
+    { id: 'edit.selectAll', title: '全選', group: '編輯', run: () => a.editRole('selectAll') },
+    { id: 'app.quit', title: '結束', group: '檔案', run: a.quit },
     { id: 'edit.undo', title: '復原', group: '編輯', editorOnly: true, run: fmt('undo') },
     { id: 'edit.redo', title: '重做', group: '編輯', editorOnly: true, run: fmt('redo') },
 

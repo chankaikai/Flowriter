@@ -114,11 +114,11 @@
 .tok-comment { color: var(--fg-faint); font-style: italic; }
 .tok-fn { color: #2d5f9a; }
 .tok-type { color: #7a4aa0; }
-:root[data-theme='dark'] .tok-keyword { color: #e0715a; }
-:root[data-theme='dark'] .tok-string { color: #8cc7a1; }
-:root[data-theme='dark'] .tok-number { color: #e0b070; }
-:root[data-theme='dark'] .tok-fn { color: #8fb4e6; }
-:root[data-theme='dark'] .tok-type { color: #c6a2e6; }
+:root[data-tone='dark'] .tok-keyword { color: #e0715a; }
+:root[data-tone='dark'] .tok-string { color: #8cc7a1; }
+:root[data-tone='dark'] .tok-number { color: #e0b070; }
+:root[data-tone='dark'] .tok-fn { color: #8fb4e6; }
+:root[data-tone='dark'] .tok-type { color: #c6a2e6; }
 
 /* ============ 大型文件：離屏區塊跳過版面與繪製 ============ */
 .big-doc .milkdown .ProseMirror > * { content-visibility: auto; contain-intrinsic-size: auto 56px; }

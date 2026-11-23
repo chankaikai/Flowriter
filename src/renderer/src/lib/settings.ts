@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { THEMES, applyThemeVars, isDarkTheme } from './themes'
 
-export type ThemeName = 'system' | 'light' | 'dark' | 'sepia'
-export type ResolvedTheme = 'light' | 'dark' | 'sepia'
+export type ThemeName = 'system' | (string & {})
+export type ResolvedTheme = string
 export type SidebarTab = 'files' | 'outline' | 'search'
 
 export interface Settings {
@@ -125,7 +126,9 @@ export function useApplySettings(s: Settings, materialSupported: boolean): Resol
       ? systemDark
         ? 'dark'
         : 'light'
-      : s.theme
+      : THEMES.some((t) => t.id === s.theme)
+        ? s.theme
+        : 'light'
   const prevTheme = useRef<ResolvedTheme | null>(null)
   const translucentActive = materialSupported && s.translucent
 
@@ -138,14 +141,15 @@ export function useApplySettings(s: Settings, materialSupported: boolean): Resol
     }
     prevTheme.current = resolved
     root.dataset.theme = resolved
+    applyThemeVars(root, resolved)
     document.documentElement.classList.toggle('translucent', translucentActive)
     requestAnimationFrame(() => {
       const cs = getComputedStyle(root)
       window.api.setChrome({
         // 系統材質啟用時視窗底色保持透明，讓毛玻璃透出來
-        color: translucentActive ? '#00000000' : cs.getPropertyValue('--bg').trim() || '#ffffff',
+        color: translucentActive ? '#00000000' : cs.getPropertyValue('--bg-side').trim() || '#ffffff',
         symbolColor: cs.getPropertyValue('--fg').trim() || '#000000',
-        themeSource: s.theme === 'system' && !s.autoTheme ? 'system' : resolved === 'dark' ? 'dark' : 'light'
+        themeSource: s.theme === 'system' && !s.autoTheme ? 'system' : isDarkTheme(resolved) ? 'dark' : 'light'
       })
     })
   }, [resolved, translucentActive, s.theme, s.autoTheme])
