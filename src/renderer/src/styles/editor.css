@@ -53,8 +53,13 @@
 
 /* ---------- 代碼塊 ---------- */
 .editor-col .milkdown .milkdown-code-block {
-  background: var(--block-bg); border-radius: 12px; border: 1px solid var(--line); margin: 1.2em 0; overflow: hidden;
+  background: var(--block-bg); border-radius: 12px; border: 1px solid var(--line); margin: 1.2em 0; overflow: visible; position: relative;
 }
+/* 語言選單會超出代碼塊，不能被裁掉；展開時整塊疊在相鄰區塊之上 */
+.editor-col .milkdown .milkdown-code-block:focus-within { z-index: 30; }
+.editor-col .milkdown .milkdown-code-block .language-list,
+.editor-col .milkdown .milkdown-code-block .list-wrapper { z-index: 40; max-height: 260px; overflow-y: auto; }
+.editor-col .milkdown .milkdown-code-block .cm-editor { border-radius: 0 0 12px 12px; }
 .editor-col .milkdown .milkdown-code-block .cm-editor { background: transparent; font-size: 0.86em; }
 .editor-col .milkdown .milkdown-code-block .cm-content { padding: 12px 4px; font-family: var(--font-mono); }
 .editor-col .milkdown .milkdown-code-block .cm-gutters { background: transparent; border: 0; color: var(--fg-faint); }

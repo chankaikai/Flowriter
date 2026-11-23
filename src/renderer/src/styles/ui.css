@@ -188,7 +188,7 @@ kbd {
   transform: translateX(32px); opacity: 0; transition: transform 0.36s var(--ease), opacity 0.22s ease;
 }
 .overlay.side.open .drawer { transform: none; opacity: 1; }
-.drawer-head { height: 52px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 14px 0 22px; }
+.drawer-head { margin-top: 36px; height: 52px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 14px 0 22px; }
 .drawer-head h2 { margin: 0; font-size: 15px; }
 .drawer-body { flex: 1; overflow-y: auto; padding: 4px 22px 32px; user-select: text; }
 .drawer-body section { margin-bottom: 26px; }

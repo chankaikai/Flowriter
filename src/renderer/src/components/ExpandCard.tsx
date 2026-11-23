@@ -49,7 +49,10 @@ export function ExpandCard({
   const computeTarget = (): Rect => {
     const d = cardRef.current?.closest('.drawer')?.getBoundingClientRect()
     if (!d) return { left: 40, top: 40, width: window.innerWidth - 80, height: window.innerHeight - 80 }
-    return { left: d.left + 12, top: d.top + 12, width: d.width - 24, height: d.height - 24 }
+    // 頂端讓出 44px 給視窗的最小化 / 關閉按鈕；高度夾在可視範圍內，內容才捲得到底
+    const top = Math.max(d.top + 12, 44)
+    const height = Math.min(d.height - 24 - (top - (d.top + 12)), window.innerHeight - top - 12)
+    return { left: d.left + 12, top, width: d.width - 24, height: Math.max(240, height) }
   }
 
   const open = () => {

@@ -599,33 +599,51 @@ function registerIpc(): void {
   const AI_SYSTEM =
     '你是嚴謹的文字編輯。依指示處理使用者提供的 Markdown 片段，保留原有的 Markdown 語法與連結，只輸出處理後的正文，不要任何解釋、前言或程式碼圍欄。'
 
-  ipcMain.handle(
-    'ai:rewrite',
-    async (
-      _e,
-      r: { kind: 'anthropic' | 'openai'; baseUrl: string; apiKey: string; model: string; instruction: string; text: string }
-    ) => {
-      const user = `${r.instruction}\n\n---\n${r.text}`
-      const ctl = new AbortController()
-      const timer = setTimeout(() => ctl.abort(), 120_000)
+  type AiReq = { kind: 'anthropic' | 'openai'; baseUrl: string; apiKey: string; model: string; instruction: string; text: string }
+
+  /** 組出請求網址：容忍結尾斜線，也容忍使用者貼成完整的 /chat/completions 或 /v1/messages。 */
+  const aiUrl = (kind: AiReq['kind'], base: string): string => {
+    const b = base.trim().replace(/\/+$/, '')
+    if (kind === 'anthropic') {
+      if (/\/v1\/messages$/.test(b)) return b
+      return /\/v1$/.test(b) ? `${b}/messages` : `${b}/v1/messages`
+    }
+    return /\/chat\/completions$/.test(b) ? b : `${b}/chat/completions`
+  }
+  const snippet = (raw: string) => raw.replace(/\s+/g, ' ').trim().slice(0, 200)
+
+  /** 呼叫模型。錯誤訊息會帶上實際請求的網址與回應片段（不含金鑰），方便判斷是網址、模型名還是金鑰的問題。 */
+  const callAi = async (r: AiReq, maxTokens: number): Promise<{ text: string } | { error: string }> => {
+    if (!r.baseUrl.trim()) return { error: '還沒有填服務網址（Base URL）' }
+    if (!r.model.trim()) return { error: '還沒有填模型名稱' }
+    const url = aiUrl(r.kind, r.baseUrl)
+    const where = (() => {
       try {
-        if (r.kind === 'anthropic') {
-          const res = await fetch(`${r.baseUrl}/v1/messages`, {
-            method: 'POST',
-            signal: ctl.signal,
-            headers: { 'content-type': 'application/json', 'x-api-key': r.apiKey, 'anthropic-version': '2023-06-01' },
-            body: JSON.stringify({ model: r.model, max_tokens: 4096, system: AI_SYSTEM, messages: [{ role: 'user', content: user }] })
-          })
-          const j = (await res.json()) as { content?: { type: string; text?: string }[]; error?: { message?: string } }
-          if (!res.ok) return { error: j.error?.message || `請求失敗（${res.status}）` }
-          const text = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('')
-          return text ? { text } : { error: '模型沒有回傳內容' }
-        }
+        const u = new URL(url)
+        return `${u.host}${u.pathname}`
+      } catch {
+        return url
+      }
+    })()
+    const ctl = new AbortController()
+    const timer = setTimeout(() => ctl.abort(), 120_000)
+    const user = r.text ? `${r.instruction}\n\n---\n${r.text}` : r.instruction
+    try {
+      let res: Response
+      if (r.kind === 'anthropic') {
+        res = await fetch(url, {
+          method: 'POST',
+          signal: ctl.signal,
+          headers: { 'content-type': 'application/json', 'x-api-key': r.apiKey, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify({ model: r.model, max_tokens: maxTokens, system: AI_SYSTEM, messages: [{ role: 'user', content: user }] })
+        })
+      } else {
         const headers: Record<string, string> = { 'content-type': 'application/json' }
         if (r.apiKey) headers.authorization = `Bearer ${r.apiKey}`
         const body: Record<string, unknown> = {
           model: r.model,
           temperature: 0.3,
+          max_tokens: maxTokens,
           messages: [
             { role: 'system', content: AI_SYSTEM },
             { role: 'user', content: user }
@@ -633,29 +651,52 @@ function registerIpc(): void {
         }
         // 通義千問的開源 Qwen3 系列在非串流請求下必須關閉思考模式
         if (/dashscope/i.test(r.baseUrl)) body.enable_thinking = false
-        const res = await fetch(`${r.baseUrl}/chat/completions`, { method: 'POST', signal: ctl.signal, headers, body: JSON.stringify(body) })
-        const raw = await res.text()
-        let j: { choices?: { message?: { content?: string } }[]; error?: { message?: string } | string } = {}
-        try {
-          j = JSON.parse(raw)
-        } catch {
-          return { error: `服務回傳了無法解析的內容（${res.status}）` }
-        }
-        if (!res.ok) {
-          const m = typeof j.error === 'string' ? j.error : j.error?.message
-          return { error: m || `請求失敗（${res.status}）` }
-        }
-        // 部分推理模型會把思考過程包在 <think> 裡，這裡去掉
-        const text = (j.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '').trim()
-        return text ? { text } : { error: '模型沒有回傳內容' }
-      } catch (err) {
-        const e = err as Error
-        return { error: e.name === 'AbortError' ? '請求逾時' : `網路錯誤：${e.message}` }
-      } finally {
-        clearTimeout(timer)
+        res = await fetch(url, { method: 'POST', signal: ctl.signal, headers, body: JSON.stringify(body) })
       }
+      const raw = await res.text()
+      let j: any = null
+      try {
+        j = JSON.parse(raw)
+      } catch {
+        /* 不是 JSON，下面用片段回報 */
+      }
+      if (!res.ok || !j) {
+        const msg = j && (typeof j.error === 'string' ? j.error : j.error?.message || j.message || j.header?.message)
+        const hint =
+          res.status === 404 ? '（網址或路徑不對：確認 Base URL 與服務商文件一致）'
+          : res.status === 401 || res.status === 403 ? '（金鑰無效或沒有權限）'
+          : res.status === 429 ? '（請求太頻繁或額度用完）'
+          : ''
+        return { error: `${res.status} ${where}${hint}${msg ? ` — ${msg}` : !j ? ` — 回應不是 JSON：${snippet(raw)}` : ''}` }
+      }
+      // 部分服務用 HTTP 200 + code != 0 回報錯誤（例如訊飛的 header.code）
+      if (typeof j.code === 'number' && j.code !== 0) return { error: `${where} — ${j.message || `錯誤碼 ${j.code}`}` }
+      let text = ''
+      if (r.kind === 'anthropic') {
+        text = (j.content || []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('')
+      } else {
+        text = j.choices?.[0]?.message?.content ?? ''
+      }
+      // 部分推理模型會把思考過程包在 <think> 裡，這裡去掉
+      text = String(text).replace(/<think>[\s\S]*?<\/think>/g, '').trim()
+      return text ? { text } : { error: `${where} — 模型沒有回傳內容：${snippet(raw)}` }
+    } catch (err) {
+      const e = err as Error
+      return { error: e.name === 'AbortError' ? '請求逾時（120 秒）' : `網路錯誤：${e.message}（${where}）` }
+    } finally {
+      clearTimeout(timer)
     }
-  )
+  }
+
+  ipcMain.handle('ai:rewrite', (_e, r: AiReq) => callAi(r, 4096))
+
+  /** 測試連線：送一個極短的請求，回報耗時與模型的回覆。 */
+  ipcMain.handle('ai:test', async (_e, r: AiReq) => {
+    const t0 = Date.now()
+    const out = await callAi({ ...r, instruction: '請只回覆「OK」兩個字母。', text: '' }, 32)
+    const ms = Date.now() - t0
+    return 'error' in out ? { ok: false as const, error: out.error, ms } : { ok: true as const, reply: out.text.slice(0, 40), ms }
+  })
 
   /* ---------- 長圖匯出 ---------- */
   ipcMain.handle('export:image', async (e, o: { name: string; html: string; width: number }) => {

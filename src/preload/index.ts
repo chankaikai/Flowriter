@@ -46,6 +46,7 @@ const api: InkwellApi = {
   drawerRead: () => inv('drawer:read'),
   drawerWrite: (b) => inv('drawer:write', b),
   aiRewrite: (r) => inv('ai:rewrite', r),
+  aiTest: (r) => inv('ai:test', r),
   exportImage: (o) => inv('export:image', o),
   onMenu: (cb) => {
     const handler = (_e: unknown, action: string) => cb(action)

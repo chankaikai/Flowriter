@@ -1,6 +1,30 @@
-import { PROVIDERS, providerOf, type AiPrefs } from '@/lib/ai'
+import { useState } from 'react'
+import { PROVIDERS, providerOf, resolveAi, type AiPrefs } from '@/lib/ai'
 
 type Update = (patch: Partial<AiPrefs>) => void
+
+type TestState = { s: 'idle' } | { s: 'busy' } | { s: 'ok'; ms: number; reply: string } | { s: 'err'; msg: string }
+
+/** 送一個極短的請求，確認網址、金鑰與模型名稱都能用。 */
+function TestButton({ prefs }: { prefs: AiPrefs }) {
+  const [t, setT] = useState<TestState>({ s: 'idle' })
+  const cfg = resolveAi(prefs)
+  const run = async () => {
+    if (cfg.missing) return setT({ s: 'err', msg: cfg.missing })
+    setT({ s: 'busy' })
+    const r = await window.api.aiTest({ kind: cfg.kind, baseUrl: cfg.baseUrl, apiKey: cfg.apiKey, model: cfg.model, instruction: '', text: '' })
+    setT(r.ok ? { s: 'ok', ms: r.ms, reply: r.reply } : { s: 'err', msg: r.error })
+  }
+  return (
+    <div className="ai-test">
+      <button className="btn ghost" disabled={t.s === 'busy'} onClick={() => void run()}>
+        {t.s === 'busy' ? '測試中…' : '測試連線'}
+      </button>
+      {t.s === 'ok' && <span className="ai-test-ok">連線成功（{t.ms} 毫秒）{t.reply ? `，模型回覆：${t.reply}` : ''}</span>}
+      {t.s === 'err' && <span className="ai-test-err">{t.msg}</span>}
+    </div>
+  )
+}
 
 /** 服務商 + 模型選擇。compact 用在 AI 面板；完整版（含金鑰、網址）用在偏好設定。 */
 export function AiSetup({ s, update, compact }: { s: AiPrefs; update: Update; compact?: boolean }) {
@@ -36,6 +60,7 @@ export function AiSetup({ s, update, compact }: { s: AiPrefs; update: Update; co
           </datalist>
         </label>
       </div>
+      <TestButton prefs={s} />
       {!compact && (
         <>
           <label>
