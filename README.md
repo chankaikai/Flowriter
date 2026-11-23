@@ -1,4 +1,4 @@
-# Inkwell
+# Flowriter
 
 所見即所得的 Markdown 桌面編輯器（Electron + React + Milkdown/ProseMirror）。
 
