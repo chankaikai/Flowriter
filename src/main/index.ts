@@ -613,7 +613,7 @@ function registerIpc(): void {
   const snippet = (raw: string) => raw.replace(/\s+/g, ' ').trim().slice(0, 200)
 
   /** 呼叫模型。錯誤訊息會帶上實際請求的網址與回應片段（不含金鑰），方便判斷是網址、模型名還是金鑰的問題。 */
-  const callAi = async (r: AiReq, maxTokens: number): Promise<{ text: string } | { error: string }> => {
+  const callAi = async (r: AiReq, maxTokens: number): Promise<{ text: string } | { error: string; reasoning?: boolean }> => {
     if (!r.baseUrl.trim()) return { error: '還沒有填服務網址（Base URL）' }
     if (!r.model.trim()) return { error: '還沒有填模型名稱' }
     const url = aiUrl(r.kind, r.baseUrl)
@@ -679,7 +679,13 @@ function registerIpc(): void {
       }
       // 部分推理模型會把思考過程包在 <think> 裡，這裡去掉
       text = String(text).replace(/<think>[\s\S]*?<\/think>/g, '').trim()
-      return text ? { text } : { error: `${where} — 模型沒有回傳內容：${snippet(raw)}` }
+      if (text) return { text }
+      // 推理模型把額度全花在思考上（content 空、reasoning_content 有字、finish_reason=length）
+      const ch = j.choices?.[0]
+      if (ch?.message?.reasoning_content || ch?.finish_reason === 'length') {
+        return { error: `${where} — 模型把回覆額度都用在思考上，沒有輸出正文。請換成非推理（non-thinking）的模型，或關閉該模型的思考模式。`, reasoning: true }
+      }
+      return { error: `${where} — 模型沒有回傳內容：${snippet(raw)}` }
     } catch (err) {
       const e = err as Error
       return { error: e.name === 'AbortError' ? '請求逾時（120 秒）' : `網路錯誤：${e.message}（${where}）` }
@@ -693,8 +699,10 @@ function registerIpc(): void {
   /** 測試連線：送一個極短的請求，回報耗時與模型的回覆。 */
   ipcMain.handle('ai:test', async (_e, r: AiReq) => {
     const t0 = Date.now()
-    const out = await callAi({ ...r, instruction: '請只回覆「OK」兩個字母。', text: '' }, 32)
+    const out = await callAi({ ...r, instruction: '請只回覆「OK」兩個字母。', text: '' }, 1024)
     const ms = Date.now() - t0
+    // 推理模型能連上、也有回應，只是正文被思考吃掉：連線本身算成功，但要提醒
+    if ('error' in out && out.reasoning) return { ok: true as const, reply: '（這是推理模型，思考過程很長；改寫時建議換非推理版本）', ms }
     return 'error' in out ? { ok: false as const, error: out.error, ms } : { ok: true as const, reply: out.text.slice(0, 40), ms }
   })
 
