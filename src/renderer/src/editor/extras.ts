@@ -17,6 +17,8 @@ import { sortOrder } from '@/lib/tableSort'
 import { parseFrontMatter, toggleBool } from '@/lib/frontMatter'
 import { collectVars, evaluate, formatNumber } from '@/lib/calc'
 import remarkFrontmatter from 'remark-frontmatter'
+import { renderMermaid } from '@/lib/mermaid'
+import { normLock, touchesLocked, type Range } from '@/lib/locks'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -710,6 +712,160 @@ export const frontMatterBadgePlugin = $prose(() => {
   })
 })
 
+/* ------------------------------ Mermaid 即時渲染 ------------------------------ */
+// 不依賴 Crepe 的預覽 API：在 language=mermaid 的代碼塊後面插入唯讀的圖表 widget。
+// 只是裝飾（Decoration），不會進入文件內容，所以不影響儲存出來的 Markdown。
+
+const mermaidCache = new Map<string, HTMLElement>()
+const mermaidTimers = new Map<string, number>()
+
+function mermaidWidget(code: string): HTMLElement {
+  const dark = document.documentElement.dataset.tone === 'dark'
+  const key = `${dark ? 'd' : 'l'}|${code}`
+  const hit = mermaidCache.get(key)
+  if (hit) return hit
+  const el = document.createElement('div')
+  el.className = 'mermaid-preview'
+  el.contentEditable = 'false'
+  el.textContent = '圖表渲染中…'
+  mermaidCache.set(key, el)
+  if (mermaidCache.size > 60) {
+    const first = mermaidCache.keys().next().value
+    if (first !== undefined) mermaidCache.delete(first)
+  }
+  // 打字時每個按鍵都會重建裝飾；延後 350ms 再真正渲染，避免狂跑 mermaid
+  window.clearTimeout(mermaidTimers.get(key))
+  mermaidTimers.set(
+    key,
+    window.setTimeout(() => {
+      mermaidTimers.delete(key)
+      renderMermaid(code, dark)
+        .then((svg) => {
+          el.innerHTML = svg
+        })
+        .catch((e: unknown) => {
+          el.classList.add('err')
+          el.textContent = '圖表語法有誤：' + String((e as Error)?.message ?? e).split('\n')[0].slice(0, 120)
+        })
+    }, 350)
+  )
+  return el
+}
+
+const mermaidKey = new PluginKey('inkwell-mermaid')
+function buildMermaid(doc: import('@milkdown/kit/prose/model').Node): DecorationSet {
+  const decos: Decoration[] = []
+  doc.descendants((node, pos) => {
+    if (node.type.name !== 'code_block') return
+    if (String(node.attrs.language ?? '').toLowerCase() !== 'mermaid') return
+    const code = node.textContent
+    if (!code.trim()) return
+    decos.push(Decoration.widget(pos + node.nodeSize, () => mermaidWidget(code), { side: -1, key: `mmd-${code.length}-${code.slice(0, 40)}-${document.documentElement.dataset.tone}`, ignoreSelection: true }))
+  })
+  return DecorationSet.create(doc, decos)
+}
+
+export const mermaidPlugin = $prose(
+  () =>
+    new Plugin({
+      key: mermaidKey,
+      state: {
+        init: (_c, st) => buildMermaid(st.doc),
+        apply: (tr, old) => (tr.docChanged ? buildMermaid(tr.doc) : old)
+      },
+      props: {
+        decorations(st) {
+          return mermaidKey.getState(st)
+        }
+      }
+    })
+)
+
+/* ------------------------------ 段落上鎖 ------------------------------ */
+// 被鎖的段落（以純文字比對）不能被修改；邊界上新增段落仍可。上鎖資訊不在文件內。
+
+interface LockState {
+  texts: Set<string>
+  decos: DecorationSet
+  ranges: Range[]
+}
+const lockKey = new PluginKey<LockState>('inkwell-lock')
+
+function computeLocks(doc: import('@milkdown/kit/prose/model').Node, texts: Set<string>): LockState {
+  const ranges: Range[] = []
+  const decos: Decoration[] = []
+  if (texts.size) {
+    doc.descendants((node, pos) => {
+      if (!node.isTextblock) return true
+      if (node.type.name !== 'code_block' && node.textContent.trim() && texts.has(normLock(node.textContent))) {
+        ranges.push({ from: pos, to: pos + node.nodeSize })
+        decos.push(Decoration.node(pos, pos + node.nodeSize, { class: 'is-locked' }))
+      }
+      return false
+    })
+  }
+  return { texts, ranges, decos: DecorationSet.create(doc, decos) }
+}
+
+let lockToastAt = 0
+export const lockPlugin = $prose(
+  () =>
+    new Plugin<LockState>({
+      key: lockKey,
+      state: {
+        init: (_c, st) => computeLocks(st.doc, new Set()),
+        apply: (tr, old, _o, st) => {
+          const meta = tr.getMeta(lockKey) as { texts: string[] } | undefined
+          if (meta) return computeLocks(st.doc, new Set(meta.texts.map(normLock)))
+          return tr.docChanged ? computeLocks(st.doc, old.texts) : old
+        }
+      },
+      props: {
+        decorations: (st) => lockKey.getState(st)?.decos
+      },
+      filterTransaction(tr, st) {
+        if (!tr.docChanged) return true
+        let rs = lockKey.getState(st)?.ranges ?? []
+        if (!rs.length) return true
+        for (const step of tr.steps) {
+          const map = step.getMap()
+          let hit = false
+          map.forEach((os, oe) => {
+            if (touchesLocked(os, oe, rs)) hit = true
+          })
+          if (hit) {
+            if (Date.now() - lockToastAt > 1500) {
+              lockToastAt = Date.now()
+              window.dispatchEvent(new CustomEvent('inkwell-locked'))
+            }
+            return false
+          }
+          rs = rs.map((r) => ({ from: map.map(r.from, 1), to: map.map(r.to, -1) }))
+        }
+        return true
+      }
+    })
+)
+
+export function setLockTexts(view: EditorView, texts: string[]): void {
+  view.dispatch(view.state.tr.setMeta(lockKey, { texts }).setMeta('addToHistory', false))
+}
+
+/** 切換游標所在段落的鎖定狀態；回傳新狀態與段落文字，找不到可鎖的段落回傳 null */
+export function toggleLockAtCaret(view: EditorView): { locked: boolean; text: string; texts: string[] } | null {
+  const { $from } = view.state.selection
+  const block = $from.parent
+  if (!block.isTextblock || block.type.name === 'code_block' || !block.textContent.trim()) return null
+  const st = lockKey.getState(view.state)
+  const texts = new Set(st?.texts ?? [])
+  const t = normLock(block.textContent)
+  const locked = !texts.has(t)
+  if (locked) texts.add(t)
+  else texts.delete(t)
+  setLockTexts(view, [...texts])
+  return { locked, text: block.textContent, texts: [...texts] }
+}
+
 export const extraPlugins = [
   frontMatterRemark,
   tocRemark,
@@ -726,6 +882,8 @@ export const extraPlugins = [
   biColNode,
   biBlockNode,
   calloutPlugin,
+  mermaidPlugin,
+  lockPlugin,
   calcPlugin,
   footnoteTipPlugin,
   frontMatterBadgePlugin,

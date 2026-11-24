@@ -16,6 +16,8 @@ export interface Settings {
   focusMode: boolean
   typewriter: boolean
   autosave: boolean
+  /** 側邊欄寬度（可拖曳分隔線調整） */
+  sidebarWidth: number
   /** 全域快捷鍵叫出收件匣小視窗 */
   inboxShortcut: boolean
   translucent: boolean
@@ -47,6 +49,7 @@ export const DEFAULT_SETTINGS: Settings = {
   focusMode: false,
   typewriter: false,
   autosave: true,
+  sidebarWidth: 264,
   inboxShortcut: false,
   translucent: true,
   surfaceOpacity: 0.72,

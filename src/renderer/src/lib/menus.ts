@@ -51,6 +51,7 @@ export const MENUS: MenuDef[] = [
       c('edit.copy'),
       c('edit.paste'),
       c('edit.selectAll'),
+      c('edit.lock'),
       SEP,
       c('nav.find'),
       c('nav.replace'),
@@ -221,6 +222,10 @@ export const RIBBON: RibbonTab[] = [
           r('fmt.ol', '有序清單', { glyph: '1≡' }),
           r('fmt.task', '任務清單', { icon: 'tasks' })
         ]
+      },
+      {
+        label: '保護',
+        items: [r('edit.lock', '段落上鎖', { icon: 'lock', lg: true })]
       },
       {
         label: '尋找',

@@ -154,7 +154,10 @@
 .swatches i { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--line-strong); }
 
 .xdetail { position: fixed; max-height: calc(100vh - 56px); z-index: 150; padding: 0; border-radius: 20px; background: var(--glass-bg-strong); }
-.xd-inner { height: 100%; min-height: 0; display: flex; flex-direction: column; border-radius: inherit; overflow: hidden; }
+.xdetail { display: flex; flex-direction: column; overflow: hidden; }
+/* GlassCard 會把子元素包進 .gcontent；沒有給它確定的高度，內層捲動區就撐不住 */
+.xdetail > .gcontent { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.xd-inner { flex: 1; min-height: 0; display: flex; flex-direction: column; border-radius: inherit; overflow: hidden; }
 .xd-head { height: 56px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 12px 0 18px; }
 .xd-head h2 { margin: 0; flex: 1; font-size: 15px; }
 .xd-body {
@@ -212,21 +215,24 @@
 
 /* ---------- 停靠欄浮動面板 ---------- */
 .pop {
-  position: absolute; left: 50%; bottom: 84px; z-index: 29; width: 380px; max-width: calc(100% - 32px);
-  max-height: min(560px, calc(100% - 120px)); display: flex; flex-direction: column;
-  border-radius: 20px; background: var(--glass-bg-strong); border: 1px solid var(--glass-edge);
+  position: absolute; top: 0; right: 0; bottom: 0; z-index: 29; width: 380px; max-width: 60%;
+  display: flex; flex-direction: column; border-radius: 0;
+  background: var(--glass-bg-strong); border-left: 1px solid var(--glass-edge);
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--rim-hi);
-  opacity: 0; transform: translate(-50%, 14px) scale(0.97); transform-origin: 50% 100%;
-  transition: opacity 0.22s ease, transform 0.36s var(--ease);
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.06);
+  opacity: 0; transform: translateX(24px);
+  transition: opacity 0.2s ease, transform 0.3s var(--ease);
 }
-.pop.in { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.pop.in { opacity: 1; transform: none; }
 .pop.wide { width: 460px; }
-.typing .pop { opacity: 0.0; pointer-events: none; }
+/* 右側面板開啟時，編輯區讓出空間而不是被蓋住 */
+.stage.has-pop .editor-scroll { right: min(380px, 60%); }
+.stage.has-pop.pop-wide .editor-scroll { right: min(460px, 60%); }
 .pop-head { display: flex; align-items: center; gap: 8px; padding: 12px 12px 8px 16px; color: var(--fg-muted); }
 .pop-head h3 { margin: 0; font-size: 13px; font-weight: 600; color: var(--fg); }
 .pop-head .grow { flex: 1; }
-.pop-body { padding: 4px 16px 16px; overflow: auto; display: flex; flex-direction: column; gap: 10px; }
+.pop-body > * { flex-shrink: 0; }
+.pop-body { flex: 1; min-height: 0; padding: 4px 16px 16px; overflow: auto; display: flex; flex-direction: column; gap: 10px; }
 .pop-empty { margin: 0; font-size: 12.5px; line-height: 1.7; color: var(--fg-muted); }
 .pop-actions { display: flex; gap: 8px; }
 .btn {
@@ -276,10 +282,10 @@
 .pomo { display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .pomo-ctl { display: flex; gap: 8px; }
 
-.ai-src { font-size: 12.5px; line-height: 1.7; padding: 8px 10px; border-radius: 10px; background: var(--hover); color: var(--fg-muted); max-height: 96px; overflow: auto; }
+.ai-src { white-space: pre-wrap; font-size: 12.5px; line-height: 1.7; padding: 8px 10px; border-radius: 10px; background: var(--hover); color: var(--fg-muted); max-height: 96px; overflow: auto; }
 .ai-input { width: 100%; height: 32px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line-strong); background: transparent; color: var(--fg); font-size: 13px; }
 .ai-input:focus { outline: none; border-color: var(--accent); }
-.ai-out { font-size: 13.5px; line-height: 1.75; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 10%, transparent); white-space: pre-wrap; max-height: 220px; overflow: auto; }
+.ai-out { flex: none; font-size: 13.5px; line-height: 1.75; padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 10%, transparent); white-space: pre-wrap; min-height: 140px; max-height: 55vh; overflow: auto; user-select: text; }
 .ai-err { font-size: 12.5px; color: #d2553f; }
 .ai-busy { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--fg-muted); }
 .ai-busy i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line-strong); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }

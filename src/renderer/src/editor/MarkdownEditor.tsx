@@ -39,8 +39,7 @@ import {
   type SearchInfo
 } from './plugins'
 import { TextSelection } from '@milkdown/kit/prose/state'
-import { gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
-import { renderMermaid } from '@/lib/mermaid'
+import { setLockTexts, toggleLockAtCaret, gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
 import { LARGE_DOC } from '@/lib/markdown'
 
 export type FormatName =
@@ -74,6 +73,14 @@ export interface EditorHandle {
   gotoText(text: string): boolean
   /** 從游標所在段落到文末的純文字 */
   textFromCaret(): string
+  /** 游標前最多 max 個字元的純文字 */
+  textBeforeCaret(max: number): string
+  /** 把選取收成游標，停在選取尾端 */
+  collapseToEnd(): void
+  /** 切換游標所在段落的鎖定；回傳新狀態，游標不在可鎖的段落時回傳 null */
+  toggleLock(): { locked: boolean; text: string } | null
+  /** 以一組段落文字取代目前的鎖定清單 */
+  setLocks(texts: string[]): void
   /** 游標所在代碼塊的語言與內容（唯讀；不在代碼塊內回傳 null） */
   codeAtCaret(): { lang: string; code: string } | null
   /** 游標的螢幕座標，沒有編輯器或找不到時回傳 null */
@@ -123,17 +130,6 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
         [Crepe.Feature.ImageBlock]: {
           onUpload: (file: File) => propsRef.current.uploadImage(file),
           proxyDomURL: (url: string) => propsRef.current.resolveImageUrl(url)
-        },
-        [Crepe.Feature.CodeMirror]: {
-          renderPreview: (language: string, content: string) => {
-            if (language.toLowerCase() !== 'mermaid' || !content.trim()) return null
-            const el = document.createElement('div')
-            el.className = 'mermaid-preview'
-            renderMermaid(content, propsRef.current.isDark)
-              .then((svg) => (el.innerHTML = svg))
-              .catch(() => (el.textContent = '圖表語法有誤'))
-            return el
-          }
         }
       }
     })
@@ -351,6 +347,28 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       if (v) searchClear(v)
     },
 
+    textBeforeCaret(max) {
+      const v = view()
+      if (!v) return ''
+      const pos = v.state.selection.from
+      return v.state.doc.textBetween(Math.max(0, pos - max), pos, '\n', ' ')
+    },
+    collapseToEnd() {
+      const v = view()
+      if (!v) return
+      const to = v.state.selection.to
+      v.dispatch(v.state.tr.setSelection(TextSelection.create(v.state.doc, to)))
+    },
+    toggleLock() {
+      const v = view()
+      if (!v) return null
+      const r = toggleLockAtCaret(v)
+      return r ? { locked: r.locked, text: r.text } : null
+    },
+    setLocks(texts) {
+      const v = view()
+      if (v) setLockTexts(v, texts)
+    },
     codeAtCaret() {
       const v = view()
       if (!v) return null

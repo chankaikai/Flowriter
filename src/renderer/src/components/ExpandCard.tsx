@@ -32,12 +32,15 @@ export function ExpandCard({
   title,
   summary,
   wide,
+  active = true,
   children
 }: {
   icon: IconName
   title: string
   summary: ReactNode
   wide?: boolean
+  /** 外層（設定抽屜）關閉時設為 false，詳情會一併立即收起 */
+  active?: boolean
   children: ReactNode
 }) {
   const cardRef = useRef<HTMLDivElement>(null)
@@ -99,6 +102,10 @@ export function ExpandCard({
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
   }, [phase])
+
+  useEffect(() => {
+    if (!active && phase !== 'closed') setPhase('closed')
+  }, [active, phase])
 
   const showDetail = phase !== 'closed'
 

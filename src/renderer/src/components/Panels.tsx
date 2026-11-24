@@ -294,9 +294,10 @@ export function FocusPanel({
 
 /* ------------------------------ AI 改寫 ------------------------------ */
 
-const AI_PRESETS: { label: string; prompt: string }[] = [
+const AI_PRESETS: { label: string; prompt: string; cont?: boolean }[] = [
   { label: '潤色', prompt: '潤色以下文字，使表達更流暢自然，保持原意與語言。' },
   { label: '精簡', prompt: '把以下文字精簡到原來約一半的長度，保留關鍵資訊。' },
+  { label: '續寫', prompt: '接著以下文字繼續往下寫一段（約 150～300 字），語氣、人稱與語言保持一致；只輸出新寫的內容，不要重複原文。', cont: true },
   { label: '擴寫', prompt: '在不編造事實的前提下，把以下文字擴寫得更充實。' },
   { label: '修正錯字語法', prompt: '只修正以下文字的錯字、標點與語法錯誤，不改變用詞與風格。' },
   { label: '翻成英文', prompt: '把以下文字翻譯成自然的英文。' },
@@ -304,8 +305,17 @@ const AI_PRESETS: { label: string; prompt: string }[] = [
 ]
 
 export function AiPanel({
-  selection, prefs, update, onApply
-}: { selection: string; prefs: AiPrefs; update(patch: Partial<AiPrefs>): void; onApply(md: string): void }) {
+  selection, before, prefs, update, onApply, onAppend
+}: {
+  selection: string
+  /** 游標前的文字，沒選取時續寫用它當上文 */
+  before: string
+  prefs: AiPrefs
+  update(patch: Partial<AiPrefs>): void
+  onApply(md: string): void
+  /** 插在選取內容（或游標）之後，不取代原文 */
+  onAppend(md: string): void
+}) {
   const [custom, setCustom] = useState('')
   const [busy, setBusy] = useState(false)
   const [out, setOut] = useState<string | null>(null)
@@ -313,13 +323,16 @@ export function AiPanel({
   const [last, setLast] = useState<{ in: number; out: number } | null>(null)
   const cfg = resolveAi(prefs)
 
-  const run = async (instruction: string) => {
+  const source = selection || before
+  const run = async (instruction: string, useBefore = false) => {
     if (!instruction.trim() || busy || cfg.missing) return
+    const text = selection || (useBefore ? before : '')
+    if (!text.trim()) return
     setBusy(true)
     setErr(null)
     setOut(null)
     const r = await window.api.aiRewrite({
-      kind: cfg.kind, baseUrl: cfg.baseUrl, apiKey: cfg.apiKey, model: cfg.model, maxTokens: cfg.maxTokens, instruction, text: selection
+      kind: cfg.kind, baseUrl: cfg.baseUrl, apiKey: cfg.apiKey, model: cfg.model, maxTokens: cfg.maxTokens, instruction, text
     })
     setBusy(false)
     if ('error' in r) setErr(r.error)
@@ -336,33 +349,40 @@ export function AiPanel({
     <>
       <AiSetup s={prefs} update={update} compact />
       {cfg.missing && <p className="pop-empty">{cfg.missing}。</p>}
-      {!selection ? (
-        <p className="pop-empty">先在編輯器中選取一段文字，再打開這個面板。</p>
+      {!source ? (
+        <p className="pop-empty">先在編輯器中選取一段文字（或把游標放在想續寫的地方），再打開這個面板。</p>
       ) : (
         <>
-          <div className="ai-src">{selection.length > 260 ? `${selection.slice(0, 260)}…` : selection}</div>
+          <div className="ai-src">
+            {selection ? '' : '（未選取：以游標前的文字當上文，只能用「續寫」）\n'}
+            {source.length > 260 ? `${selection ? source.slice(0, 260) : '…' + source.slice(-260)}${selection ? '…' : ''}` : source}
+          </div>
           <div className="chips">
-            {AI_PRESETS.map((p) => (
-              <button key={p.label} className="chip" disabled={busy || !!cfg.missing} onClick={() => void run(p.prompt)}>
+            {AI_PRESETS.filter((p) => selection || p.cont).map((p) => (
+              <button key={p.label} className="chip" disabled={busy || !!cfg.missing} onClick={() => void run(p.prompt, !!p.cont)}>
                 {p.label}
               </button>
             ))}
           </div>
-          <div className="ai-row">
-            <input
-              className="ai-input" placeholder="或輸入自訂指示，Enter 送出" value={custom}
-              onChange={(e) => setCustom(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && void run(custom)}
-            />
-          </div>
-          {busy && <div className="ai-busy"><i /><span>{cfg.provider.label} 正在改寫…</span></div>}
+          {selection && (
+            <div className="ai-row">
+              <input
+                className="ai-input" placeholder="或輸入自訂指示，Enter 送出" value={custom}
+                onChange={(e) => setCustom(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && void run(custom)}
+              />
+            </div>
+          )}
+          {cfg.missing && <div className="ai-err">需要先設定 AI：{cfg.missing}</div>}
+          {busy && <div className="ai-busy"><i /><span>{cfg.provider.label} 正在處理…</span></div>}
           {err && <div className="ai-err">{err}</div>}
           {out && (
             <>
               <div className="ai-out">{out}</div>
               {last && <div className="hist-hint">本次用量：輸入 {fmtTokens(last.in)}、輸出 {fmtTokens(last.out)} tokens</div>}
               <div className="pop-actions">
-                <button className="btn" onClick={() => onApply(out)}>取代選取內容</button>
+                {selection && <button className="btn" onClick={() => onApply(out)}>取代選取內容</button>}
+                <button className={`btn${selection ? ' ghost' : ''}`} onClick={() => onAppend(out)}>接在後面插入</button>
                 <button className="btn ghost" onClick={() => void navigator.clipboard.writeText(out)}>複製</button>
               </div>
             </>

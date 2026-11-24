@@ -35,6 +35,7 @@ export interface Actions {
   toggleSpeak(): void
   editRole(r: 'cut' | 'copy' | 'paste' | 'selectAll'): void
   quit(): void
+  toggleLock(): void
   inboxCapture(): void
   inboxOpen(): void
   openPanel(p: PanelName): void
@@ -114,6 +115,7 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'edit.copy', title: '複製', group: '編輯', run: () => a.editRole('copy') },
     { id: 'edit.paste', title: '貼上', group: '編輯', run: () => a.editRole('paste') },
     { id: 'edit.selectAll', title: '全選', group: '編輯', run: () => a.editRole('selectAll') },
+    { id: 'edit.lock', title: '鎖定／解鎖游標所在段落', group: '編輯', keys: ['Mod+Alt+Q'], editorOnly: true, run: a.toggleLock },
     { id: 'inbox.capture', title: '快速收集到收件匣…', group: '檔案', run: a.inboxCapture },
     { id: 'inbox.open', title: '開啟收件匣檔案', group: '檔案', run: a.inboxOpen },
     { id: 'app.quit', title: '結束', group: '檔案', run: a.quit },

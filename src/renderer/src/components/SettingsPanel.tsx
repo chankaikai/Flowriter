@@ -70,6 +70,7 @@ export function SettingsPanel({
         <div className="drawer-body">
           <div className="xgrid">
             <ExpandCard
+              active={open}
               icon="half"
               title="外觀"
               summary={
@@ -141,6 +142,7 @@ export function SettingsPanel({
             </ExpandCard>
 
             <ExpandCard
+              active={open}
               icon="type"
               title="排版"
               summary={`${FONT_LABEL[settings.fontFamily]} · ${settings.fontSize}px · 行高 ${settings.lineHeight.toFixed(2)} · 寬 ${settings.maxWidth}px`}
@@ -171,6 +173,7 @@ export function SettingsPanel({
             </ExpandCard>
 
             <ExpandCard
+              active={open}
               icon="pen"
               title="寫作"
               summary={`自動儲存 ${on(settings.autosave)} · 聚焦 ${on(settings.focusMode)} · 打字機 ${on(settings.typewriter)}`}
@@ -197,6 +200,7 @@ export function SettingsPanel({
             </ExpandCard>
 
             <ExpandCard
+              active={open}
               icon="sparkle"
               title="AI 改寫"
               summary={(() => {
@@ -208,6 +212,7 @@ export function SettingsPanel({
             </ExpandCard>
 
             <ExpandCard
+              active={open}
               icon="code"
               title="自訂 CSS"
               summary={settings.customCss.trim() ? `已設定 ${settings.customCss.trim().split('\n').length} 行` : '尚未設定'}
@@ -222,7 +227,7 @@ export function SettingsPanel({
               />
             </ExpandCard>
 
-            <ExpandCard wide icon="keyboard" title="快捷鍵" summary={`共 ${keyed.length} 個，點擊查看完整清單`}>
+            <ExpandCard wide active={open} icon="keyboard" title="快捷鍵" summary={`共 ${keyed.length} 個，點擊查看完整清單`}>
               <div className="keylist">
                 {keyed.map((c) => (
                   <div key={c.id} className="keyrow">

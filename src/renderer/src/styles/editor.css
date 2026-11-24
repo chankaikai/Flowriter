@@ -63,7 +63,8 @@
 .editor-col .milkdown .milkdown-code-block .cm-editor { background: transparent; font-size: 0.86em; }
 .editor-col .milkdown .milkdown-code-block .cm-content { padding: 12px 4px; font-family: var(--font-mono); }
 .editor-col .milkdown .milkdown-code-block .cm-gutters { background: transparent; border: 0; color: var(--fg-faint); }
-.mermaid-preview { padding: 18px; text-align: center; border-top: 1px dashed var(--line); }
+.mermaid-preview { margin: -6px 0 14px; padding: 18px; text-align: center; border: 1px dashed var(--line); border-radius: 10px; background: var(--block-bg); color: var(--fg-muted); font-size: 12.5px; user-select: none; }
+.mermaid-preview.err { color: #d0463a; }
 .mermaid-preview svg { max-width: 100%; height: auto; }
 
 /* ---------- 表格 ---------- */
@@ -203,3 +204,7 @@ body.show-weight .milkdown .ProseMirror p.pw-2 { border-left-color: color-mix(in
 body.show-weight .milkdown .ProseMirror p.pw-3 { border-left-color: color-mix(in srgb, var(--accent) 38%, transparent); }
 body.show-weight .milkdown .ProseMirror p.pw-4 { border-left-color: color-mix(in srgb, var(--accent) 58%, transparent); }
 body.show-weight .milkdown .ProseMirror p.pw-5 { border-left-color: var(--accent); }
+
+/* 段落上鎖 */
+.is-locked { background: color-mix(in srgb, var(--accent) 6%, transparent); border-radius: 6px; box-shadow: inset 3px 0 0 var(--accent-soft); position: relative; cursor: default; }
+.is-locked::after { content: '🔒'; position: absolute; right: 4px; top: 2px; font-size: 11px; opacity: 0.55; pointer-events: none; }

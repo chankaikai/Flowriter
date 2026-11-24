@@ -7,6 +7,7 @@ import { FindBar } from '@/components/FindBar'
 import { Palette } from '@/components/Palette'
 import { SettingsPanel } from '@/components/SettingsPanel'
 import { Icon } from '@/components/Icon'
+import { emptyLocks, parseLocks, serializeLocks, setLocked, type LocksFile } from '@/lib/locks'
 import { RunnerPanel } from '@/components/RunnerPanel'
 import { RefsPanel } from '@/components/RefsPanel'
 import { addRef, emptyRefs, parseRefs, removeRef, serializeRefs, type RefsFile } from '@/lib/refs'
@@ -128,6 +129,7 @@ export default function App() {
   const [panel, setPanel] = useState<PanelName | null>(null)
   const [aiSel, setAiSel] = useState('')
   const [radarQ, setRadarQ] = useState('')
+  const [aiBefore, setAiBefore] = useState('')
   const [runBlock, setRunBlock] = useState<{ lang: string; code: string } | null>(null)
   const [writing, setWriting] = useState(loadWriting)
   const [ambient, setAmbientKind] = useState<AmbientKind>('off')
@@ -826,6 +828,7 @@ export default function App() {
       if (p === 'ai' || p === 'vault' || p === 'notes' || p === 'refs') {
         setAiSel(editorRef.current?.selectionText() ?? '')
       }
+      if (p === 'ai') setAiBefore(editorRef.current?.textBeforeCaret(1500) ?? '')
       if (p === 'runner') setRunBlock(editorRef.current?.codeAtCaret() ?? null)
       if (p === 'radar') {
         const sel = editorRef.current?.selectionText() ?? ''
@@ -872,6 +875,7 @@ export default function App() {
     setTheme: (t) => update({ theme: t }),
     editRole: (r) => window.api.editRole(r),
     quit: () => window.api.closeWindow(),
+    toggleLock: () => toggleLockCmd(),
     inboxCapture: () => void window.api.inboxShow(),
     inboxOpen: () => void window.api.inboxPath().then((p) => openPath(p)),
     openPalette: (m) => setPalette(m),
@@ -1188,6 +1192,49 @@ export default function App() {
     setRefsFile(next)
     if (doc.path && refsLoaded.current === doc.path) void window.api.refsWrite(doc.path, serializeRefs(next))
   }
+  // 段落上鎖：.inkwell/locks.json
+  const [locksFile, setLocksFile] = useState<LocksFile>(emptyLocks)
+  const locksLoaded = useRef<string | null>(null)
+  useEffect(() => {
+    const path = doc.path
+    locksLoaded.current = null
+    if (!path) {
+      setLocksFile(emptyLocks())
+      return
+    }
+    let dead = false
+    void window.api.locksRead(path).then((raw) => {
+      if (dead) return
+      setLocksFile(parseLocks(raw))
+      locksLoaded.current = path
+    })
+    return () => {
+      dead = true
+    }
+  }, [doc.path])
+  // 編輯器就緒或鎖定清單變動時，同步到目前的編輯器
+  const lockList = doc.path ? locksFile.files[basename(doc.path)] : undefined
+  useEffect(() => {
+    editorReady?.setLocks(lockList ?? [])
+  }, [editorReady, lockList])
+  useEffect(() => {
+    const h = () => showToast('這一段已上鎖，先解鎖（Ctrl/⌘+Alt+Q）才能修改')
+    window.addEventListener('inkwell-locked', h)
+    return () => window.removeEventListener('inkwell-locked', h)
+  }, [showToast])
+  function toggleLockCmd() {
+    const path = docRef.current.path
+    if (!path) return showToast('先儲存檔案，上鎖資訊才有地方存放（.inkwell/locks.json）')
+    const r = editorRef.current?.toggleLock()
+    if (!r) return showToast('游標要放在有文字的段落裡才能上鎖')
+    const key = basename(path)
+    setLocksFile((cur) => {
+      const next = setLocked(cur, key, r.text, r.locked)
+      if (locksLoaded.current === path) void window.api.locksWrite(path, serializeLocks(next))
+      return next
+    })
+    showToast(r.locked ? '已上鎖：這一段無法被修改' : '已解鎖')
+  }
   const notesKey = doc.path ? basename(doc.path) : ''
 
   const checks: Record<string, boolean> = {
@@ -1295,6 +1342,7 @@ export default function App() {
     <div
       ref={appRef}
       className={`app platform-${window.api.platform}`}
+      style={{ ['--sw' as string]: `${settings.sidebarWidth}px` }}
       data-sidebar={settings.sidebarOpen ? 'open' : 'closed'}
       data-mode={mode}
     >
@@ -1353,6 +1401,36 @@ export default function App() {
         searchFocusSignal={searchSignal}
       />
 
+      <div
+        className="side-resizer"
+        role="separator"
+        aria-orientation="vertical"
+        title="拖曳調整側邊欄寬度（雙擊還原）"
+        onDoubleClick={() => update({ sidebarWidth: 264 })}
+        onPointerDown={(e) => {
+          if (e.button !== 0 || !appRef.current) return
+          e.preventDefault()
+          const app = appRef.current
+          const startX = e.clientX
+          const startW = settings.sidebarWidth
+          const clamp = (w: number) => Math.max(180, Math.min(560, Math.min(w, window.innerWidth - 320)))
+          let w = startW
+          app.classList.add('resizing')
+          const move = (ev: PointerEvent) => {
+            w = clamp(startW + ev.clientX - startX)
+            app.style.setProperty('--sw', `${w}px`)
+          }
+          const up = () => {
+            window.removeEventListener('pointermove', move)
+            window.removeEventListener('pointerup', up)
+            app.classList.remove('resizing')
+            update({ sidebarWidth: Math.round(w) })
+          }
+          window.addEventListener('pointermove', move)
+          window.addEventListener('pointerup', up)
+        }}
+      />
+
       <div className="workspace">
         <header className="tabsbar">
           <button
@@ -1399,7 +1477,7 @@ export default function App() {
           </div>
         </header>
 
-        <div className="stage">
+        <div className={`stage${panel ? ' has-pop' : ''}${panel === 'history' || panel === 'diag' ? ' pop-wide' : ''}`}>
           {mode === 'wysiwyg' && <Ruler scrollRef={scrollRef} rev={`${session.key}-${outline.length}-${stats.chars >> 9}`} />}
           <div className="editor-scroll" ref={scrollRef}>
             {mode === 'wysiwyg' ? (
@@ -1599,10 +1677,16 @@ export default function App() {
             {panel === 'ai' && (
               <AiPanel
                 selection={aiSel}
+                before={aiBefore}
                 prefs={settings}
                 update={update}
                 onApply={(md) => {
                   editorRef.current?.insert(md)
+                  setPanel(null)
+                }}
+                onAppend={(md) => {
+                  editorRef.current?.collapseToEnd()
+                  editorRef.current?.insert('\n\n' + md.trim() + '\n')
                   setPanel(null)
                 }}
               />
