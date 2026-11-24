@@ -356,8 +356,8 @@ body.reading .milkdown .ProseMirror { caret-color: transparent; }
 body.reading .ruler, body.mode-sticky .ruler { display: none; }
 
 .sel-bubble {
-  position: fixed; z-index: 55; transform: translate(-50%, -100%); pointer-events: none; white-space: nowrap;
-  padding: 5px 12px; border-radius: 12px; font-size: 12px; color: var(--fg);
+  position: fixed; z-index: 55; transform: translate(-50%, -100%); white-space: nowrap; display: flex; align-items: center; gap: 2px;
+  padding: 3px 6px; border-radius: 12px; font-size: 12px; color: var(--fg);
   background: var(--glass-bg-strong); border: 1px solid var(--glass-edge); box-shadow: var(--glass-shadow);
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
   animation: bubble-in 0.2s var(--ease);
@@ -434,3 +434,7 @@ body.mode-sticky .editor-col { --maxw: 100%; padding-left: 10px; padding-right: 
 .diag-row.lv-error b { background: color-mix(in srgb, #d6455d 20%, transparent); color: #d6455d; }
 .diag-row.lv-warn b { background: color-mix(in srgb, #d8902a 22%, transparent); color: #b87414; }
 .diag-row.lv-info b { background: color-mix(in srgb, var(--fg) 8%, transparent); color: var(--fg-muted); }
+
+.sel-bubble .sb-count { padding: 0 8px; color: var(--fg-muted); font-size: 11.5px; }
+.sel-bubble .sb-act { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 8px; border-radius: 8px; font-size: 12px; color: var(--fg); }
+.sel-bubble .sb-act:hover { background: var(--accent-soft); color: var(--accent); }

@@ -1552,7 +1552,19 @@ export default function App() {
             <i />
             <span>正在載入大型文件…</span>
           </div>
-          <SelectionBubble />
+          <SelectionBubble
+            actions={(
+              [
+                ['panel.focus', '計時', 'timer'],
+                ['panel.ai', 'AI', 'sparkle'],
+                ['panel.notes', '便條', 'pen'],
+                ['edit.lock', '上鎖', 'lock'],
+                ['panel.refs', '參考', 'book'],
+                ['panel.vault', '膠囊', 'clip'],
+                ['panel.radar', '雷達', 'search']
+              ] as const
+            ).map(([id, label, icon]) => ({ id, label, icon, run: () => cmdRun(id) }))}
+          />
           <TextPrompt req={promptReq} />
           <ResumeBubble hint={resume?.hint ?? null} rect={resume?.rect ?? null} onDone={() => setResume(null)} />
           {sticky && (

@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react'
 import { computeStats } from '@/lib/markdown'
+import { Icon, type IconName } from './Icon'
+
+export interface BubbleAction {
+  id: string
+  label: string
+  icon: IconName
+  run(): void
+}
 
 interface Info {
   x: number
@@ -9,8 +17,10 @@ interface Info {
   minutes: number
 }
 
-/** 框選文字時，在選區上方顯示「選中 N 字 | 約 X 分鐘讀完」。 */
-export function SelectionBubble() {
+/**
+ * 框選文字時，在選區「下方」顯示字數與常用工具（Crepe 自己的格式工具列在上方，兩者不會互相遮擋）。
+ */
+export function SelectionBubble({ actions }: { actions: BubbleAction[] }) {
   const [info, setInfo] = useState<Info | null>(null)
 
   useEffect(() => {
@@ -21,14 +31,14 @@ export function SelectionBubble() {
       const anchor = sel.anchorNode instanceof Element ? sel.anchorNode : sel.anchorNode?.parentElement
       if (!anchor?.closest('.editor-scroll')) return setInfo(null)
       const text = sel.toString()
+      if (!text.trim()) return setInfo(null)
       const words = computeStats(text).words
-      if (words < 2) return setInfo(null)
       const r = sel.getRangeAt(0).getBoundingClientRect()
       if (r.width === 0 && r.height === 0) return setInfo(null)
-      const below = r.top < 56
+      const below = true
       setInfo({
         x: Math.min(window.innerWidth - 120, Math.max(120, r.left + r.width / 2)),
-        y: below ? r.bottom + 10 : r.top - 10,
+        y: Math.min(r.bottom + 10, window.innerHeight - 96),
         below,
         words,
         minutes: words / 300
@@ -51,8 +61,23 @@ export function SelectionBubble() {
   const t =
     info.minutes < 0.2 ? `約 ${Math.max(1, Math.round(info.minutes * 60))} 秒` : `約 ${info.minutes.toFixed(1)} 分鐘`
   return (
-    <div className={`sel-bubble${info.below ? ' below' : ''}`} style={{ left: info.x, top: info.y }}>
-      選中 {info.words.toLocaleString()} 字<i /> {t}讀完
+    <div
+      className={`sel-bubble${info.below ? ' below' : ''}`}
+      style={{ left: Math.min(window.innerWidth - 220, Math.max(220, info.x)), top: info.y }}
+      onMouseDown={(e) => e.preventDefault()}
+    >
+      {info.words >= 2 && (
+        <span className="sb-count">
+          {info.words.toLocaleString()} 字<i />
+          {t}
+        </span>
+      )}
+      {actions.map((a) => (
+        <button key={a.id} className="sb-act" title={a.label} onClick={a.run}>
+          <Icon name={a.icon} size={14} />
+          <span>{a.label}</span>
+        </button>
+      ))}
     </div>
   )
 }

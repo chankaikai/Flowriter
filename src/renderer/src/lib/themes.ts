@@ -27,12 +27,24 @@ export const THEMES: ThemeDef[] = [
   { id: 'forest', label: '森林', dark: false, group: 'light', bg: '#f5f8f3', side: '#e9f0e5', elev: '#ffffff', fg: '#22301f', accent: '#3b7a3e', alt: '#b08a2e' },
   { id: 'lavender', label: '薰衣草', dark: false, group: 'light', bg: '#f8f6fc', side: '#efebf7', elev: '#ffffff', fg: '#2b2438', accent: '#7a56c9', alt: '#c2476a' },
   { id: 'rose', label: '玫瑰', dark: false, group: 'light', bg: '#fdf6f6', side: '#f7ebeb', elev: '#ffffff', fg: '#3a2528', accent: '#c2476a', alt: '#d8902a' },
+  { id: 'solarized', label: 'Solarized 淺', dark: false, group: 'light', bg: '#fdf6e3', side: '#eee8d5', elev: '#fffdf5', fg: '#4a5f66', accent: '#2073b0', alt: '#859900' },
+  { id: 'gruvbox-light', label: 'Gruvbox 淺', dark: false, group: 'light', bg: '#fbf1c7', side: '#f2e5bc', elev: '#fdf6d8', fg: '#3c3836', accent: '#af3a03', alt: '#79740e' },
+  { id: 'latte', label: 'Catppuccin 拿鐵', dark: false, group: 'light', bg: '#eff1f5', side: '#e6e9ef', elev: '#ffffff', fg: '#4c4f69', accent: '#8839ef', alt: '#1e66f5' },
   { id: 'dark', label: '暖炭', dark: true, group: 'dark', bg: '#1c1b19', side: '#171614', elev: '#262522', fg: '#d9d5cc', accent: '#e0715a', builtin: true },
   { id: 'midnight', label: '午夜', dark: true, group: 'dark', bg: '#141a26', side: '#0f1420', elev: '#1c2433', fg: '#d5dbe8', accent: '#6ea8ff', alt: '#a98bf0' },
   { id: 'graphite', label: '石墨', dark: true, group: 'dark', bg: '#1e1f22', side: '#18191b', elev: '#26272b', fg: '#d8dadf', accent: '#4fb3a9', alt: '#6ea8ff' },
   { id: 'nord', label: '北歐', dark: true, group: 'dark', bg: '#2e3440', side: '#272c36', elev: '#3b4252', fg: '#e5e9f0', accent: '#88c0d0', alt: '#b48ead' },
   { id: 'dusk', label: '暮紫', dark: true, group: 'dark', bg: '#1f1b2a', side: '#181522', elev: '#292437', fg: '#e0dcec', accent: '#c792ea', alt: '#6ea8ff' },
-  { id: 'pine', label: '森夜', dark: true, group: 'dark', bg: '#17201b', side: '#121a15', elev: '#1f2b24', fg: '#d3e0d6', accent: '#7bc98a', alt: '#d8b45a' }
+  { id: 'pine', label: '森夜', dark: true, group: 'dark', bg: '#17201b', side: '#121a15', elev: '#1f2b24', fg: '#d3e0d6', accent: '#7bc98a', alt: '#d8b45a' },
+  { id: 'dracula', label: 'Dracula', dark: true, group: 'dark', bg: '#282a36', side: '#21222c', elev: '#343746', fg: '#f8f8f2', accent: '#bd93f9', alt: '#ff79c6' },
+  { id: 'solarized-dark', label: 'Solarized 深', dark: true, group: 'dark', bg: '#002b36', side: '#00212b', elev: '#073642', fg: '#93a1a1', accent: '#2aa198', alt: '#b58900' },
+  { id: 'gruvbox', label: 'Gruvbox 深', dark: true, group: 'dark', bg: '#282828', side: '#1d2021', elev: '#3c3836', fg: '#ebdbb2', accent: '#fe8019', alt: '#b8bb26' },
+  { id: 'tokyo', label: 'Tokyo Night', dark: true, group: 'dark', bg: '#1a1b26', side: '#16161e', elev: '#24283b', fg: '#c0caf5', accent: '#7aa2f7', alt: '#bb9af7' },
+  { id: 'mocha', label: 'Catppuccin 摩卡', dark: true, group: 'dark', bg: '#1e1e2e', side: '#181825', elev: '#313244', fg: '#cdd6f4', accent: '#cba6f7', alt: '#89b4fa' },
+  { id: 'onedark', label: 'One Dark', dark: true, group: 'dark', bg: '#282c34', side: '#21252b', elev: '#2c313a', fg: '#abb2bf', accent: '#61afef', alt: '#c678dd' },
+  { id: 'monokai', label: 'Monokai', dark: true, group: 'dark', bg: '#272822', side: '#1e1f1c', elev: '#34352d', fg: '#f8f8f2', accent: '#a6e22e', alt: '#f92672' },
+  { id: 'terminal', label: '終端綠', dark: true, group: 'dark', bg: '#0d1210', side: '#090d0b', elev: '#151d19', fg: '#9fe3a8', accent: '#3ddc84', alt: '#e6b450' },
+  { id: 'amber', label: '終端琥珀', dark: true, group: 'dark', bg: '#16120a', side: '#100d07', elev: '#211b0f', fg: '#f0c674', accent: '#ffb000', alt: '#d6713a' }
 ]
 
 export type ThemeId = string
@@ -73,6 +85,17 @@ export function contrast(a: string, b: string): number {
   return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05)
 }
 
+/** 把前景色與背景混合；若對比不足就逐步往前景色靠，直到達標 */
+function mutedColor(fg: string, bg: string, t: number, min: number): string {
+  let k = t
+  let c = mix(fg, bg, k)
+  while (k > 0.02 && contrast(c, bg) < min) {
+    k -= 0.04
+    c = mix(fg, bg, Math.max(0, k))
+  }
+  return c
+}
+
 /** 由基礎色推算出整套 CSS 變數。 */
 export function deriveVars(t: ThemeDef): Record<string, string> {
   const d = t.dark
@@ -84,8 +107,8 @@ export function deriveVars(t: ThemeDef): Record<string, string> {
     '--bg-side': t.side,
     '--bg-elev': t.elev,
     '--fg': t.fg,
-    '--fg-muted': mix(t.fg, t.bg, d ? 0.42 : 0.4),
-    '--fg-faint': mix(t.fg, t.bg, d ? 0.68 : 0.64),
+    '--fg-muted': mutedColor(t.fg, t.bg, d ? 0.42 : 0.4, 3.6),
+    '--fg-faint': mutedColor(t.fg, t.bg, d ? 0.68 : 0.64, 2.2),
     '--line': rgba(t.fg, d ? 0.08 : 0.09),
     '--line-strong': rgba(t.fg, d ? 0.16 : 0.18),
     '--hover': rgba(t.fg, d ? 0.06 : 0.055),
