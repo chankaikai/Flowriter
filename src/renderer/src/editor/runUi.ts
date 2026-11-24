@@ -25,8 +25,14 @@ const runKey = new PluginKey<RunState>('inkwell-run')
 const cacheKey = (lang: string, code: string) => `${lang.trim().toLowerCase()}|${code}`
 const PY_CONSENT = 'flowiter.pyConsent'
 
+/** 視圖已銷毀（切換／關閉分頁）或編輯器上下文已釋放時，靜默放棄，不讓錯誤冒出來 */
 function setEntry(view: EditorView, k: string, entry: Entry | null): void {
-  view.dispatch(view.state.tr.setMeta(runKey, { k, entry }).setMeta('addToHistory', false))
+  if (view.isDestroyed) return
+  try {
+    view.dispatch(view.state.tr.setMeta(runKey, { k, entry }).setMeta('addToHistory', false))
+  } catch {
+    /* 編輯器已被銷毀 */
+  }
 }
 
 function runBlock(view: EditorView, pos: number): void {
@@ -61,17 +67,14 @@ function runBlock(view: EditorView, pos: number): void {
   }
 
   const handle = runCode(kind, code, (phase) => {
+    if (view.isDestroyed) return
     const e = runKey.getState(view.state)?.get(k)
     if (e && e.status !== 'done') setEntry(view, k, { ...e, status: phase })
   })
   setEntry(view, k, { status: kind === 'py' ? 'loading' : 'running', handle })
   void handle.done.then((res) => {
     // 視圖可能已被銷毀（切換分頁／關閉），那就不用顯示了
-    try {
-      setEntry(view, k, { status: 'done', res })
-    } catch {
-      /* 忽略 */
-    }
+    setEntry(view, k, { status: 'done', res })
   })
 }
 
@@ -245,7 +248,11 @@ export const runUiPlugin = $prose(() => {
           cancelAnimationFrame(raf)
           layer.remove()
           // 銷毀視圖時停掉還在跑的 Worker
-          runKey.getState(v.state)?.forEach((e) => e.status !== 'done' && e.handle?.stop())
+          try {
+            runKey.getState(v.state)?.forEach((e) => e.status !== 'done' && e.handle?.stop())
+          } catch {
+            /* 忽略 */
+          }
           viewRef = null
         }
       }
