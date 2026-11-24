@@ -464,7 +464,11 @@ export const calcPlugin = $prose(() => {
         window.clearTimeout(timer)
         timer = window.setTimeout(() => {
           if (view.isDestroyed) return
-          view.dispatch(view.state.tr.setMeta(key, compute(view.state.doc)).setMeta('addToHistory', false))
+          try {
+            view.dispatch(view.state.tr.setMeta(key, compute(view.state.doc)).setMeta('addToHistory', false))
+          } catch {
+            /* 編輯器正在銷毀（上下文已釋放） */
+          }
         }, 400)
       },
       destroy: () => window.clearTimeout(timer)
@@ -653,7 +657,12 @@ export const weightPlugin = $prose(() => {
         if (prev.doc === view.state.doc || !document.body.classList.contains('show-weight')) return
         window.clearTimeout(timer)
         timer = window.setTimeout(() => {
-          if (!view.isDestroyed) view.dispatch(view.state.tr.setMeta(key, build(view.state.doc)).setMeta('addToHistory', false))
+          if (view.isDestroyed) return
+          try {
+            view.dispatch(view.state.tr.setMeta(key, build(view.state.doc)).setMeta('addToHistory', false))
+          } catch {
+            /* 編輯器正在銷毀（上下文已釋放） */
+          }
         }, 600)
       },
       destroy: () => window.clearTimeout(timer)
@@ -849,7 +858,12 @@ export const lockPlugin = $prose(
 )
 
 export function setLockTexts(view: EditorView, texts: string[]): void {
-  view.dispatch(view.state.tr.setMeta(lockKey, { texts }).setMeta('addToHistory', false))
+  if (view.isDestroyed) return
+  try {
+    view.dispatch(view.state.tr.setMeta(lockKey, { texts }).setMeta('addToHistory', false))
+  } catch {
+    /* 編輯器正在銷毀 */
+  }
 }
 
 /** 切換游標所在段落的鎖定狀態；回傳新狀態與段落文字，找不到可鎖的段落回傳 null */

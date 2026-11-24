@@ -109,7 +109,8 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
     const c = crepeRef.current
     if (!c) return null
     try {
-      return c.editor.action((ctx) => ctx.get(editorViewCtx))
+      const v = c.editor.action((ctx) => ctx.get(editorViewCtx))
+      return v.isDestroyed ? null : v
     } catch {
       return null
     }
