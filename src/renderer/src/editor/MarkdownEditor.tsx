@@ -99,6 +99,16 @@ interface Props {
   resolveImageUrl(src: string): string
 }
 
+/** 先銷毀 ProseMirror 視圖（此時上下文仍完整），再釋放 Milkdown，避免釋放途中還有更新抵達 */
+function destroyEditor(crepe: Crepe): void {
+  try {
+    crepe.editor.action((ctx) => ctx.get(editorViewCtx).destroy())
+  } catch {
+    /* 尚未建立完成或已釋放 */
+  }
+  void crepe.destroy()
+}
+
 export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownEditor(props, ref) {
   const rootRef = useRef<HTMLDivElement>(null)
   const crepeRef = useRef<Crepe | null>(null)
@@ -155,7 +165,7 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       }
       await crepe.create()
       if (cancelled) {
-        crepe.destroy()
+        destroyEditor(crepe)
         root.remove()
         return
       }
@@ -169,7 +179,7 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       cancelled = true
       if (crepeRef.current === crepe) {
         crepeRef.current = null
-        crepe.destroy()
+        destroyEditor(crepe)
         root.remove()
       }
     }

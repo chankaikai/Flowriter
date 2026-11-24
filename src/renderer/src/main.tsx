@@ -25,8 +25,29 @@ function showFatal(title: string, err: unknown): void {
   box.textContent += `${title}\n${msg}\n\n————————\n\n`
 }
 
-window.addEventListener('error', (e) => showFatal('執行錯誤', e.error ?? e.message))
-window.addEventListener('unhandledrejection', (e) => showFatal('未處理的 Promise 錯誤', e.reason))
+/** 編輯器銷毀過程中（例如開發模式重複掛載、切換分頁），Milkdown 的上下文會先被釋放，
+ *  此時若還有更新抵達就會丟出 Context not found。這是無害的收尾噪音，只記錄、不彈出全螢幕錯誤。 */
+function isEditorTeardownNoise(err: unknown): boolean {
+  const m = String((err as Error)?.message ?? err ?? '')
+  return /^Context ".+" not found/.test(m) || m.includes('do you forget to inject it')
+}
+
+window.addEventListener('error', (e) => {
+  if (isEditorTeardownNoise(e.error ?? e.message)) {
+    console.warn('[editor teardown]', e.error ?? e.message)
+    e.preventDefault()
+    return
+  }
+  showFatal('執行錯誤', e.error ?? e.message)
+})
+window.addEventListener('unhandledrejection', (e) => {
+  if (isEditorTeardownNoise(e.reason)) {
+    console.warn('[editor teardown]', e.reason)
+    e.preventDefault()
+    return
+  }
+  showFatal('未處理的 Promise 錯誤', e.reason)
+})
 
 class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false }
