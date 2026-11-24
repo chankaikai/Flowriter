@@ -4,6 +4,8 @@
  * （Python 用 Pyodide：WebAssembly，只有記憶體內的虛擬檔案系統）；
  * 結果只顯示在代碼塊下方，永遠不會寫回文件。
  */
+import { nativeBlocked, nativeLang } from '../../../shared/native'
+
 export const RUN_TIMEOUT_MS = 3000
 /** Python 環境首次載入（下載約 10MB）的等待上限 */
 export const PY_LOAD_TIMEOUT_MS = 90_000
@@ -17,10 +19,10 @@ const JS_LANGS = new Set(['js', 'javascript', 'mjs', 'node'])
 const PY_LANGS = new Set(['py', 'python', 'python3', 'py3'])
 export const isJsLang = (lang: string): boolean => JS_LANGS.has(lang.trim().toLowerCase())
 export const isPyLang = (lang: string): boolean => PY_LANGS.has(lang.trim().toLowerCase())
-export type RunKind = 'js' | 'py'
+export type RunKind = 'js' | 'py' | 'native'
 /** 這個語言能不能在代碼塊上直接執行；不能則回傳 null（不顯示執行按鈕） */
 export function runKind(lang: string): RunKind | null {
-  return isJsLang(lang) ? 'js' : isPyLang(lang) ? 'py' : null
+  return isJsLang(lang) ? 'js' : isPyLang(lang) ? 'py' : nativeLang(lang) ? 'native' : null
 }
 
 export interface Preflight {
@@ -71,12 +73,18 @@ export function preflight(lang: string, code: string): Preflight {
     if (blocked.length) return { runnable: false, reason: blocked[0], warnings: [], danger }
     return { runnable: true, warnings: PY_WARN.filter(([re]) => re.test(code)).map(([, m]) => m), danger }
   }
+  const nat = nativeLang(lang)
+  if (nat) {
+    const blocked = nativeBlocked(nat, code)
+    if (blocked.length) return { runnable: false, reason: `為了保護你的電腦，不執行：${blocked[0]}`, warnings: [], danger }
+    return { runnable: true, warnings: [], danger }
+  }
   if (!isJsLang(lang)) {
     return {
       runnable: false,
       reason: lang.trim()
-        ? `目前支援執行 JavaScript 與 Python，「${lang}」不會被執行（也不會在你的電腦上跑任何指令）`
-        : '代碼塊沒有標示語言；請標為 js 或 python 才能執行',
+        ? `「${lang}」不會被執行（支援 JavaScript、Python、C、C++、Rust、Java、Go、Ruby、PHP、Perl、Lua）`
+        : '代碼塊沒有標示語言；請先在左上角選擇語言才能執行',
       warnings: [],
       danger
     }

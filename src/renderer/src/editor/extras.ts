@@ -762,14 +762,20 @@ function mermaidWidget(code: string): HTMLElement {
   return el
 }
 
+const MERMAID_HEAD = /^\s*(%%[^\n]*\n\s*)*(graph\s+(TB|TD|BT|RL|LR)\b|flowchart\b|sequenceDiagram\b|classDiagram\b|stateDiagram(-v2)?\b|erDiagram\b|gantt\b|pie\b|journey\b|mindmap\b|timeline\b|gitGraph\b|quadrantChart\b|xychart-beta\b|sankey-beta\b|block-beta\b)/
+/** 標為 mermaid／mmd，或內容一看就是 Mermaid 圖（語言標籤被改成別的也能渲染） */
+export function isMermaidBlock(lang: string, code: string): boolean {
+  const l = lang.trim().toLowerCase()
+  return l === 'mermaid' || l === 'mmd' || MERMAID_HEAD.test(code)
+}
+
 const mermaidKey = new PluginKey('inkwell-mermaid')
 function buildMermaid(doc: import('@milkdown/kit/prose/model').Node): DecorationSet {
   const decos: Decoration[] = []
   doc.descendants((node, pos) => {
     if (node.type.name !== 'code_block') return
-    if (String(node.attrs.language ?? '').toLowerCase() !== 'mermaid') return
     const code = node.textContent
-    if (!code.trim()) return
+    if (!code.trim() || !isMermaidBlock(String(node.attrs.language ?? ''), code)) return
     decos.push(Decoration.widget(pos + node.nodeSize, () => mermaidWidget(code), { side: -1, key: `mmd-${code.length}-${code.slice(0, 40)}-${document.documentElement.dataset.tone}`, ignoreSelection: true }))
   })
   return DecorationSet.create(doc, decos)

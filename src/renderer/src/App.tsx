@@ -39,7 +39,8 @@ import { formatKeys, matchKey } from '@/lib/keys'
 import { LARGE_DOC, computeStats, parseOutline, type DocStats, type OutlineItem } from '@/lib/markdown'
 import { basename, dirname, stripExt, toAbsolutePath, toDisplayUrl } from '@/lib/path'
 import { THEMES, isDarkTheme } from '@/lib/themes'
-import { useApplySettings, useSettings, type SidebarTab, type ThemeName } from '@/lib/settings'
+import { loadSettings, useApplySettings, useSettings, type SidebarTab, type ThemeName } from '@/lib/settings'
+import { Splash } from '@/components/Splash'
 import { WELCOME } from '@/lib/welcome'
 import { buildHtmlDocument, renderHtmlBody } from '@/export/exportHtml'
 import { buildDocx } from '@/export/exportDocx'
@@ -113,6 +114,7 @@ export default function App() {
   const session = { key: activeEntry ? activeEntry.key : -srcKey }
   const [mode, setMode] = useState<Mode>('wysiwyg')
   const [dirty, setDirty] = useState(false)
+  const [splashOn, setSplashOn] = useState(() => loadSettings().splash !== false)
   const [stats, setStats] = useState<DocStats>(() => computeStats(WELCOME))
   const [outline, setOutline] = useState<OutlineItem[]>(() => parseOutline(WELCOME))
   const [activeHeading, setActiveHeading] = useState(-1)
@@ -287,6 +289,27 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   )
+
+  /** 關閉視窗時選「儲存」：先存目前分頁，再存其他有路徑的已修改分頁；任一步失敗或取消就不關閉 */
+  async function saveAllAndQuit(): Promise<void> {
+    try {
+      syncFromEditor()
+      const d = docRef.current
+      if (dirtyRef.current) {
+        await save(true)
+        if (!docRef.current.path || mdRef.current !== savedRef.current) return // 另存新檔被取消或儲存失敗
+      }
+      for (const t of tabsRef.current) {
+        if (t.id === activeIdRef.current || t.md === t.saved) continue
+        if (!t.path) return showToast(`「${stripExt(t.name)}」尚未命名，請先另存新檔`)
+        if (!(await window.api.saveFile(t.path, t.md))) return showToast('儲存失敗，已取消關閉')
+      }
+      void d
+      window.api.forceClose()
+    } catch {
+      showToast('儲存失敗，已取消關閉')
+    }
+  }
 
   const saveAs = useCallback(async () => {
     syncFromEditor()
@@ -874,7 +897,7 @@ export default function App() {
     quit: () => window.api.closeWindow(),
     toggleLock: () => toggleLockCmd(),
     runCode: () => {
-      if (!editorRef.current?.runAtCaret()) showToast('把游標放在 JavaScript／Python 代碼塊裡，或直接點代碼塊右上角的「▶ 執行」')
+      if (!editorRef.current?.runAtCaret()) showToast('把游標放在可執行語言（JS、Python、C、C++、Rust、Java、Go…）的代碼塊裡，或直接點代碼塊右上角的「▶ 執行」')
     },
     inboxCapture: () => void window.api.inboxShow(),
     inboxOpen: () => void window.api.inboxPath().then((p) => openPath(p)),
@@ -948,8 +971,13 @@ export default function App() {
   useEffect(
     () =>
       window.api.onMenu((id) => {
+        if (id === 'app.saveAllAndQuit') {
+          void saveAllAndQuit()
+          return
+        }
         commands.find((c) => c.id === id)?.run()
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [commands]
   )
 
@@ -1346,6 +1374,7 @@ export default function App() {
       data-sidebar={settings.sidebarOpen ? 'open' : 'closed'}
       data-mode={mode}
     >
+      {splashOn && <Splash onDone={() => setSplashOn(false)} />}
       <header className="topbar">
         <img className="tb-logo" src={logo} alt="" />
         <MenuBar commands={commands} checks={checks} editorEnabled={mode === 'wysiwyg'} />

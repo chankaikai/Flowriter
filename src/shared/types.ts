@@ -85,6 +85,11 @@ export interface InkwellApi {
   getLaunchFile(): Promise<string | null>
   pathForFile(file: File): string
   setDirty(dirty: boolean): void
+  /** 在本機以編譯器／直譯器執行原生語言代碼塊（暫存資料夾、逾時、輸出上限；無沙盒） */
+  nativeRun(req: import('./native').NativeRunRequest): Promise<import('./native').NativeRunResult>
+  nativeStop(id: string): void
+  /** 略過未儲存提示，直接關閉視窗（儲存完成後使用） */
+  forceClose(): void
   /** 迷你置頂便籤：縮小視窗並置頂；關閉時還原原本的大小與位置 */
   setSticky(on: boolean): Promise<void>
   setChrome(c: {

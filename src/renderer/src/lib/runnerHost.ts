@@ -14,7 +14,8 @@ export interface RunHandle {
 }
 
 /** 在一次性 Worker 中執行；逾時、停止或完成後一律 terminate，不留任何背景程序。 */
-export function runCode(kind: RunKind, code: string, onPhase?: (p: 'loading' | 'running') => void): RunHandle {
+export function runCode(kind: RunKind, code: string, onPhase?: (p: 'loading' | 'running') => void, lang = ''): RunHandle {
+  if (kind === 'native') return runNativeCode(lang, code)
   const url = URL.createObjectURL(new Blob([kind === 'py' ? pythonWorkerSource() : workerSource()], { type: 'text/javascript' }))
   const worker = new Worker(url)
   const token = Math.random().toString(36).slice(2) + Date.now().toString(36)
@@ -60,4 +61,21 @@ export function runCode(kind: RunKind, code: string, onPhase?: (p: 'loading' | '
   }
   worker.postMessage({ token, code, indexURL: PYODIDE_INDEX })
   return { stop: () => end('stopped', '已手動停止'), done }
+}
+
+/** 原生語言：交給主程序在暫存資料夾裡編譯／執行（逾時、輸出上限、結束後清理都在主程序） */
+function runNativeCode(lang: string, code: string): RunHandle {
+  const id = 'n' + Math.random().toString(36).slice(2) + Date.now().toString(36)
+  const t0 = performance.now()
+  const done = window.api
+    .nativeRun({ id, lang, code })
+    .then((r): RunResult => {
+      const lines: RunResult['lines'] = r.lines.map((l) => ({ kind: l.kind === 'error' ? 'error' : 'log', text: l.text }))
+      const capped = capOutput(lines.map((l) => l.text))
+      const status: RunResult['status'] = r.status === 'ok' ? 'ok' : r.status === 'timeout' ? 'timeout' : r.status === 'stopped' ? 'stopped' : 'error'
+      const exit = r.status === 'error' && r.exitCode != null ? `（結束碼 ${r.exitCode}）` : ''
+      return { lines: lines.slice(0, capped.lines.length), status, error: r.message ? r.message + exit : exit || undefined, truncated: r.truncated || capped.truncated, ms: r.ms || Math.round(performance.now() - t0) }
+    })
+    .catch((e: unknown): RunResult => ({ lines: [], status: 'error', error: String((e as Error)?.message ?? e), truncated: false, ms: Math.round(performance.now() - t0) }))
+  return { stop: () => window.api.nativeStop(id), done }
 }

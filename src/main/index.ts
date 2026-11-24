@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url'
 import { release, tmpdir } from 'node:os'
 import { createHash } from 'node:crypto'
 import { setupInbox } from './inbox'
+import { runNative, stopNative } from './nativeRun'
 import type { DirEntry, FileListItem, MaterialSupport, SearchHit } from '../shared/types'
 
 // 改名 Inkwell → Flowiter：沿用舊的使用者資料夾，設定、歷史版本、加密抽屜才不會「不見」
@@ -42,6 +43,7 @@ const MATERIAL: MaterialSupport = isMac ? 'vibrancy' : winBuild >= 22621 ? 'win'
 
 let dirty = false
 let forceClose = false
+let closing = false
 
 function stripBom(s: string): string {
   return s.charCodeAt(0) === 0xfeff ? s.slice(1) : s
@@ -84,19 +86,39 @@ function createWindow(): BrowserWindow {
   win.once('ready-to-show', () => win.show())
 
   win.on('close', (e) => {
-    if (!dirty || forceClose) return
+    if (forceClose) return
     e.preventDefault()
+    if (closing) return
+    closing = true
+    const done = () => {
+      closing = false
+    }
+    if (!dirty) {
+      // 沒有未儲存內容：只確認是否退出
+      dialog
+        .showMessageBox(win, { type: 'question', buttons: ['退出', '取消'], defaultId: 0, cancelId: 1, message: '要退出 Flowiter 嗎？' })
+        .then((r) => {
+          done()
+          if (r.response === 0) {
+            forceClose = true
+            win.close()
+          }
+        })
+      return
+    }
     dialog
       .showMessageBox(win, {
         type: 'warning',
-        buttons: ['取消', '放棄更改並離開'],
+        buttons: ['儲存', '不儲存', '取消'],
         defaultId: 0,
-        cancelId: 0,
-        message: '有尚未儲存的更改',
-        detail: '離開後這些更改將會遺失。'
+        cancelId: 2,
+        message: '有尚未儲存的更改，要先儲存嗎？',
+        detail: '選「不儲存」會捨棄這些更改。'
       })
       .then((r) => {
-        if (r.response === 1) {
+        done()
+        if (r.response === 0) win.webContents.send('menu', 'app.saveAllAndQuit')
+        else if (r.response === 1) {
           forceClose = true
           win.close()
         }
@@ -974,6 +996,12 @@ function registerIpc(): void {
     else if (role === 'selectAll') w.selectAll()
   })
   ipcMain.on('win:close', (e) => BrowserWindow.fromWebContents(e.sender)?.close())
+  ipcMain.handle('native:run', (_e, req) => runNative(req))
+  ipcMain.on('native:stop', (_e, id: string) => stopNative(String(id)))
+  ipcMain.on('win:forceClose', (e) => {
+    forceClose = true
+    BrowserWindow.fromWebContents(e.sender)?.close()
+  })
   ipcMain.on('shell:external', (_e, url: string) => openExternalSafe(url))
   ipcMain.on('shell:reveal', (_e, p: string) => shell.showItemInFolder(p))
 }

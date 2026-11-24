@@ -57,8 +57,27 @@
 }
 /* 語言選單會超出代碼塊，不能被裁掉；展開時整塊疊在相鄰區塊之上 */
 .editor-col .milkdown .milkdown-code-block:focus-within { z-index: 30; }
-.editor-col .milkdown .milkdown-code-block .language-list,
-.editor-col .milkdown .milkdown-code-block .list-wrapper { z-index: 40; max-height: 260px; overflow-y: auto; }
+/* 語言選單：只留一條捲軸（外層不捲、內層清單捲），字體縮小 */
+.editor-col .milkdown .milkdown-code-block .list-wrapper { z-index: 40; max-height: none; overflow: visible; }
+.editor-col .milkdown .milkdown-code-block .language-list { max-height: 240px; overflow-y: auto; overflow-x: hidden; }
+.editor-col .milkdown .milkdown-code-block .list-wrapper,
+.editor-col .milkdown .milkdown-code-block .list-wrapper * { font-size: 12px; }
+.editor-col .milkdown .milkdown-code-block .language-list-item,
+.editor-col .milkdown .milkdown-code-block .language-list li { min-height: 0; height: auto; padding: 4px 10px; line-height: 1.4; font-weight: 500; }
+.editor-col .milkdown .milkdown-code-block .search-box input { font-size: 12px; padding: 4px 8px; }
+.editor-col .milkdown .milkdown-code-block .language-button { font-size: 12px; }
+
+/* 列表：圓點／數字與第一行文字垂直對齊，項目間距收緊 */
+.editor-col .milkdown .milkdown-list-item-block li { margin: 0; }
+.editor-col .milkdown .milkdown-list-item-block .list-item { align-items: flex-start; gap: 4px; }
+.editor-col .milkdown .milkdown-list-item-block .list-item > .label-wrapper {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  height: calc(var(--fs) * var(--lh)); min-width: 1.6em; line-height: var(--lh); font-size: var(--fs);
+}
+.editor-col .milkdown .milkdown-list-item-block .list-item > .label-wrapper .label { line-height: 1; margin: 0; }
+.editor-col .milkdown .milkdown-list-item-block .list-item > .children > :first-child { margin-top: 0; }
+.editor-col .milkdown .milkdown-list-item-block .list-item > .children > p { margin: 0; }
+.editor-col .milkdown ul, .editor-col .milkdown ol { margin: 0.4em 0; }
 .editor-col .milkdown .milkdown-code-block .cm-editor { border-radius: 0 0 12px 12px; }
 .editor-col .milkdown .milkdown-code-block .cm-editor { background: transparent; font-size: 0.86em; }
 .editor-col .milkdown .milkdown-code-block .cm-content { padding: 12px 4px; font-family: var(--font-mono); }

@@ -5,8 +5,8 @@
   --bg-side: #f3f1ec;
   --bg-elev: #ffffff;
   --fg: #26241f;
-  --fg-muted: #6f6b62;
-  --fg-faint: #a29d92;
+  --fg-muted: #57534a;
+  --fg-faint: #857f74;
   --line: rgba(38, 36, 31, 0.09);
   --line-strong: rgba(38, 36, 31, 0.18);
   --hover: rgba(38, 36, 31, 0.06);
@@ -73,8 +73,8 @@
   --bg-side: #dfe7d6;
   --bg-elev: #f2f6ec;
   --fg: #2f3a2d;
-  --fg-muted: #5f6e59;
-  --fg-faint: #8d9b86;
+  --fg-muted: #46533f;
+  --fg-faint: #707e69;
   --line: rgba(47, 58, 45, 0.11);
   --line-strong: rgba(47, 58, 45, 0.2);
   --hover: rgba(47, 58, 45, 0.07);

@@ -66,11 +66,29 @@ function runBlock(view: EditorView, pos: number): void {
     }
   }
 
+  if (kind === 'native') {
+    const key = `flowiter.nativeConsent.${lang.trim().toLowerCase()}`
+    let ok = false
+    try {
+      ok = localStorage.getItem(key) === '1'
+    } catch {
+      /* 忽略 */
+    }
+    if (!ok) {
+      if (!window.confirm(`這段 ${lang} 程式會用你電腦上安裝的編譯器／直譯器直接執行，沒有沙盒隔離。\n\n・在暫存資料夾執行、5 秒逾時、輸出有上限，結束後自動刪除\n・已攔截明顯的刪檔、啟動其他程式、網路等寫法，但無法保證擋住刻意繞過的程式\n\n只執行你看得懂、信任的程式碼。要繼續嗎？`)) return
+      try {
+        localStorage.setItem(key, '1')
+      } catch {
+        /* 忽略 */
+      }
+    }
+  }
+
   const handle = runCode(kind, code, (phase) => {
     if (view.isDestroyed) return
     const e = runKey.getState(view.state)?.get(k)
     if (e && e.status !== 'done') setEntry(view, k, { ...e, status: phase })
-  })
+  }, lang)
   setEntry(view, k, { status: kind === 'py' ? 'loading' : 'running', handle })
   void handle.done.then((res) => {
     // 視圖可能已被銷毀（切換分頁／關閉），那就不用顯示了

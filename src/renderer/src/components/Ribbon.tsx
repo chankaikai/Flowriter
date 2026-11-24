@@ -19,6 +19,9 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse 
   return (
     <div className={`ribbon${collapsed ? ' collapsed' : ''}`}>
       <div className="rb-tabs" role="tablist">
+        <button className="rb-fold" title={collapsed ? '展開功能區' : '摺疊功能區（雙擊分頁也可以）'} aria-label={collapsed ? '展開功能區' : '摺疊功能區'} onClick={() => onCollapse(!collapsed)}>
+          <Icon name={collapsed ? 'down' : 'up'} size={15} />
+        </button>
         {RIBBON.map((t) => (
           <button
             key={t.id}
@@ -34,10 +37,6 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse 
             {t.label}
           </button>
         ))}
-        <span className="grow" />
-        <button className="rb-fold" title={collapsed ? '展開功能區' : '收合功能區'} onClick={() => onCollapse(!collapsed)}>
-          <Icon name={collapsed ? 'down' : 'up'} size={14} />
-        </button>
       </div>
       {!collapsed && (
         <div className="rb-body" role="toolbar">

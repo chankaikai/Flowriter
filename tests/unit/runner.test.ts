@@ -2,6 +2,32 @@ import { describe, it, expect } from 'vitest'
 import vm from 'node:vm'
 import { capOutput, isJsLang, isPyLang, runKind, preflight, workerSource, pythonWorkerSource, MAX_OUT_LINES } from '@/lib/runner'
 
+describe('native languages', () => {
+  it('maps labels to runnable kinds', () => {
+    for (const l of ['c', 'cpp', 'c++', 'rust', 'rs', 'java', 'go', 'ruby', 'php', 'perl', 'lua']) expect(runKind(l)).toBe('native')
+    expect(runKind('bash')).toBe(null)
+    expect(runKind('sql')).toBe(null)
+  })
+  it('blocks destructive or escaping code before it reaches a compiler', () => {
+    expect(preflight('c', '#include <stdlib.h>\nint main(){system("ls");}').runnable).toBe(false)
+    expect(preflight('c', 'int main(){remove("a");}').runnable).toBe(false)
+    expect(preflight('cpp', '#include <fstream>\nint main(){std::ofstream f("a");}').runnable).toBe(false)
+    expect(preflight('rust', 'use std::process::Command;\nfn main(){}').runnable).toBe(false)
+    expect(preflight('go', 'package main\nimport "os/exec"\nfunc main(){}').runnable).toBe(false)
+    expect(preflight('java', 'class Main{ void f(){ Runtime.getRuntime().exec("x"); } }').runnable).toBe(false)
+    expect(preflight('ruby', 'system("ls")').runnable).toBe(false)
+    expect(preflight('php', '<?php exec("ls");').runnable).toBe(false)
+    expect(preflight('lua', 'os.execute("ls")').runnable).toBe(false)
+  })
+  it('lets ordinary programs through', () => {
+    expect(preflight('c', '#include <stdio.h>\nint main(){int a=100,b=20;printf("%d",a+b);return 0;}').runnable).toBe(true)
+    expect(preflight('cpp', '#include <iostream>\nint main(){std::cout<<1;}').runnable).toBe(true)
+    expect(preflight('rust', 'fn main(){println!("hi");}').runnable).toBe(true)
+    expect(preflight('java', 'public class Main{public static void main(String[] a){System.out.println(1);}}').runnable).toBe(true)
+    expect(preflight('go', 'package main\nimport "fmt"\nfunc main(){fmt.Println(1)}').runnable).toBe(true)
+  })
+})
+
 describe('python runner', () => {
   it('blocks escape hatches and allows plain code', () => {
     expect(preflight('python', 'import js').runnable).toBe(false)
