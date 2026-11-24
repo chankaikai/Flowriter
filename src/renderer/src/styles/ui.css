@@ -299,8 +299,8 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
 .rb-btn.on { background: var(--accent-soft); color: var(--accent); }
 .rb-btn.lg { flex-direction: column; justify-content: center; gap: 3px; height: 56px; min-width: 52px; padding: 0 6px; }
 .rb-ico { display: grid; place-items: center; min-width: 20px; height: 22px; }
-.rb-ico.glyph { font: 600 14px var(--font-ui); }
-.rb-btn:not(.lg) .rb-lbl { display: none; }
+.rb-ico.glyph { font: 600 17px var(--font-ui); }
+.rb-btn.lg .rb-lbl { white-space: nowrap; }
 .rb-btn.lg .rb-lbl { font-size: 11px; color: var(--fg-muted); }
 .rb-btn.on .rb-lbl { color: var(--accent); }
 .shell > .workspace { border-left: 0; }
@@ -419,3 +419,11 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
   background: color-mix(in srgb, var(--elev, var(--bg)) 70%, transparent); border: 1px solid var(--line); box-shadow: 0 14px 40px -16px rgba(0, 0, 0, 0.35);
   -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4); }
 .upd-actions { display: flex; gap: 6px; }
+
+.set-help { margin: 4px 0 10px; font: 12px/1.7 var(--font-ui, system-ui); color: var(--fg-muted); white-space: pre-wrap; }
+.css-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.lang-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.lang-btn { height: 34px; border-radius: 10px; border: 1px solid var(--line); color: var(--fg); font-size: 13px; background: transparent; cursor: pointer; }
+.lang-btn:hover { background: var(--hover); }
+.lang-btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+body.hide-linenos .cm-lineNumbers, body.hide-linenos .cm-gutters { display: none !important; }

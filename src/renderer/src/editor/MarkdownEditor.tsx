@@ -40,7 +40,7 @@ import {
 } from './plugins'
 import { TextSelection } from '@milkdown/kit/prose/state'
 import { runBlockAtCaret } from './runUi'
-import { setLockTexts, toggleLockAtCaret, gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
+import { isLockedAtCaret, setLockTexts, toggleLockAtCaret, gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
 import { LARGE_DOC } from '@/lib/markdown'
 
 export type FormatName =
@@ -82,6 +82,8 @@ export interface EditorHandle {
   toggleLock(): { locked: boolean; text: string } | null
   /** 以一組段落文字取代目前的鎖定清單 */
   setLocks(texts: string[]): void
+  /** 游標所在段落目前是否已上鎖 */
+  lockedAtCaret(): boolean
   /** 執行游標所在的代碼塊（支援 JavaScript／Python）；不在可執行的代碼塊內回傳 false */
   runAtCaret(): boolean
   /** 游標的螢幕座標，沒有編輯器或找不到時回傳 null */
@@ -380,6 +382,10 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
     setLocks(texts) {
       const v = view()
       if (v) setLockTexts(v, texts)
+    },
+    lockedAtCaret() {
+      const v = view()
+      return v ? isLockedAtCaret(v) : false
     },
     runAtCaret() {
       const v = view()

@@ -1,3 +1,4 @@
+import { tr } from '@/lib/i18n'
 import { useEffect, useRef, useState } from 'react'
 import type { Cmd } from '@/lib/commands'
 import { formatKeys } from '@/lib/keys'
@@ -90,7 +91,7 @@ export function MenuBar(props: Props) {
             onClick={() => setOpen(open === m.id ? null : m.id)}
             onMouseEnter={() => open && setOpen(m.id)}
           >
-            {m.label}
+            {tr(m.label)}
           </button>
           {open === m.id && (
             <div className="mn-panel" role="menu">

@@ -77,7 +77,7 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'nav.recent', title: '最近開啟…', group: '導航', keys: ['Mod+Alt+O'], run: () => a.openPalette('recent') },
     { id: 'nav.commands', title: '命令面板', group: '導航', keys: ['Mod+Shift+P'], run: () => a.openPalette('commands') },
     { id: 'nav.find', title: '查找', group: '導航', keys: ['Mod+F'], run: () => a.openFind(false) },
-    { id: 'nav.replace', title: '查找與替換', group: '導航', keys: ['Mod+H'], run: () => a.openFind(true) },
+    { id: 'nav.replace', title: '替換', group: '導航', keys: ['Mod+H'], run: () => a.openFind(true) },
     { id: 'nav.folderSearch', title: '在資料夾中搜尋', group: '導航', keys: ['Mod+Shift+F'], run: () => a.showSidebarTab('search') },
     { id: 'nav.outline', title: '顯示大綱', group: '導航', keys: ['Mod+Shift+L'], run: () => a.showSidebarTab('outline') },
     { id: 'nav.files', title: '顯示文件樹', group: '導航', run: () => a.showSidebarTab('files') },

@@ -797,6 +797,40 @@ export const mermaidPlugin = $prose(
     })
 )
 
+/* ------------------------------ 選取時顯示層級 ------------------------------ */
+// 選取文字時，在該段落最前面（左側邊界）顯示它的層級：H1…H6、正文、列表、引用、代碼。只是裝飾，不進入文件。
+
+const levelKey = new PluginKey('inkwell-level')
+export const levelPlugin = $prose(
+  () =>
+    new Plugin({
+      key: levelKey,
+      props: {
+        decorations(st) {
+          const sel = st.selection
+          if (sel.empty || !sel.$from.parent.isTextblock) return null
+          const $f = sel.$from
+          let text = '正文'
+          for (let d = $f.depth; d >= 0; d--) {
+            const n = $f.node(d)
+            const nm = n.type.name
+            if (nm === 'heading') { text = `H${n.attrs.level}`; break }
+            if (nm === 'code_block') { text = '代碼'; break }
+            if (nm === 'list_item') { text = n.attrs?.checked != null ? '任務' : '列表'; break }
+            if (nm === 'blockquote') { text = '引用'; break }
+          }
+          const el = () => {
+            const i = document.createElement('span')
+            i.className = 'level-tag'
+            i.contentEditable = 'false'
+            i.textContent = text
+            return i
+          }
+          return DecorationSet.create(st.doc, [Decoration.widget($f.start(), el, { side: -1, key: `lvl-${text}-${$f.start()}`, ignoreSelection: true })])
+        }
+      }
+    })
+)
 /* ------------------------------ 段落上鎖 ------------------------------ */
 // 被鎖的段落（以純文字比對）不能被修改；邊界上新增段落仍可。上鎖資訊不在文件內。
 
@@ -872,6 +906,15 @@ export function setLockTexts(view: EditorView, texts: string[]): void {
   }
 }
 
+/** 游標所在段落目前是否被鎖定（給功能區顯示「段落解鎖」用） */
+export function isLockedAtCaret(view: EditorView): boolean {
+  if (view.isDestroyed) return false
+  const { $from } = view.state.selection
+  const block = $from.parent
+  if (!block.isTextblock || !block.textContent.trim()) return false
+  return !!lockKey.getState(view.state)?.texts.has(normLock(block.textContent))
+}
+
 /** 切換游標所在段落的鎖定狀態；回傳新狀態與段落文字，找不到可鎖的段落回傳 null */
 export function toggleLockAtCaret(view: EditorView): { locked: boolean; text: string; texts: string[] } | null {
   const { $from } = view.state.selection
@@ -905,6 +948,7 @@ export const extraPlugins = [
   calloutPlugin,
   mermaidPlugin,
   lockPlugin,
+  levelPlugin,
   runUiPlugin,
   calcPlugin,
   footnoteTipPlugin,

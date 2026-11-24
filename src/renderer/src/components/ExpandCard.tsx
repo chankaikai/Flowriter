@@ -33,6 +33,7 @@ export function ExpandCard({
   summary,
   wide,
   active = true,
+  action = '調整',
   children
 }: {
   icon: IconName
@@ -41,6 +42,8 @@ export function ExpandCard({
   wide?: boolean
   /** 外層（設定抽屜）關閉時設為 false，詳情會一併立即收起 */
   active?: boolean
+  /** 卡片右下角的按鈕文字（預設「調整」；純檢視的卡片用「查看」） */
+  action?: string
   children: ReactNode
 }) {
   const cardRef = useRef<HTMLDivElement>(null)
@@ -131,7 +134,7 @@ export function ExpandCard({
             open()
           }}
         >
-          調整
+          {action}
           <Icon name="chevron" size={13} />
         </button>
       </GlassCard>

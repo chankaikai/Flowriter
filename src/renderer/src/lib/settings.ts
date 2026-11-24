@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { THEMES, applyThemeVars, isDarkTheme } from './themes'
+import { setLang } from './i18n'
 
 export type ThemeName = 'system' | (string & {})
 export type ResolvedTheme = string
@@ -20,6 +21,10 @@ export interface Settings {
   sidebarWidth: number
   /** 全域快捷鍵叫出收件匣小視窗 */
   inboxShortcut: boolean
+  /** 介面語言（外框範圍，見 i18n.ts） */
+  uiLang: string
+  /** 顯示代碼塊與源碼模式的行號 */
+  showLineNumbers: boolean
   translucent: boolean
   surfaceOpacity: number
   winMaterial: 'acrylic' | 'mica'
@@ -51,6 +56,8 @@ export const DEFAULT_SETTINGS: Settings = {
   autosave: true,
   sidebarWidth: 264,
   inboxShortcut: false,
+  uiLang: 'zh-TW',
+  showLineNumbers: true,
   translucent: true,
   surfaceOpacity: 0.72,
   winMaterial: 'acrylic',
@@ -173,6 +180,11 @@ export function useApplySettings(s: Settings, materialSupported: boolean): Resol
     root.style.setProperty('--font-body', FONTS[s.fontFamily])
     root.style.setProperty('--tl', String(s.surfaceOpacity))
   }, [s.fontSize, s.lineHeight, s.maxWidth, s.fontFamily, s.surfaceOpacity])
+
+  setLang(s.uiLang) // 同步設定，讓這一輪渲染就用新語言
+  useEffect(() => {
+    document.body.classList.toggle('hide-linenos', !s.showLineNumbers)
+  }, [s.showLineNumbers])
 
   useEffect(() => {
     document.body.classList.toggle('focus-mode', s.focusMode)

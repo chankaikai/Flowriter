@@ -2,7 +2,8 @@ import { useState } from 'react'
 import type { Cmd } from '@/lib/commands'
 import { formatKeys } from '@/lib/keys'
 import { RIBBON } from '@/lib/menus'
-import { Icon } from './Icon'
+import { Icon, type IconName } from './Icon'
+import { tr } from '@/lib/i18n'
 
 interface Props {
   commands: Cmd[]
@@ -10,10 +11,12 @@ interface Props {
   editorEnabled: boolean
   collapsed: boolean
   onCollapse(v: boolean): void
+  /** 依狀態改變某個按鈕的名稱／圖示（例如段落已上鎖時顯示「段落解鎖」） */
+  overrides?: Record<string, { label?: string; icon?: IconName }>
 }
 
 /** 仿 Word 的功能區：上方分頁，下方依群組排列按鈕；可收合。 */
-export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse }: Props) {
+export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse, overrides }: Props) {
   const [tab, setTab] = useState(RIBBON[0].id)
   const cur = RIBBON.find((t) => t.id === tab) ?? RIBBON[0]
   return (
@@ -34,7 +37,7 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse 
             }}
             onDoubleClick={() => onCollapse(!collapsed)}
           >
-            {t.label}
+            {tr(t.label)}
           </button>
         ))}
       </div>
@@ -48,25 +51,28 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse 
                   if (!cmd) return null
                   const disabled = !!cmd.editorOnly && !editorEnabled
                   const on = it.check ? checks[it.check] : false
+                  const ov = overrides?.[it.cmd]
+                  const label = ov?.label ?? it.label
+                  const icon = ov?.icon ?? it.icon
                   const k = cmd.keys?.[0] ? ` (${formatKeys(cmd.keys[0]).join(' ')})` : ''
                   return (
                     <button
                       key={it.cmd}
-                      className={`rb-btn${it.lg ? ' lg' : ''}${on ? ' on' : ''}`}
+                      className={`rb-btn lg${on ? ' on' : ''}`}
                       disabled={disabled}
-                      title={`${cmd.title}${k}`}
+                      title={`${label ?? cmd.title}${k}`}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => cmd.run()}
                     >
                       <span className={`rb-ico${it.glyph ? ' glyph' : ''}`}>
-                        {it.glyph ? it.glyph : it.icon ? <Icon name={it.icon} size={it.lg ? 22 : 17} /> : null}
+                        {it.glyph ? it.glyph : icon ? <Icon name={icon} size={22} /> : null}
                       </span>
-                      <span className="rb-lbl">{it.label}</span>
+                      <span className="rb-lbl">{label}</span>
                     </button>
                   )
                 })}
               </div>
-              <div className="rb-glabel">{g.label}</div>
+              <div className="rb-glabel">{tr(g.label)}</div>
             </div>
           ))}
         </div>

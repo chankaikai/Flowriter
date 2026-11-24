@@ -119,6 +119,7 @@ export default function App() {
   const session = { key: activeEntry ? activeEntry.key : -srcKey }
   const [mode, setMode] = useState<Mode>('wysiwyg')
   const [dirty, setDirty] = useState(false)
+  const [caretLocked, setCaretLocked] = useState(false)
   const [appVersion, setAppVersion] = useState('')
   const [upd, setUpd] = useState<UpdateStatus>({ state: 'idle' })
   const [updHidden, setUpdHidden] = useState(false)
@@ -1178,6 +1179,22 @@ export default function App() {
   )
   useEffect(() => () => setAmbient('off', 0), [])
 
+  // 游標所在段落是否已上鎖（功能區的按鈕會變成「段落解鎖」）；選取變動時節流檢查
+  useEffect(() => {
+    let t = 0
+    const check = () => {
+      window.clearTimeout(t)
+      t = window.setTimeout(() => setCaretLocked(editorRef.current?.lockedAtCaret() ?? false), 150)
+    }
+    document.addEventListener('selectionchange', check)
+    window.addEventListener('inkwell-lock-changed', check)
+    return () => {
+      window.clearTimeout(t)
+      document.removeEventListener('selectionchange', check)
+      window.removeEventListener('inkwell-lock-changed', check)
+    }
+  }, [])
+
   // 版本號與自動更新狀態
   useEffect(() => {
     void window.api.appVersion().then(setAppVersion)
@@ -1296,6 +1313,7 @@ export default function App() {
       return next
     })
     showToast(r.locked ? '已上鎖：這一段無法被修改' : '已解鎖')
+    window.dispatchEvent(new Event('inkwell-lock-changed'))
   }
   const notesKey = doc.path ? basename(doc.path) : ''
 
@@ -1417,7 +1435,14 @@ export default function App() {
           {(doc.name || '未命名') + (dirty ? ' ●' : '')} — Flowiter
         </div>
       </header>
-      <Ribbon commands={commands} checks={checks} editorEnabled={mode === 'wysiwyg'} collapsed={ribbonFold} onCollapse={foldRibbon} />
+      <Ribbon
+        commands={commands}
+        checks={checks}
+        editorEnabled={mode === 'wysiwyg'}
+        collapsed={ribbonFold}
+        onCollapse={foldRibbon}
+        overrides={caretLocked ? { 'edit.lock': { label: '段落解鎖', icon: 'unlock' } } : undefined}
+      />
       <div className="shell">
       <Sidebar
         open={settings.sidebarOpen}
@@ -1850,6 +1875,8 @@ export default function App() {
         settings={settings}
         update={update}
         commands={commands}
+        version={appVersion}
+        updateStatus={upd}
         materialKind={matKind}
         onClose={() => setSettingsOpen(false)}
       />

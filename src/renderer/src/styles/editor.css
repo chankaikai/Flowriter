@@ -230,3 +230,6 @@ body.show-weight .milkdown .ProseMirror p.pw-5 { border-left-color: var(--accent
 /* 段落上鎖 */
 .is-locked { background: color-mix(in srgb, var(--accent) 6%, transparent); border-radius: 6px; box-shadow: inset 3px 0 0 var(--accent-soft); position: relative; cursor: default; }
 .is-locked::after { content: '🔒'; position: absolute; right: 4px; top: 2px; font-size: 11px; opacity: 0.55; pointer-events: none; }
+
+/* 選取時的層級標籤：貼在該段落左側邊界外 */
+.editor-col .milkdown .level-tag { position: absolute; transform: translate(calc(-100% - 14px), 0); padding: 0 6px; height: 1.4em; line-height: 1.4em; border-radius: 6px; font: 600 11px var(--font-ui, system-ui); letter-spacing: 0.02em; color: var(--accent); background: var(--accent-soft); user-select: none; pointer-events: none; white-space: nowrap; }

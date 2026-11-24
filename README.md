@@ -266,3 +266,8 @@ GitHub Actions（`.github/workflows/ci.yml`）在每次推送與 PR 上跑單元
 - 更新來源是 GitHub Releases（`chankaikai/Flowriter`）。發布方式：把 `package.json` 的 `version` 調高，提交後推 `v版本號` 標籤（例如 `git tag v0.2.0 && git push origin v0.2.0`），GitHub Actions 會自動打包並建立 Release，內含 `latest.yml`。需要倉庫的 Actions 具有寫入權限（Settings → Actions → General → Workflow permissions）。
 - 未做程式碼簽章時 Windows 會出現 SmartScreen 警告；macOS 自動更新必須簽章並公證。免安裝版與 zip 不支援自動更新。
 - 「關於」內含版本號、檢查更新與回饋信箱 kaikai122148@163.com（可一鍵寫信或複製）。
+
+## 問題文檔修復 · 批次 1～2
+
+- 批次 1：`window.confirm` 全部改成主程序的原生對話框（Electron 的 `window.confirm` 關閉後常讓編輯器失去焦點，造成「無法編輯／沒有游標」）；代碼塊執行按鈕不再每次按鍵都重新掃描全文；列表圓點與文字對齊（去掉段落內距並讓圓點高度等於一行）；設定裡的開關與分段控制改成按下即生效。
+- 批次 2：功能區每個按鈕下方都有名稱；段落已上鎖時按鈕變成「段落解鎖」；「替換」有自己的圖示；選取文字時段落左側顯示層級（H1–H6／正文／列表／任務／引用／代碼）；設定新增「語言」（13 種，目前翻譯選單列、功能區分頁與群組、設定卡片標題）、「更新與關於」、行號顯示開關、自訂 CSS 說明與 Typora／Obsidian 主題匯入；快捷鍵卡片按鈕改為「查看」並與其他卡片同大。

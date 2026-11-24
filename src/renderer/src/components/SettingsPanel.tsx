@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { MaterialSupport } from '../../../shared/types'
 import type { Cmd } from '@/lib/commands'
 import { formatKeys } from '@/lib/keys'
@@ -8,6 +9,10 @@ import { Icon } from './Icon'
 import { AiSetup } from './AiSetup'
 import { resolveAi } from '@/lib/ai'
 import { Segmented } from './Segmented'
+import { AboutPanel } from './AboutPanel'
+import { LANGS, tr } from '@/lib/i18n'
+import { importThemeCss, listImported, removeImported, MAX_THEME_CSS } from '@/lib/themeImport'
+import type { UpdateStatus } from '../../../shared/update'
 
 const SYSTEM_CARD = { id: 'system', label: '跟隨系統', bg: 'linear-gradient(135deg,#fbfaf7 50%,#1c1b19 50%)', fg: '#888', accent: '#888' }
 const themeCards = (list: typeof THEMES) => list.map((t) => ({ id: t.id, label: t.label, bg: t.bg, fg: t.fg, accent: t.accent }))
@@ -54,6 +59,8 @@ export function SettingsPanel({
   update,
   commands,
   materialKind,
+  version,
+  updateStatus,
   onClose
 }: {
   open: boolean
@@ -61,6 +68,8 @@ export function SettingsPanel({
   update(p: Partial<Settings>): void
   commands: Cmd[]
   materialKind: MaterialSupport
+  version: string
+  updateStatus: UpdateStatus
   onClose(): void
 }) {
   const keyed = commands.filter((c) => c.keys?.length)
@@ -75,7 +84,7 @@ export function SettingsPanel({
         onKeyDown={(e) => e.key === 'Escape' && onClose()}
       >
         <div className="drawer-head">
-          <h2>偏好設定</h2>
+          <h2>{tr('偏好設定')}</h2>
           <button className="icon-btn" onClick={onClose} title="關閉">
             <Icon name="close" />
           </button>
@@ -86,7 +95,7 @@ export function SettingsPanel({
             <ExpandCard
               active={open}
               icon="half"
-              title="外觀"
+              title={tr('外觀')}
               summary={
                 <>
                   <span className="swatches">
@@ -158,7 +167,7 @@ export function SettingsPanel({
             <ExpandCard
               active={open}
               icon="type"
-              title="排版"
+              title={tr('排版')}
               summary={`${FONT_LABEL[settings.fontFamily]} · ${settings.fontSize}px · 行高 ${settings.lineHeight.toFixed(2)} · 寬 ${settings.maxWidth}px`}
             >
               <Row label="字體">
@@ -180,6 +189,9 @@ export function SettingsPanel({
                 <input type="range" min={1.4} max={2.3} step={0.05} value={settings.lineHeight}
                   onChange={(e) => update({ lineHeight: +e.target.value })} />
               </Row>
+              <Row label="顯示行號（代碼塊與源碼模式）">
+                <Toggle on={settings.showLineNumbers} onChange={(v) => update({ showLineNumbers: v })} />
+              </Row>
               <Row label="內容最大寬度" value={`${settings.maxWidth}px`}>
                 <input type="range" min={560} max={1200} step={20} value={settings.maxWidth}
                   onChange={(e) => update({ maxWidth: +e.target.value })} />
@@ -189,7 +201,7 @@ export function SettingsPanel({
             <ExpandCard
               active={open}
               icon="pen"
-              title="寫作"
+              title={tr('寫作')}
               summary={`自動儲存 ${on(settings.autosave)} · 聚焦 ${on(settings.focusMode)} · 打字機 ${on(settings.typewriter)}`}
             >
               <Row label="自動儲存（已有檔案）">
@@ -216,7 +228,7 @@ export function SettingsPanel({
             <ExpandCard
               active={open}
               icon="sparkle"
-              title="AI 改寫"
+              title={tr('AI 改寫')}
               summary={(() => {
                 const r = resolveAi(settings)
                 return r.missing ? `${r.provider.label} · 尚未完成設定` : `${r.provider.label} · ${r.model}`
@@ -228,20 +240,43 @@ export function SettingsPanel({
             <ExpandCard
               active={open}
               icon="code"
-              title="自訂 CSS"
+              title={tr('自訂 CSS')}
               summary={settings.customCss.trim() ? `已設定 ${settings.customCss.trim().split('\n').length} 行` : '尚未設定'}
             >
-              <textarea
-                className="css-box"
-                style={{ height: 260 }}
-                spellCheck={false}
-                placeholder={'/* 例如 */\n.milkdown .ProseMirror h1 { color: #b5412c; }'}
-                value={settings.customCss}
-                onChange={(e) => update({ customCss: e.target.value })}
-              />
+              <CssSettings settings={settings} update={update} />
             </ExpandCard>
 
-            <ExpandCard wide active={open} icon="keyboard" title="快捷鍵" summary={`共 ${keyed.length} 個，點擊查看完整清單`}>
+            <ExpandCard active={open} icon="type" title={tr('語言')} summary={LANGS.find((l) => l.id === settings.uiLang)?.label ?? ''}>
+              <div className="set-help">選單列、功能區分頁與群組、設定卡片標題會切換成所選語言；功能區按鈕與面板內文暫時仍是繁體中文（逐步補齊中）。</div>
+              <div className="lang-grid">
+                {LANGS.map((l) => (
+                  <button
+                    key={l.id}
+                    className={`lang-btn${settings.uiLang === l.id ? ' on' : ''}`}
+                    onPointerDown={(e) => {
+                      if (e.button === 0) {
+                        e.preventDefault()
+                        update({ uiLang: l.id })
+                      }
+                    }}
+                    onClick={(e) => e.detail === 0 && update({ uiLang: l.id })}
+                  >
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+            </ExpandCard>
+
+            <ExpandCard
+              active={open}
+              icon="sparkle"
+              title={tr('更新與關於')}
+              summary={`版本 ${version || '—'}`}
+            >
+              <AboutPanel version={version} status={updateStatus} />
+            </ExpandCard>
+
+            <ExpandCard active={open} icon="keyboard" title={tr('快捷鍵')} action={tr('查看')} summary={`共 ${keyed.length} 個，點擊查看完整清單`}>
               <div className="keylist">
                 {keyed.map((c) => (
                   <div key={c.id} className="keyrow">
@@ -259,5 +294,65 @@ export function SettingsPanel({
         </div>
       </div>
     </div>
+  )
+}
+
+const CSS_HELP = `自訂 CSS 會在所有主題之上套用，只影響畫面，不會寫進你的 .md 檔案。
+
+常用選擇器
+・編輯區整體：.editor-col .milkdown .ProseMirror
+・標題：…ProseMirror h1 … h6　　段落：…ProseMirror p
+・代碼塊：.milkdown .milkdown-code-block　　引用：…ProseMirror blockquote
+・深色／淺色：[data-tone="dark"]、[data-tone="light"]
+・也可覆寫變數：:root { --accent: #2f6fed; --fg: #222; --bg: #fff; }
+
+匯入主題
+・Typora 主題（.css）：選擇器 #write、.md-fences 會自動轉成本程式的選擇器
+・Obsidian 主題／CSS 片段（.css）：.markdown-preview-view、.theme-dark 等會自動轉換
+・Notion 沒有可匯入的主題檔，但它的 CSS 片段可以直接貼在下面
+・為了安全，@import 與網路圖片／字型網址會被移除；字型請用電腦已安裝的`
+
+function CssSettings({ settings, update }: { settings: Settings; update(p: Partial<Settings>): void }) {
+  const [msg, setMsg] = useState('')
+  const imported = listImported(settings.customCss)
+  const pick = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.css,text/css'
+    input.onchange = () => {
+      const f = input.files?.[0]
+      if (!f) return
+      if (f.size > MAX_THEME_CSS) return setMsg(`檔案超過 ${Math.round(MAX_THEME_CSS / 1000)}KB，已取消`)
+      void f.text().then((raw) => {
+        const name = f.name.replace(/\.css$/i, '')
+        const base = removeImported(settings.customCss, name)
+        const r = importThemeCss(raw, name)
+        update({ customCss: `${base}\n\n${r.css}`.trim() })
+        setMsg(`已匯入「${name}」，轉換了 ${r.rewritten} 處選擇器${r.removedExternal ? `，移除 ${r.removedExternal} 個外部載入` : ''}`)
+      })
+    }
+    input.click()
+  }
+  return (
+    <>
+      <pre className="set-help">{CSS_HELP}</pre>
+      <div className="css-actions">
+        <button className="btn" onClick={pick}>匯入 Typora／Obsidian 主題（.css）</button>
+        {imported.map((n) => (
+          <button key={n} className="btn ghost" onClick={() => update({ customCss: removeImported(settings.customCss, n) })} title="移除這個已匯入的主題">
+            移除「{n}」
+          </button>
+        ))}
+      </div>
+      {msg && <div className="set-help">{msg}</div>}
+      <textarea
+        className="css-box"
+        style={{ height: 240 }}
+        spellCheck={false}
+        placeholder={'/* 例如 */\n.editor-col .milkdown .ProseMirror h1 { color: #b5412c; }'}
+        value={settings.customCss}
+        onChange={(e) => update({ customCss: e.target.value })}
+      />
+    </>
   )
 }

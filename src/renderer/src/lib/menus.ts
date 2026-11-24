@@ -229,7 +229,7 @@ export const RIBBON: RibbonTab[] = [
       },
       {
         label: '尋找',
-        items: [r('nav.find', '查找', { icon: 'search', lg: true }), r('nav.replace', '替換', { icon: 'search' })]
+        items: [r('nav.find', '查找', { icon: 'search', lg: true }), r('nav.replace', '替換', { icon: 'replace', lg: true })]
       }
     ]
   },
