@@ -44,6 +44,7 @@ const MATERIAL: MaterialSupport = isMac ? 'vibrancy' : winBuild >= 22621 ? 'win'
 let dirty = false
 let forceClose = false
 let closing = false
+let lastChrome: { color: string; symbolColor: string } | null = null
 
 function stripBom(s: string): string {
   return s.charCodeAt(0) === 0xfeff ? s.slice(1) : s
@@ -913,6 +914,7 @@ function registerIpc(): void {
     if (!win) return
     // 讓系統材質的明暗與 App 主題一致（跟隨系統時還原為 system）
     if (c.themeSource) nativeTheme.themeSource = c.themeSource
+    lastChrome = { color: c.color, symbolColor: c.symbolColor }
     win.setBackgroundColor(c.color)
     if (!isMac) {
       try {
@@ -998,6 +1000,21 @@ function registerIpc(): void {
   ipcMain.on('win:close', (e) => BrowserWindow.fromWebContents(e.sender)?.close())
   ipcMain.handle('native:run', (_e, req) => runNative(req))
   ipcMain.on('native:stop', (_e, id: string) => stopNative(String(id)))
+  ipcMain.on('win:splash', (e, on: boolean) => {
+    const w = BrowserWindow.fromWebContents(e.sender)
+    if (!w) return
+    w.setMinimizable(!on)
+    w.setClosable(!on)
+    if (isMac) w.setWindowButtonVisibility(!on)
+    else {
+      try {
+        // 歡迎畫面期間把視窗按鈕畫成透明；結束後還原成目前主題的顏色
+        w.setTitleBarOverlay(on ? { color: '#00000000', symbolColor: '#00000000', height: 34 } : { color: lastChrome?.color ?? '#00000000', symbolColor: lastChrome?.symbolColor ?? '#26241f', height: 34 })
+      } catch {
+        /* 部分平台不支援 */
+      }
+    }
+  })
   ipcMain.on('win:forceClose', (e) => {
     forceClose = true
     BrowserWindow.fromWebContents(e.sender)?.close()

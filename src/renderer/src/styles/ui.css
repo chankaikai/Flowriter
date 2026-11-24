@@ -372,10 +372,33 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
 .run-line.error { color: #d0463a; }
 .run-line.result { color: var(--accent); }
 
-/* 啟動畫面 */
-.splash { position: fixed; inset: 0; z-index: 100000; display: grid; place-content: center; justify-items: center; gap: 22px; background: var(--bg); color: var(--fg); opacity: 1; transition: opacity 0.35s ease; -webkit-app-region: no-drag; }
+/* 啟動畫面（毛玻璃） */
+.splash {
+  position: fixed; inset: 0; z-index: 100000; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--bg) 38%, transparent);
+  -webkit-backdrop-filter: blur(34px) saturate(1.5); backdrop-filter: blur(34px) saturate(1.5);
+  opacity: 1; transition: opacity 0.45s ease; -webkit-app-region: drag;
+}
 .splash.out { opacity: 0; pointer-events: none; }
-.splash-word { font: 600 56px/1.2 var(--font-body, system-ui); letter-spacing: 0.02em; animation: splash-in 0.2s ease both; }
-.splash-brand { font: 500 13px var(--font-ui, system-ui); letter-spacing: 0.3em; color: var(--fg-muted); text-transform: uppercase; }
-@keyframes splash-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .splash-word { animation: none; } }
+.splash-card { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 48px 72px 40px; min-width: 460px; border-radius: 28px;
+  background: color-mix(in srgb, var(--elev, var(--bg)) 42%, transparent); border: 1px solid color-mix(in srgb, #fff 45%, transparent);
+  box-shadow: 0 30px 80px -24px rgba(0, 0, 0, 0.35), inset 0 1px 0 color-mix(in srgb, #fff 55%, transparent);
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); -webkit-app-region: no-drag; }
+.splash-stage { position: relative; display: inline-block; height: 84px; line-height: 84px; }
+.splash-word { display: inline-block; font: 600 64px/84px var(--font-body, system-ui); letter-spacing: 0.02em; color: var(--fg);
+  clip-path: inset(-10% 100% -10% 0); animation: splash-write 1.4s cubic-bezier(0.45, 0.05, 0.3, 1) 0.1s forwards; }
+.splash-pen { position: absolute; top: 14%; bottom: 14%; width: 3px; left: 0; border-radius: 2px; background: var(--accent); box-shadow: 0 0 14px var(--accent);
+  opacity: 0; animation: splash-pen 1.4s cubic-bezier(0.45, 0.05, 0.3, 1) 0.1s forwards; }
+.splash-lang { font: 500 12.5px var(--font-ui, system-ui); letter-spacing: 0.12em; color: var(--fg-muted); animation: splash-fade 0.6s ease 1.2s both; }
+.splash-brand { margin-top: 6px; font: 600 13px var(--font-ui, system-ui); letter-spacing: 0.34em; color: var(--fg-muted); text-transform: uppercase; }
+.splash-go { margin-top: 18px; padding: 11px 38px; border-radius: 999px; font: 600 15px var(--font-ui, system-ui); color: var(--fg); cursor: pointer;
+  background: color-mix(in srgb, var(--accent) 22%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 55%, #fff 20%);
+  box-shadow: 0 10px 30px -12px var(--accent), inset 0 1px 0 color-mix(in srgb, #fff 50%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(1.6); backdrop-filter: blur(14px) saturate(1.6);
+  opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity 0.6s ease, transform 0.6s ease, background 0.2s; }
+.splash-go.show { opacity: 1; transform: none; pointer-events: auto; }
+.splash-go.show:hover { background: color-mix(in srgb, var(--accent) 36%, transparent); }
+@keyframes splash-write { from { clip-path: inset(-10% 100% -10% 0); } to { clip-path: inset(-10% 0 -10% 0); } }
+@keyframes splash-pen { 0% { left: 0; opacity: 1; } 92% { opacity: 1; } 100% { left: 100%; opacity: 0; } }
+@keyframes splash-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .splash-word { animation: none; clip-path: none; } .splash-pen { display: none; } }

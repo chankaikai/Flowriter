@@ -184,9 +184,6 @@ export function SettingsPanel({
               <Row label="全域快捷鍵 Ctrl/⌘+Alt+Space 叫出收件匣（任何程式中都可用）">
                 <Toggle on={settings.inboxShortcut} onChange={(v) => update({ inboxShortcut: v })} />
               </Row>
-              <Row label="啟動時顯示歡迎畫面（約 2.4 秒）">
-                <Toggle on={settings.splash} onChange={(v) => update({ splash: v })} />
-              </Row>
               <Row label="聚焦模式">
                 <Toggle on={settings.focusMode} onChange={(v) => update({ focusMode: v })} />
               </Row>

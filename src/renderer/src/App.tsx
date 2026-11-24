@@ -39,8 +39,8 @@ import { formatKeys, matchKey } from '@/lib/keys'
 import { LARGE_DOC, computeStats, parseOutline, type DocStats, type OutlineItem } from '@/lib/markdown'
 import { basename, dirname, stripExt, toAbsolutePath, toDisplayUrl } from '@/lib/path'
 import { THEMES, isDarkTheme } from '@/lib/themes'
-import { loadSettings, useApplySettings, useSettings, type SidebarTab, type ThemeName } from '@/lib/settings'
-import { Splash } from '@/components/Splash'
+import { useApplySettings, useSettings, type SidebarTab, type ThemeName } from '@/lib/settings'
+import { Splash, welcomed } from '@/components/Splash'
 import { WELCOME } from '@/lib/welcome'
 import { buildHtmlDocument, renderHtmlBody } from '@/export/exportHtml'
 import { buildDocx } from '@/export/exportDocx'
@@ -97,6 +97,8 @@ const MAX_LIVE = 5
 
 export default function App() {
   const [settings, update] = useSettings()
+  const updateSettingsRef = useRef(update)
+  updateSettingsRef.current = update
   const [matKind, setMatKind] = useState<MaterialSupport>('none')
   const resolvedTheme = useApplySettings(settings, matKind !== 'none')
 
@@ -114,7 +116,7 @@ export default function App() {
   const session = { key: activeEntry ? activeEntry.key : -srcKey }
   const [mode, setMode] = useState<Mode>('wysiwyg')
   const [dirty, setDirty] = useState(false)
-  const [splashOn, setSplashOn] = useState(() => loadSettings().splash !== false)
+  const [splashOn, setSplashOn] = useState(() => !welcomed())
   const [stats, setStats] = useState<DocStats>(() => computeStats(WELCOME))
   const [outline, setOutline] = useState<OutlineItem[]>(() => parseOutline(WELCOME))
   const [activeHeading, setActiveHeading] = useState(-1)
@@ -1167,9 +1169,20 @@ export default function App() {
 
   // 全域快捷鍵（開啟時才註冊；被其他程式占用會提示）
   useEffect(() => {
-    void window.api.inboxSetup(settings.inboxShortcut).then((ok) => {
-      if (!ok) showToast('Ctrl/⌘+Alt+Space 已被其他程式占用，收件匣快捷鍵無法啟用')
+    let alive = true
+    void window.api.inboxSetup(settings.inboxShortcut).then((r) => {
+      if (!alive || !settings.inboxShortcut) return
+      if (!r.ok) {
+        // 所有組合都被占用：把開關還原成關閉，讓畫面如實反映，不留下「開著但沒作用」
+        updateSettingsRef.current({ inboxShortcut: false })
+        showToast('Ctrl/⌘+Alt+Space 等組合都已被其他程式占用，收件匣快捷鍵無法啟用')
+      } else if (r.accel && r.accel !== 'CommandOrControl+Alt+Space') {
+        showToast(`Ctrl/⌘+Alt+Space 被占用，已改用 ${r.accel.replace('CommandOrControl', 'Ctrl/⌘').replace(/\+/g, '+')}`)
+      }
     })
+    return () => {
+      alive = false
+    }
   }, [settings.inboxShortcut, showToast])
 
   // 頁邊便條：載入／儲存 .inkwell/notes.json（依文件所在資料夾）

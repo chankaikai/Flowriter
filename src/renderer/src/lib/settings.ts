@@ -20,8 +20,6 @@ export interface Settings {
   sidebarWidth: number
   /** 全域快捷鍵叫出收件匣小視窗 */
   inboxShortcut: boolean
-  /** 啟動時顯示多國語言「你好」畫面（約 2.4 秒） */
-  splash: boolean
   translucent: boolean
   surfaceOpacity: number
   winMaterial: 'acrylic' | 'mica'
@@ -53,7 +51,6 @@ export const DEFAULT_SETTINGS: Settings = {
   autosave: true,
   sidebarWidth: 264,
   inboxShortcut: false,
-  splash: true,
   translucent: true,
   surfaceOpacity: 0.72,
   winMaterial: 'acrylic',

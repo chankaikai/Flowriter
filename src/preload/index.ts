@@ -28,6 +28,7 @@ const api: InkwellApi = {
   setDirty: (d) => ipcRenderer.send('doc:dirty', d),
   nativeRun: (r) => inv('native:run', r),
   nativeStop: (id) => ipcRenderer.send('native:stop', id),
+  setSplash: (on) => ipcRenderer.send('win:splash', on),
   forceClose: () => ipcRenderer.send('win:forceClose'),
   setChrome: (c) => ipcRenderer.send('chrome:set', c),
   getMaterialSupport: () => inv('window:materialSupport'),

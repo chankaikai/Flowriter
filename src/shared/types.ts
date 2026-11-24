@@ -90,6 +90,8 @@ export interface InkwellApi {
   nativeStop(id: string): void
   /** 略過未儲存提示，直接關閉視窗（儲存完成後使用） */
   forceClose(): void
+  /** 歡迎畫面顯示期間：隱藏／停用視窗的最小化與關閉按鈕 */
+  setSplash(on: boolean): void
   /** 迷你置頂便籤：縮小視窗並置頂；關閉時還原原本的大小與位置 */
   setSticky(on: boolean): Promise<void>
   setChrome(c: {
@@ -103,7 +105,8 @@ export interface InkwellApi {
   notesRead(docPath: string): Promise<string>
   notesWrite(docPath: string, json: string): Promise<boolean>
   /** 全域快捷鍵 Ctrl/⌘+Alt+Space 叫出收件匣小視窗；回傳是否註冊成功（可能被其他程式占用） */
-  inboxSetup(enabled: boolean): Promise<boolean>
+  /** 註冊／取消全域快捷鍵；accel 為實際註冊成功的組合（主要組合被占用時會退而求其次） */
+  inboxSetup(enabled: boolean): Promise<{ ok: boolean; accel: string }>
   inboxShow(): Promise<void>
   inboxPath(): Promise<string>
   inboxAppend(text: string): Promise<boolean>
