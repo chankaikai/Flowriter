@@ -40,14 +40,16 @@ import {
 } from './plugins'
 import { TextSelection } from '@milkdown/kit/prose/state'
 import { runBlockAtCaret } from './runUi'
-import { isLockedAtCaret, setLockTexts, toggleLockAtCaret, gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
+import { languages } from '@codemirror/language-data'
+import { LanguageDescription, LanguageSupport, StreamLanguage } from '@codemirror/language'
+import { insertCallout, removeFrontMatter, isLockedAtCaret, setLockTexts, toggleLockAtCaret, gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
 import { LARGE_DOC } from '@/lib/markdown'
 
 export type FormatName =
   | 'strong' | 'em' | 'strike' | 'code' | 'link'
   | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p'
   | 'quote' | 'ul' | 'ol' | 'task' | 'codeblock' | 'math' | 'table' | 'hr'
-  | 'undo' | 'redo' | 'toc' | 'footnote' | 'frontmatter' | 'bilingual' | 'callout' | 'sortasc' | 'sortdesc'
+  | 'undo' | 'redo' | 'toc' | 'footnote' | 'frontmatter' | 'bilingual' | 'callout' | 'callout:note' | 'callout:tip' | 'callout:important' | 'callout:warning' | 'callout:summary' | 'frontmatter:remove' | 'sortasc' | 'sortdesc'
 
 export interface EditorHandle {
   getMarkdown(): string
@@ -82,6 +84,8 @@ export interface EditorHandle {
   toggleLock(): { locked: boolean; text: string } | null
   /** 以一組段落文字取代目前的鎖定清單 */
   setLocks(texts: string[]): void
+  /** 插入指定行列數的表格 */
+  insertTable(rows: number, cols: number): void
   /** 游標所在段落目前是否已上鎖 */
   lockedAtCaret(): boolean
   /** 執行游標所在的代碼塊（支援 JavaScript／Python）；不在可執行的代碼塊內回傳 false */
@@ -110,6 +114,13 @@ function destroyEditor(crepe: Crepe): void {
   }
   void crepe.destroy()
 }
+
+const MERMAID_LANG = LanguageDescription.of({
+  name: 'Mermaid',
+  alias: ['mermaid', 'mmd'],
+  extensions: ['mmd', 'mermaid'],
+  support: new LanguageSupport(StreamLanguage.define({ token: (stream) => (stream.skipToEnd(), null) }))
+})
 
 export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownEditor(props, ref) {
   const rootRef = useRef<HTMLDivElement>(null)
@@ -141,6 +152,8 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       defaultValue: propsRef.current.initialValue,
       featureConfigs: {
         [Crepe.Feature.Placeholder]: { text: '開始書寫…', mode: 'doc' },
+        // 代碼塊的語言清單加入 Mermaid（內建清單沒有它），選了之後即時渲染成圖
+        [Crepe.Feature.CodeMirror]: { languages: [...languages, MERMAID_LANG] },
         [Crepe.Feature.ImageBlock]: {
           onUpload: (file: File) => propsRef.current.uploadImage(file),
           proxyDomURL: (url: string) => propsRef.current.resolveImageUrl(url)
@@ -297,7 +310,13 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
         case 'sortasc': { const v = view(); if (v && !sortTable(v, 'asc')) return; break }
         case 'sortdesc': { const v = view(); if (v && !sortTable(v, 'desc')) return; break }
         case 'bilingual': c.editor.action(insert(BILINGUAL_SNIPPET)); break
-        case 'callout': c.editor.action(insert('> [!NOTE]\n> ')); break
+        case 'callout': case 'callout:note': { const v = view(); if (v) insertCallout(v, 'note'); break }
+        case 'callout:tip': case 'callout:important': case 'callout:warning': case 'callout:summary': {
+          const v = view()
+          if (v) insertCallout(v, name.slice('callout:'.length))
+          break
+        }
+        case 'frontmatter:remove': { const v = view(); if (v) removeFrontMatter(v); break }
         case 'toc': c.editor.action(insert('[TOC]')); break
         case 'footnote': { const v = view(); if (v) insertFootnote(v); return }
         case 'frontmatter': { const v = view(); if (v) insertFrontMatter(v); return }
@@ -382,6 +401,13 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
     setLocks(texts) {
       const v = view()
       if (v) setLockTexts(v, texts)
+    },
+    insertTable(rows, cols) {
+      const c = crepeRef.current
+      if (!c) return
+      const r = Math.max(1, Math.min(50, Math.floor(rows) || 1))
+      const k = Math.max(1, Math.min(20, Math.floor(cols) || 1))
+      c.editor.action(callCommand(insertTableCommand.key as never, { row: r, col: k } as never))
     },
     lockedAtCaret() {
       const v = view()

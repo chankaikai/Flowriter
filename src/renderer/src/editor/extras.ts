@@ -9,7 +9,7 @@
  */
 import { $inputRule, $node, $prose, $remark, $view } from '@milkdown/kit/utils'
 import { InputRule } from '@milkdown/kit/prose/inputrules'
-import { Plugin, PluginKey } from '@milkdown/kit/prose/state'
+import { Plugin, PluginKey, TextSelection } from '@milkdown/kit/prose/state'
 import { Decoration, DecorationSet } from '@milkdown/kit/prose/view'
 import type { EditorView } from '@milkdown/kit/prose/view'
 import { calcTransform, calloutTransform, bilingualTransform, CALLOUT_TYPES } from '@/lib/mdTransforms'
@@ -19,6 +19,7 @@ import { collectVars, evaluate, formatNumber } from '@/lib/calc'
 import remarkFrontmatter from 'remark-frontmatter'
 import { renderMermaid } from '@/lib/mermaid'
 import { runUiPlugin } from './runUi'
+import { tableUiPlugin } from './tableUi'
 import { normLock, touchesLocked, type Range } from '@/lib/locks'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -370,8 +371,72 @@ export const BILINGUAL_SNIPPET = ':::bilingual\n\n原文\n\n---\n\n譯文\n\n:::
 /* ------------------------------ 提示框裝飾（只加 class，不動文件） ------------------------------ */
 
 const CALLOUT_LABEL: Record<string, string> = {
-  note: '備註', tip: '提示', important: '重要', warning: '警告', caution: '注意',
-  info: '資訊', danger: '危險', success: '成功', question: '疑問'
+  note: '備註', tip: '提醒', important: '重點', warning: '警告', caution: '注意',
+  info: '資訊', danger: '危險', success: '成功', question: '疑問', summary: '總結'
+}
+
+/**
+ * 插入提示框，或（游標已在提示框內時）改變它的類型。
+ * 結構固定為：引用塊 ＞ 〔標籤段落（只含 [!TYPE]）〕＋〔內文段落〕，游標落在內文段落。
+ * 這樣輸入的文字不會跑到 [!TYPE] 前面，也不會被黏在標籤後面，存成 Markdown 是
+ * `> [!TYPE]` / `>` / `> 內文`，切到源碼再切回來不會變形。
+ */
+export function insertCallout(view: EditorView, type: string): boolean {
+  const { state } = view
+  const { schema, selection } = state
+  const bq = schema.nodes.blockquote
+  const para = schema.nodes.paragraph
+  const html = schema.nodes.html
+  if (!bq || !para || !html) return false
+  const value = `[!${type.toUpperCase()}]`
+  const $from = selection.$from
+
+  // 已在提示框內：只換類型
+  for (let d = $from.depth; d > 0; d--) {
+    const n = $from.node(d)
+    if (n.type !== bq) continue
+    const label = n.firstChild
+    const atom = label?.firstChild
+    if (label?.type === para && atom?.type === html && CALLOUT_RE.test(String(atom.attrs.value))) {
+      const pos = $from.start(d) + 1 // 標籤段落內第一個節點
+      view.dispatch(state.tr.setNodeMarkup(pos, undefined, { ...atom.attrs, value }))
+      view.focus()
+      return true
+    }
+    break
+  }
+
+  const callout = bq.create(null, [para.create(null, html.create({ value })), para.create()])
+  const parent = $from.parent
+  let tr = state.tr
+  let at: number
+  if (parent.type === para && parent.content.size === 0 && $from.depth >= 1) {
+    // 目前是空段落：直接換成提示框
+    const from = $from.before()
+    tr = tr.replaceWith(from, $from.after(), callout)
+    at = from
+  } else {
+    // 否則插在目前最外層區塊的後面（不切開正在編輯的段落）
+    const after = $from.after(1)
+    tr = tr.insert(after, callout)
+    at = after
+  }
+  // 內文段落的起點 = 引用塊起點 + 1（進入引用塊）+ 標籤段落大小 + 1（進入內文段落）
+  const labelSize = callout.firstChild!.nodeSize
+  const inner = at + 1 + labelSize + 1
+  tr = tr.setSelection(TextSelection.near(tr.doc.resolve(inner))).scrollIntoView()
+  view.dispatch(tr)
+  view.focus()
+  return true
+}
+
+/** 移除最前面的 YAML 前置資料；沒有就回傳 false。可用復原找回。 */
+export function removeFrontMatter(view: EditorView): boolean {
+  const first = view.state.doc.firstChild
+  if (!first || first.type.name !== 'inkwell_front_matter') return false
+  view.dispatch(view.state.tr.delete(0, first.nodeSize).scrollIntoView())
+  view.focus()
+  return true
 }
 const CALLOUT_RE = new RegExp(`^\\[!(${CALLOUT_TYPES.join('|')})\\]$`, 'i')
 
@@ -681,7 +746,6 @@ export const frontMatterBadgePlugin = $prose(() => {
         const first = state.doc.firstChild
         if (!first || first.type.name !== 'inkwell_front_matter') return null
         const fields = parseFrontMatter(first.textContent)
-        if (!fields.length) return null
         return DecorationSet.create(state.doc, [
           Decoration.widget(
             first.nodeSize,
@@ -712,6 +776,15 @@ export const frontMatterBadgePlugin = $prose(() => {
                 }
                 box.appendChild(chip)
               }
+              const del = document.createElement('button')
+              del.className = 'fm-del'
+              del.textContent = '✕ 移除前置資料'
+              del.title = '刪除這段 YAML 前置資料（可按 Ctrl+Z 復原）'
+              del.addEventListener('mousedown', (e) => {
+                e.preventDefault()
+                removeFrontMatter(view)
+              })
+              box.appendChild(del)
               return box
             },
             { side: -1, key: 'fm-' + fields.map((f) => f.key + String(f.value)).join('|'), ignoreSelection: true }
@@ -949,6 +1022,7 @@ export const extraPlugins = [
   mermaidPlugin,
   lockPlugin,
   levelPlugin,
+  tableUiPlugin,
   runUiPlugin,
   calcPlugin,
   footnoteTipPlugin,

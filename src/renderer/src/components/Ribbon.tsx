@@ -2,7 +2,9 @@ import { useState } from 'react'
 import type { Cmd } from '@/lib/commands'
 import { formatKeys } from '@/lib/keys'
 import { RIBBON } from '@/lib/menus'
+import { useEffect, useState } from 'react'
 import { Icon, type IconName } from './Icon'
+import { TablePicker } from './TablePicker'
 import { tr } from '@/lib/i18n'
 
 interface Props {
@@ -13,10 +15,23 @@ interface Props {
   onCollapse(v: boolean): void
   /** 依狀態改變某個按鈕的名稱／圖示（例如段落已上鎖時顯示「段落解鎖」） */
   overrides?: Record<string, { label?: string; icon?: IconName }>
+  /** 從行列選擇器插入表格 */
+  onInsertTable?(rows: number, cols: number): void
 }
 
 /** 仿 Word 的功能區：上方分頁，下方依群組排列按鈕；可收合。 */
-export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse, overrides }: Props) {
+export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse, overrides, onInsertTable }: Props) {
+  const [subOpen, setSubOpen] = useState<string | null>(null)
+  useEffect(() => {
+    if (!subOpen) return
+    const close = () => setSubOpen(null)
+    window.addEventListener('mousedown', close)
+    window.addEventListener('blur', close)
+    return () => {
+      window.removeEventListener('mousedown', close)
+      window.removeEventListener('blur', close)
+    }
+  }, [subOpen])
   const [tab, setTab] = useState(RIBBON[0].id)
   const cur = RIBBON.find((t) => t.id === tab) ?? RIBBON[0]
   return (
@@ -55,6 +70,65 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse,
                   const label = ov?.label ?? it.label
                   const icon = ov?.icon ?? it.icon
                   const k = cmd.keys?.[0] ? ` (${formatKeys(cmd.keys[0]).join(' ')})` : ''
+                  if (it.grid) {
+                    return (
+                      <div key={it.cmd} className="rb-split" onMouseEnter={() => !disabled && setSubOpen(it.cmd)} onMouseLeave={() => setSubOpen((o) => (o === it.cmd ? null : o))} onMouseDown={(e) => e.stopPropagation()}>
+                        <button
+                          className={`rb-btn lg${subOpen === it.cmd ? ' on' : ''}`}
+                          disabled={disabled}
+                          title="表格：滑過格子選擇行列數"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => setSubOpen(subOpen === it.cmd ? null : it.cmd)}
+                        >
+                          <span className="rb-ico glyph">{it.glyph}</span>
+                          <span className="rb-lbl">{label} ▾</span>
+                        </button>
+                        {subOpen === it.cmd && (
+                          <div className="rb-drop tp-drop">
+                            <TablePicker
+                              onPick={(r, c) => {
+                                setSubOpen(null)
+                                window.setTimeout(() => onInsertTable?.(r, c), 0)
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  }
+                  if (it.sub) {
+                    return (
+                      <div key={it.cmd} className="rb-split" onMouseDown={(e) => e.stopPropagation()}>
+                        <button
+                          className={`rb-btn lg${subOpen === it.cmd ? ' on' : ''}`}
+                          disabled={disabled}
+                          title={`${label ?? cmd.title}（點擊選擇類型）`}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => setSubOpen(subOpen === it.cmd ? null : it.cmd)}
+                        >
+                          <span className={`rb-ico${it.glyph ? ' glyph' : ''}`}>{it.glyph ? it.glyph : icon ? <Icon name={icon} size={22} /> : null}</span>
+                          <span className="rb-lbl">{label} ▾</span>
+                        </button>
+                        {subOpen === it.cmd && (
+                          <div className="rb-drop" role="menu">
+                            {it.sub.map((sc) => (
+                              <button
+                                key={sc.cmd}
+                                role="menuitem"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  setSubOpen(null)
+                                  window.setTimeout(() => commands.find((c) => c.id === sc.cmd)?.run(), 0)
+                                }}
+                              >
+                                {sc.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  }
                   return (
                     <button
                       key={it.cmd}

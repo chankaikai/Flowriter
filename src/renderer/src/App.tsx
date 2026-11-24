@@ -2,6 +2,7 @@ import type { MaterialSupport } from '../../shared/types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MarkdownEditor, type EditorHandle, type FormatName } from '@/editor/MarkdownEditor'
 import { SourceEditor, type SourceHandle } from '@/editor/SourceEditor'
+import { SourceSplit } from '@/components/SourceSplit'
 import { Sidebar } from '@/components/Sidebar'
 import { FindBar } from '@/components/FindBar'
 import { Palette } from '@/components/Palette'
@@ -110,6 +111,7 @@ export default function App() {
   const [pool, setPool] = useState<PoolEntry[]>([{ key: 1, tabId: 1, initial: WELCOME, md: WELCOME, used: 1 }])
   const [activeTabId, setActiveTabId] = useState(1)
   const [srcKey, setSrcKey] = useState(0)
+  const [srcRev, setSrcRev] = useState(0)
   const poolRef = useRef(pool)
   poolRef.current = pool
   const poolKey = useRef(1)
@@ -1099,6 +1101,7 @@ export default function App() {
   /* ------------------------------ 編輯器回呼 ------------------------------ */
 
   const onEdit = useCallback(() => {
+    if (modeRef.current === 'source') setSrcRev((n) => n + 1) // 源碼＋預覽：預覽自行防抖後重新渲染
     markDirty(true) // 先樂觀標記；精確比對在防抖後的 refreshDerived 中
     refreshDerived()
     if (settingsRef.current.autosave && docRef.current.path) {
@@ -1441,6 +1444,7 @@ export default function App() {
         editorEnabled={mode === 'wysiwyg'}
         collapsed={ribbonFold}
         onCollapse={foldRibbon}
+        onInsertTable={(r, c) => editorRef.current?.insertTable(r, c)}
         overrides={caretLocked ? { 'edit.lock': { label: '段落解鎖', icon: 'unlock' } } : undefined}
       />
       <div className="shell">
@@ -1626,9 +1630,24 @@ export default function App() {
                 )
               })
             ) : (
-              <div className="source-col doc-in" key={`src-${srcKey}`}>
-                <SourceEditor ref={sourceRef} value={mdRef.current} onEdit={onEdit} />
-              </div>
+              <SourceSplit
+                key={`src-${srcKey}`}
+                layout={settings.srcLayout}
+                swap={settings.srcSwap}
+                ratio={settings.srcRatio}
+                onLayout={(l) => update({ srcLayout: l })}
+                onSwap={() => update({ srcSwap: !settings.srcSwap })}
+                onRatio={(r) => update({ srcRatio: r })}
+                getMd={() => sourceRef.current?.getValue() ?? mdRef.current}
+                rev={srcRev}
+                title={stripExt(docRef.current.name)}
+                docDir={docRef.current.path ? docRef.current.path.replace(/[\\/][^\\/]*$/, '') : null}
+                source={
+                  <div className="source-col doc-in">
+                    <SourceEditor ref={sourceRef} value={mdRef.current} onEdit={onEdit} />
+                  </div>
+                }
+              />
             )}
           </div>
           <FindBar

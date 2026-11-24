@@ -7,7 +7,7 @@
 
 type Node = any
 
-export const CALLOUT_TYPES = ['note', 'tip', 'important', 'warning', 'caution', 'info', 'danger', 'success', 'question'] as const
+export const CALLOUT_TYPES = ['note', 'tip', 'important', 'warning', 'caution', 'info', 'danger', 'success', 'question', 'summary'] as const
 const CALLOUT_RE = new RegExp(`^\\[!(${CALLOUT_TYPES.join('|')})\\]`, 'i')
 
 /**
@@ -24,9 +24,21 @@ export function calloutTransform(tree: Node): number {
         const m = CALLOUT_RE.exec(first.value)
         if (m) {
           const rest = first.value.slice(m[0].length)
-          const repl: Node[] = [{ type: 'html', value: m[0] }]
-          if (rest) repl.push({ type: 'text', value: rest })
-          para.children.splice(0, 1, ...repl)
+          const tail: Node[] = para.children.slice(1)
+          if (/^\s*\n/.test(rest) || (!rest && tail.length)) {
+            // `[!NOTE]` 後面接換行的內文：拆成「標籤段落」＋「內文段落」。
+            // 若留在同一段，換行會被 Milkdown 轉成硬換行，存檔就變成 `<br />[!NOTE]`。
+            const body = rest.replace(/^\s*\n/, '')
+            const bodyKids: Node[] = []
+            if (body) bodyKids.push({ type: 'text', value: body })
+            bodyKids.push(...tail)
+            para.children = [{ type: 'html', value: m[0] }]
+            if (bodyKids.length) node.children.splice(1, 0, { type: 'paragraph', children: bodyKids })
+          } else {
+            const repl: Node[] = [{ type: 'html', value: m[0] }]
+            if (rest) repl.push({ type: 'text', value: rest })
+            para.children.splice(0, 1, ...repl)
+          }
           n++
         }
       }

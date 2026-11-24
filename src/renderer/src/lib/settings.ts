@@ -23,6 +23,12 @@ export interface Settings {
   inboxShortcut: boolean
   /** 介面語言（外框範圍，見 i18n.ts） */
   uiLang: string
+  /** 源碼模式的檢視方式：僅源碼／源碼＋預覽 */
+  srcLayout: 'only' | 'split'
+  /** 分割檢視時預覽在左 */
+  srcSwap: boolean
+  /** 分割檢視左窗格比例 */
+  srcRatio: number
   /** 顯示代碼塊與源碼模式的行號 */
   showLineNumbers: boolean
   translucent: boolean
@@ -57,6 +63,9 @@ export const DEFAULT_SETTINGS: Settings = {
   sidebarWidth: 264,
   inboxShortcut: false,
   uiLang: 'zh-TW',
+  srcLayout: 'only',
+  srcSwap: false,
+  srcRatio: 0.5,
   showLineNumbers: true,
   translucent: true,
   surfaceOpacity: 0.72,

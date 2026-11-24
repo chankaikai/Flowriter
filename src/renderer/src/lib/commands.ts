@@ -152,6 +152,12 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'table.sortDesc', title: '表格依目前欄位降序排序', group: F, editorOnly: true, run: fmt('sortdesc') },
     { id: 'fmt.bilingual', title: '插入雙語對照', group: F, editorOnly: true, run: fmt('bilingual') },
     { id: 'fmt.callout', title: '插入提示框', group: F, editorOnly: true, run: fmt('callout') },
+    { id: 'fmt.callout.tip', title: '提示框：提醒', group: F, editorOnly: true, run: fmt('callout:tip') },
+    { id: 'fmt.callout.warning', title: '提示框：警告', group: F, editorOnly: true, run: fmt('callout:warning') },
+    { id: 'fmt.callout.important', title: '提示框：重點', group: F, editorOnly: true, run: fmt('callout:important') },
+    { id: 'fmt.callout.note', title: '提示框：備註', group: F, editorOnly: true, run: fmt('callout:note') },
+    { id: 'fmt.callout.summary', title: '提示框：總結', group: F, editorOnly: true, run: fmt('callout:summary') },
+    { id: 'fmt.frontmatter.remove', title: '移除前置資料', group: F, editorOnly: true, run: fmt('frontmatter:remove') },
     { id: 'fmt.frontmatter', title: '插入 YAML 前置資料', group: F, editorOnly: true, run: fmt('frontmatter') },
     { id: 'fmt.hr', title: '分隔線', group: F, editorOnly: true, run: fmt('hr') }
   ]

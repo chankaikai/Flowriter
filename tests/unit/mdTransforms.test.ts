@@ -13,7 +13,20 @@ const roundTrip = (md: string, ...fns: Array<(t: unknown) => number>) => {
 
 describe('mdTransforms', () => {
   it('callout survives round trip unescaped', () => {
-    expect(roundTrip('> [!NOTE]\n> hello *world*\n', calloutTransform).trim()).toBe('> [!NOTE]\n> hello *world*')
+    expect(roundTrip('> [!NOTE]\n> hello *world*\n', calloutTransform).trim()).toBe('> [!NOTE]\n>\n> hello *world*')
+  })
+  it('callout label is its own paragraph (no <br />)', () => {
+    const out = roundTrip('> [!NOTE]\n> hello\n', calloutTransform)
+    expect(out.includes('<br')).toBe(false)
+    expect(out.startsWith('> [!NOTE]')).toBe(true)
+  })
+  it('callout output is stable on second pass', () => {
+    const once = roundTrip('> [!WARNING]\n> a\n> b\n', calloutTransform)
+    expect(roundTrip(once, calloutTransform)).toBe(once)
+  })
+  it('summary callout is recognised', () => {
+    const tree = unified().use(remarkParse).parse('> [!SUMMARY]\n> x\n') as any
+    expect(calloutTransform(tree)).toBe(1)
   })
   it('calc expression survives round trip unescaped', () => {
     expect(roundTrip('{{price * 1.5}}\n', calcTransform).trim()).toBe('{{price * 1.5}}')

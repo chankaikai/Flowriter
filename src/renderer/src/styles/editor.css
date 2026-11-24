@@ -233,3 +233,7 @@ body.show-weight .milkdown .ProseMirror p.pw-5 { border-left-color: var(--accent
 
 /* 選取時的層級標籤：貼在該段落左側邊界外 */
 .editor-col .milkdown .level-tag { position: absolute; transform: translate(calc(-100% - 14px), 0); padding: 0 6px; height: 1.4em; line-height: 1.4em; border-radius: 6px; font: 600 11px var(--font-ui, system-ui); letter-spacing: 0.02em; color: var(--accent); background: var(--accent-soft); user-select: none; pointer-events: none; white-space: nowrap; }
+
+.callout-summary { --co: #5b7fd6; }
+.fm-del { margin-left: 6px; padding: 1px 8px; border-radius: 999px; font: 12px var(--font-ui, system-ui); color: var(--fg-muted); border: 1px solid var(--line); background: transparent; cursor: pointer; }
+.fm-del:hover { color: #d0463a; border-color: #d0463a; }

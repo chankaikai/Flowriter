@@ -74,9 +74,10 @@ export const MENUS: MenuDef[] = [
       SEP,
       c('fmt.toc'),
       c('fmt.footnote'),
-      c('fmt.callout'),
+      { sub: '提示框', items: [c('fmt.callout.tip'), c('fmt.callout.warning'), c('fmt.callout.important'), c('fmt.callout.note'), c('fmt.callout.summary')] },
       c('fmt.bilingual'),
-      c('fmt.frontmatter')
+      c('fmt.frontmatter'),
+      c('fmt.frontmatter.remove')
     ]
   },
   {
@@ -171,6 +172,10 @@ export interface RibbonItem {
   check?: string
   /** lg = 大按鈕（圖示在上、文字在下） */
   lg?: boolean
+  /** 點擊後展開的二級選單（命令 id 與標籤） */
+  sub?: { cmd: string; label: string }[]
+  /** 懸浮展開「行列選擇器」（像 Word 的插入表格） */
+  grid?: boolean
 }
 export interface RibbonGroup {
   label: string
@@ -240,10 +245,20 @@ export const RIBBON: RibbonTab[] = [
       {
         label: '區塊',
         items: [
-          r('fmt.table', '表格', { glyph: '▦', lg: true }),
+          r('fmt.table', '表格', { glyph: '▦', lg: true, grid: true }),
           r('fmt.codeblock', '代碼塊', { icon: 'code', lg: true }),
           r('fmt.math', '公式', { glyph: '∑', lg: true }),
-          r('fmt.callout', '提示框', { glyph: '💡', lg: true })
+          r('fmt.callout', '提示框', {
+            glyph: '💡',
+            lg: true,
+            sub: [
+              { cmd: 'fmt.callout.tip', label: '提醒' },
+              { cmd: 'fmt.callout.warning', label: '警告' },
+              { cmd: 'fmt.callout.important', label: '重點' },
+              { cmd: 'fmt.callout.note', label: '備註' },
+              { cmd: 'fmt.callout.summary', label: '總結' }
+            ]
+          })
         ]
       },
       {
@@ -257,7 +272,7 @@ export const RIBBON: RibbonTab[] = [
       },
       {
         label: '進階',
-        items: [r('fmt.bilingual', '雙語對照', { glyph: '文A', lg: true }), r('fmt.frontmatter', '前置資料', { glyph: '---', lg: true })]
+        items: [r('fmt.bilingual', '雙語對照', { glyph: '文A', lg: true }), r('fmt.frontmatter', '前置資料', { glyph: '---', lg: true }), r('fmt.frontmatter.remove', '移除前置資料', { glyph: '✕', lg: true })]
       },
       {
         label: '表格工具',
