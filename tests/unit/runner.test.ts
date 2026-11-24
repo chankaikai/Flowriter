@@ -1,11 +1,32 @@
 import { describe, it, expect } from 'vitest'
 import vm from 'node:vm'
-import { capOutput, isJsLang, preflight, workerSource, MAX_OUT_LINES } from '@/lib/runner'
+import { capOutput, isJsLang, isPyLang, runKind, preflight, workerSource, pythonWorkerSource, MAX_OUT_LINES } from '@/lib/runner'
+
+describe('python runner', () => {
+  it('blocks escape hatches and allows plain code', () => {
+    expect(preflight('python', 'import js').runnable).toBe(false)
+    expect(preflight('python', 'x.__class__').runnable).toBe(false)
+    expect(preflight('python', 'a=100\nb=20\nprint(a+b)').runnable).toBe(true)
+  })
+  it('python worker source is valid JavaScript', () => {
+    let ok = true
+    try {
+      new vm.Script(pythonWorkerSource())
+    } catch {
+      ok = false
+    }
+    expect(ok).toBe(true)
+  })
+})
 
 describe('runner preflight', () => {
-  it('only runs javascript', () => {
+  it('runs javascript and python only', () => {
     expect(isJsLang('JS')).toBe(true)
     expect(isJsLang('python')).toBe(false)
+    expect(isPyLang('Python')).toBe(true)
+    expect(runKind('py')).toBe('py')
+    expect(runKind('js')).toBe('js')
+    expect(runKind('bash')).toBe(null)
     const p = preflight('bash', 'rm -rf /')
     expect(p.runnable).toBe(false)
     expect(p.danger.length).toBeGreaterThan(0)

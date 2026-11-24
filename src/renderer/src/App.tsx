@@ -8,7 +8,6 @@ import { Palette } from '@/components/Palette'
 import { SettingsPanel } from '@/components/SettingsPanel'
 import { Icon } from '@/components/Icon'
 import { emptyLocks, parseLocks, serializeLocks, setLocked, type LocksFile } from '@/lib/locks'
-import { RunnerPanel } from '@/components/RunnerPanel'
 import { RefsPanel } from '@/components/RefsPanel'
 import { addRef, emptyRefs, parseRefs, removeRef, serializeRefs, type RefsFile } from '@/lib/refs'
 import { NotesPanel } from '@/components/NotesPanel'
@@ -130,7 +129,6 @@ export default function App() {
   const [aiSel, setAiSel] = useState('')
   const [radarQ, setRadarQ] = useState('')
   const [aiBefore, setAiBefore] = useState('')
-  const [runBlock, setRunBlock] = useState<{ lang: string; code: string } | null>(null)
   const [writing, setWriting] = useState(loadWriting)
   const [ambient, setAmbientKind] = useState<AmbientKind>('off')
   const [reading, setReading] = useState(false)
@@ -829,7 +827,6 @@ export default function App() {
         setAiSel(editorRef.current?.selectionText() ?? '')
       }
       if (p === 'ai') setAiBefore(editorRef.current?.textBeforeCaret(1500) ?? '')
-      if (p === 'runner') setRunBlock(editorRef.current?.codeAtCaret() ?? null)
       if (p === 'radar') {
         const sel = editorRef.current?.selectionText() ?? ''
         setRadarQ((sel || editorRef.current?.textFromCaret() || mdRef.current).slice(0, 600))
@@ -876,6 +873,9 @@ export default function App() {
     editRole: (r) => window.api.editRole(r),
     quit: () => window.api.closeWindow(),
     toggleLock: () => toggleLockCmd(),
+    runCode: () => {
+      if (!editorRef.current?.runAtCaret()) showToast('把游標放在 JavaScript／Python 代碼塊裡，或直接點代碼塊右上角的「▶ 執行」')
+    },
     inboxCapture: () => void window.api.inboxShow(),
     inboxOpen: () => void window.api.inboxPath().then((p) => openPath(p)),
     openPalette: (m) => setPalette(m),
@@ -1645,9 +1645,6 @@ export default function App() {
                 }}
               />
             )}
-          </Popover>
-          <Popover open={panel === 'runner'} icon="code" title="執行代碼塊" onClose={() => setPanel(null)}>
-            {panel === 'runner' && <RunnerPanel block={runBlock} />}
           </Popover>
           <Popover open={panel === 'notes'} icon="pen" title="頁邊便條" onClose={() => setPanel(null)}>
             {panel === 'notes' && (

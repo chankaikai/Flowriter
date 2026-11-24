@@ -18,6 +18,7 @@ import { parseFrontMatter, toggleBool } from '@/lib/frontMatter'
 import { collectVars, evaluate, formatNumber } from '@/lib/calc'
 import remarkFrontmatter from 'remark-frontmatter'
 import { renderMermaid } from '@/lib/mermaid'
+import { runUiPlugin } from './runUi'
 import { normLock, touchesLocked, type Range } from '@/lib/locks'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -884,6 +885,7 @@ export const extraPlugins = [
   calloutPlugin,
   mermaidPlugin,
   lockPlugin,
+  runUiPlugin,
   calcPlugin,
   footnoteTipPlugin,
   frontMatterBadgePlugin,

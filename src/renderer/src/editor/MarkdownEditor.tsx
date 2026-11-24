@@ -39,6 +39,7 @@ import {
   type SearchInfo
 } from './plugins'
 import { TextSelection } from '@milkdown/kit/prose/state'
+import { runBlockAtCaret } from './runUi'
 import { setLockTexts, toggleLockAtCaret, gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
 import { LARGE_DOC } from '@/lib/markdown'
 
@@ -81,8 +82,8 @@ export interface EditorHandle {
   toggleLock(): { locked: boolean; text: string } | null
   /** 以一組段落文字取代目前的鎖定清單 */
   setLocks(texts: string[]): void
-  /** 游標所在代碼塊的語言與內容（唯讀；不在代碼塊內回傳 null） */
-  codeAtCaret(): { lang: string; code: string } | null
+  /** 執行游標所在的代碼塊（支援 JavaScript／Python）；不在可執行的代碼塊內回傳 false */
+  runAtCaret(): boolean
   /** 游標的螢幕座標，沒有編輯器或找不到時回傳 null */
   caretRect(): { left: number; top: number; bottom: number } | null
 }
@@ -369,15 +370,9 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       const v = view()
       if (v) setLockTexts(v, texts)
     },
-    codeAtCaret() {
+    runAtCaret() {
       const v = view()
-      if (!v) return null
-      const { $from } = v.state.selection
-      for (let d = $from.depth; d >= 0; d--) {
-        const n = $from.node(d)
-        if (n.type.name === 'code_block') return { lang: String(n.attrs.language ?? ''), code: n.textContent }
-      }
-      return null
+      return v ? runBlockAtCaret(v) : false
     },
     gotoText(text) {
       const v = view()
