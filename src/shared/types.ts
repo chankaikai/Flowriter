@@ -90,6 +90,8 @@ export interface InkwellApi {
   nativeStop(id: string): void
   /** 略過未儲存提示，直接關閉視窗（儲存完成後使用） */
   forceClose(): void
+  /** 原生確認對話框（不要用 window.confirm，它會讓編輯器失去焦點） */
+  confirm(o: { message: string; detail?: string; ok?: string; cancel?: string }): Promise<boolean>
   appVersion(): Promise<string>
   updateStatus(): Promise<import('./update').UpdateStatus>
   updateCheck(): Promise<import('./update').UpdateStatus>

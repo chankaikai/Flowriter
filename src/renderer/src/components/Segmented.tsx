@@ -31,7 +31,15 @@ export function Segmented<T extends string>({
           role="tab"
           aria-selected={o.value === value}
           className={o.value === value ? 'on' : ''}
-          onClick={() => onChange(o.value)}
+          onPointerDown={(e) => {
+            if (e.button === 0) {
+              e.preventDefault()
+              if (o.value !== value) onChange(o.value)
+            }
+          }}
+          onClick={(e) => {
+            if (e.detail === 0 && o.value !== value) onChange(o.value)
+          }}
         >
           {o.label}
         </button>

@@ -999,6 +999,14 @@ function registerIpc(): void {
     else if (role === 'selectAll') w.selectAll()
   })
   ipcMain.on('win:close', (e) => BrowserWindow.fromWebContents(e.sender)?.close())
+  // 用主程序的原生對話框取代 window.confirm：Electron 的 window.confirm 關閉後常讓輸入框失去焦點、無法編輯
+  ipcMain.handle('dialog:confirm', async (e, o: { message: string; detail?: string; ok?: string; cancel?: string }) => {
+    const w = BrowserWindow.fromWebContents(e.sender)
+    const opts = { type: 'question' as const, buttons: [String(o.ok || '確定'), String(o.cancel || '取消')], defaultId: 0, cancelId: 1, message: String(o.message ?? '').slice(0, 400), detail: o.detail ? String(o.detail).slice(0, 1600) : undefined }
+    const r = w ? await dialog.showMessageBox(w, opts) : await dialog.showMessageBox(opts)
+    w?.webContents.focus()
+    return r.response === 0
+  })
   ipcMain.handle('native:run', (_e, req) => runNative(req))
   ipcMain.on('native:stop', (_e, id: string) => stopNative(String(id)))
   ipcMain.on('win:splash', (e, on: boolean) => {

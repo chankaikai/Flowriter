@@ -4,6 +4,7 @@ import { Decoration, DecorationSet } from '@milkdown/kit/prose/view'
 import type { EditorView } from '@milkdown/kit/prose/view'
 import type { Node as PMNode } from '@milkdown/kit/prose/model'
 import { preflight, runKind } from '@/lib/runner'
+import { confirmBox } from '@/lib/confirm'
 import { runCode, type RunHandle, type RunResult } from '@/lib/runnerHost'
 
 /**
@@ -35,7 +36,7 @@ function setEntry(view: EditorView, k: string, entry: Entry | null): void {
   }
 }
 
-function runBlock(view: EditorView, pos: number): void {
+async function runBlock(view: EditorView, pos: number): Promise<void> {
   const node = view.state.doc.nodeAt(pos)
   if (!node || node.type.name !== 'code_block') return
   const lang = String(node.attrs.language ?? '')
@@ -45,10 +46,11 @@ function runBlock(view: EditorView, pos: number): void {
   const k = cacheKey(lang, code)
   const cur = runKey.getState(view.state)?.get(k)
   if (cur && cur.status !== 'done') return
+  if (view.isDestroyed) return
 
   const pf = preflight(lang, code)
   if (!pf.runnable) return setEntry(view, k, { status: 'done', note: pf.reason })
-  if (pf.warnings.length && !window.confirm(`這段程式碼含有：\n・${pf.warnings.join('\n・')}\n\n仍要在隔離環境中執行嗎？`)) return
+  if (pf.warnings.length && !(await confirmBox(`這段程式碼含有：\n・${pf.warnings.join('\n・')}\n\n仍要在隔離環境中執行嗎？`, '仍要執行'))) return
   if (kind === 'py') {
     let ok = false
     try {
@@ -57,7 +59,7 @@ function runBlock(view: EditorView, pos: number): void {
       /* 忽略 */
     }
     if (!ok) {
-      if (!window.confirm('首次執行 Python 會從 cdn.jsdelivr.net 下載 Python 執行環境（約 10 MB，之後瀏覽器會快取）。\n\n程式碼仍在隔離的 WebAssembly 環境中執行，碰不到你的檔案與網路。要繼續嗎？')) return
+      if (!(await confirmBox('首次執行 Python 會從 cdn.jsdelivr.net 下載 Python 執行環境（約 10 MB，之後瀏覽器會快取）。\n\n程式碼仍在隔離的 WebAssembly 環境中執行，碰不到你的檔案與網路。要繼續嗎？', '下載並執行'))) return
       try {
         localStorage.setItem(PY_CONSENT, '1')
       } catch {
@@ -75,7 +77,7 @@ function runBlock(view: EditorView, pos: number): void {
       /* 忽略 */
     }
     if (!ok) {
-      if (!window.confirm(`這段 ${lang} 程式會用你電腦上安裝的編譯器／直譯器直接執行，沒有沙盒隔離。\n\n・在暫存資料夾執行、5 秒逾時、輸出有上限，結束後自動刪除\n・已攔截明顯的刪檔、啟動其他程式、網路等寫法，但無法保證擋住刻意繞過的程式\n\n只執行你看得懂、信任的程式碼。要繼續嗎？`)) return
+      if (!(await confirmBox(`這段 ${lang} 程式會用你電腦上安裝的編譯器／直譯器直接執行，沒有沙盒隔離。\n\n・在暫存資料夾執行、5 秒逾時、輸出有上限，結束後自動刪除\n・已攔截明顯的刪檔、啟動其他程式、網路等寫法，但無法保證擋住刻意繞過的程式\n\n只執行你看得懂、信任的程式碼。要繼續嗎？`, '繼續執行'))) return
       try {
         localStorage.setItem(key, '1')
       } catch {
@@ -83,6 +85,10 @@ function runBlock(view: EditorView, pos: number): void {
       }
     }
   }
+
+  // 對話框期間文件可能被改動：位置或內容變了就放棄這次執行
+  const again = view.isDestroyed ? null : view.state.doc.nodeAt(pos)
+  if (!again || again.type.name !== 'code_block' || again.textContent !== code) return
 
   const handle = runCode(kind, code, (phase) => {
     if (view.isDestroyed) return
@@ -102,7 +108,7 @@ export function runBlockAtCaret(view: EditorView): boolean {
   for (let d = $from.depth; d >= 0; d--) {
     if ($from.node(d).type.name === 'code_block') {
       if (!runKind(String($from.node(d).attrs.language ?? ''))) return false
-      runBlock(view, $from.before(d))
+      void runBlock(view, $from.before(d))
       return true
     }
   }
@@ -205,13 +211,25 @@ export const runUiPlugin = $prose(() => {
       const btns: HTMLButtonElement[] = []
       let raf = 0
 
+      // 每次按鍵都會觸發 update；只有文件內容真的變了才重新掃描代碼塊，否則沿用上次結果
+      let scanDoc: PMNode | null = null
+      let scanned: { pos: number; node: PMNode }[] = []
       const render = () => {
         raf = 0
-        const items: { pos: number; node: PMNode }[] = []
-        v.state.doc.descendants((node, pos) => {
-          if (node.type.name === 'code_block' && runKind(String(node.attrs.language ?? ''))) items.push({ pos, node })
-          return node.type.name !== 'code_block'
-        })
+        if (v.isDestroyed) return
+        if (scanDoc !== v.state.doc) {
+          scanDoc = v.state.doc
+          scanned = []
+          scanDoc.descendants((node, pos) => {
+            if (node.type.name === 'code_block' && runKind(String(node.attrs.language ?? ''))) scanned.push({ pos, node })
+            return node.type.name !== 'code_block'
+          })
+        }
+        const items = scanned
+        if (!items.length) {
+          btns.forEach((b) => (b.style.display = 'none'))
+          return
+        }
         const scroller = v.dom.closest('.editor-scroll')
         const sr = scroller?.getBoundingClientRect()
         while (btns.length < items.length) {
@@ -245,7 +263,7 @@ export const runUiPlugin = $prose(() => {
           b.title = running ? '停止執行' : `執行這段 ${String(it.node.attrs.language)} 程式碼（在隔離環境中，不會動到你的檔案）`
           b.onclick = () => {
             if (running) e?.handle?.stop()
-            else runBlock(v, it.pos)
+            else void runBlock(v, it.pos)
           }
         })
       }

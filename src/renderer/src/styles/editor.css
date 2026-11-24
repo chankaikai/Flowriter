@@ -72,11 +72,14 @@
 .editor-col .milkdown .milkdown-list-item-block .list-item { align-items: flex-start; gap: 4px; }
 .editor-col .milkdown .milkdown-list-item-block .list-item > .label-wrapper {
   display: flex; align-items: center; justify-content: center; flex: none;
-  height: calc(var(--fs) * var(--lh)); min-width: 1.6em; line-height: var(--lh); font-size: var(--fs);
+  height: calc(var(--fs) * var(--lh)) !important; min-width: 1.6em; line-height: var(--lh); font-size: var(--fs);
 }
 .editor-col .milkdown .milkdown-list-item-block .list-item > .label-wrapper .label { line-height: 1; margin: 0; }
 .editor-col .milkdown .milkdown-list-item-block .list-item > .children > :first-child { margin-top: 0; }
-.editor-col .milkdown .milkdown-list-item-block .list-item > .children > p { margin: 0; }
+.editor-col .milkdown .milkdown-list-item-block .list-item > .children > p { margin: 0 !important; padding: 0 !important; line-height: var(--lh); }
+.editor-col .milkdown .milkdown-list-item-block .list-item > .children { padding: 0; margin: 0; }
+.editor-col .milkdown .milkdown-list-item-block > li { padding: 0 !important; }
+.editor-col .milkdown .milkdown-list-item-block .list-item > .label-wrapper { padding: 0 !important; margin: 0 !important; box-sizing: border-box; }
 .editor-col .milkdown ul, .editor-col .milkdown ol { margin: 0.4em 0; }
 .editor-col .milkdown .milkdown-code-block .cm-editor { border-radius: 0 0 12px 12px; }
 .editor-col .milkdown .milkdown-code-block .cm-editor { background: transparent; font-size: 0.86em; }

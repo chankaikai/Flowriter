@@ -39,6 +39,7 @@ const api: InkwellApi = {
     ipcRenderer.on('update:status', handler)
     return () => ipcRenderer.removeListener('update:status', handler)
   },
+  confirm: (o) => inv('dialog:confirm', o),
   forceClose: () => ipcRenderer.send('win:forceClose'),
   setChrome: (c) => ipcRenderer.send('chrome:set', c),
   getMaterialSupport: () => inv('window:materialSupport'),

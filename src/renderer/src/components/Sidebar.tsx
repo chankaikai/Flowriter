@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
+import { confirmBox } from '@/lib/confirm'
 import type { DirEntry, SearchHit } from '../../../shared/types'
 import type { OutlineItem } from '@/lib/markdown'
 import type { SidebarTab } from '@/lib/settings'
@@ -147,7 +148,7 @@ function FileTree({
 
   const trash = async (e: DirEntry) => {
     const msg = e.isDir ? `將資料夾「${e.name}」移到回收桶？` : `將「${e.name}」移到回收桶？`
-    if (!window.confirm(msg)) return
+    if (!(await confirmBox(msg, '移到回收桶'))) return
     if (await window.api.trashPath(e.path)) {
       await load(parentOf(e.path))
       onTrashed(e.path)

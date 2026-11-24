@@ -28,7 +28,21 @@ function Row({ label, children, value }: { label: string; children: React.ReactN
 
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   return (
-    <button className={`switch${on ? ' on' : ''}`} role="switch" aria-checked={on} onClick={() => onChange(!on)}>
+    <button
+      className={`switch${on ? ' on' : ''}`}
+      role="switch"
+      aria-checked={on}
+      // 按下即切換：不依賴「按下與放開在同一元素」的 click，避免開關在動畫中被位移而點不動；鍵盤操作(detail=0)仍走 click
+      onPointerDown={(e) => {
+        if (e.button === 0) {
+          e.preventDefault()
+          onChange(!on)
+        }
+      }}
+      onClick={(e) => {
+        if (e.detail === 0) onChange(!on)
+      }}
+    >
       <i />
     </button>
   )

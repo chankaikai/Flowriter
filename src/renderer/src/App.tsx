@@ -40,6 +40,7 @@ import { LARGE_DOC, computeStats, parseOutline, type DocStats, type OutlineItem 
 import { basename, dirname, stripExt, toAbsolutePath, toDisplayUrl } from '@/lib/path'
 import { THEMES, isDarkTheme } from '@/lib/themes'
 import { useApplySettings, useSettings, type SidebarTab, type ThemeName } from '@/lib/settings'
+import { confirmBox } from '@/lib/confirm'
 import { Splash, welcomed } from '@/components/Splash'
 import { AboutPanel, UpdateBanner } from '@/components/AboutPanel'
 import type { UpdateStatus } from '../../shared/update'
@@ -473,7 +474,7 @@ export default function App() {
         if (t.path && settingsRef.current.autosave) {
           if (isActive) await save(true)
           else await window.api.saveFile(t.path, t.md)
-        } else if (!window.confirm(`「${stripExt(isActive ? docRef.current.name : t.name)}」有尚未儲存的更改，確定要關閉嗎？`)) {
+        } else if (!(await confirmBox(`「${stripExt(isActive ? docRef.current.name : t.name)}」有尚未儲存的更改，確定要關閉嗎？`, '關閉不儲存'))) {
           return
         }
       }
@@ -588,7 +589,7 @@ export default function App() {
       const dirtyNow = isActive ? mdRef.current !== savedRef.current : t.md !== t.saved
       if (
         dirtyNow &&
-        !window.confirm(`「${stripExt(t.name)}」已被其他程式修改。要重新載入並放棄目前未儲存的更改嗎？`)
+        !(await confirmBox(`「${stripExt(t.name)}」已被其他程式修改。要重新載入並放棄目前未儲存的更改嗎？`, '重新載入'))
       ) {
         continue
       }
@@ -695,7 +696,7 @@ export default function App() {
         const h = healthCheck(md)
         const miss = await checkImages(h.images, (src) => toAbsolutePath(dir, src), async (p) => (await window.api.statFile(p)) != null)
         const errs = [...miss, ...h.issues].filter((i) => i.level === 'error')
-        if (errs.length && !window.confirm(`文件健檢發現 ${errs.length} 個錯誤，例如：\n${errs[0].message}\n\n仍要匯出嗎？（取消會打開健檢面板）`)) {
+        if (errs.length && !(await confirmBox(`文件健檢發現 ${errs.length} 個錯誤，例如：\n${errs[0].message}\n\n仍要匯出嗎？（取消會打開健檢面板）`, '仍要匯出'))) {
           setPanel('diag')
           return
         }
@@ -775,7 +776,7 @@ export default function App() {
         await openPath(hit.path)
         return
       }
-      if (!window.confirm(`「${name}」還不存在，要在目前資料夾建立嗎？`)) return
+      if (!(await confirmBox(`「${name}」還不存在，要在目前資料夾建立嗎？`, '建立'))) return
       const p = await window.api.createFile(root, /\.md$/i.test(name) ? name : `${name}.md`)
       if (p) await openPath(p)
       else showToast('建立失敗')
