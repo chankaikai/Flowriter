@@ -156,7 +156,7 @@ export const MENUS: MenuDef[] = [
   {
     id: 'help',
     label: '說明',
-    items: [c('nav.commands'), c('app.settings', '快捷鍵與偏好設定…')]
+    items: [c('nav.commands'), c('app.settings', '快捷鍵與偏好設定…'), SEP, c('app.checkUpdate', '檢查更新…'), c('app.about', '關於 Flowiter／說明與回饋…')]
   }
 ]
 

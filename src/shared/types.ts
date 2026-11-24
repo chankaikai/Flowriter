@@ -90,6 +90,12 @@ export interface InkwellApi {
   nativeStop(id: string): void
   /** 略過未儲存提示，直接關閉視窗（儲存完成後使用） */
   forceClose(): void
+  appVersion(): Promise<string>
+  updateStatus(): Promise<import('./update').UpdateStatus>
+  updateCheck(): Promise<import('./update').UpdateStatus>
+  updateDownload(): Promise<import('./update').UpdateStatus>
+  updateInstall(): void
+  onUpdate(cb: (s: import('./update').UpdateStatus) => void): () => void
   /** 歡迎畫面顯示期間：隱藏／停用視窗的最小化與關閉按鈕 */
   setSplash(on: boolean): void
   /** 迷你置頂便籤：縮小視窗並置頂；關閉時還原原本的大小與位置 */

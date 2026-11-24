@@ -29,6 +29,16 @@ const api: InkwellApi = {
   nativeRun: (r) => inv('native:run', r),
   nativeStop: (id) => ipcRenderer.send('native:stop', id),
   setSplash: (on) => ipcRenderer.send('win:splash', on),
+  appVersion: () => inv('app:version'),
+  updateStatus: () => inv('update:status'),
+  updateCheck: () => inv('update:check'),
+  updateDownload: () => inv('update:download'),
+  updateInstall: () => ipcRenderer.send('update:install'),
+  onUpdate: (cb) => {
+    const handler = (_e: unknown, s: import('../shared/update').UpdateStatus) => cb(s)
+    ipcRenderer.on('update:status', handler)
+    return () => ipcRenderer.removeListener('update:status', handler)
+  },
   forceClose: () => ipcRenderer.send('win:forceClose'),
   setChrome: (c) => ipcRenderer.send('chrome:set', c),
   getMaterialSupport: () => inv('window:materialSupport'),

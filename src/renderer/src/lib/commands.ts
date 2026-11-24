@@ -3,7 +3,7 @@ import type { SidebarTab, ThemeName } from './settings'
 import { THEMES } from './themes'
 
 export type ExportKind = 'html' | 'pdf' | 'docx' | 'md' | 'png'
-export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks' | 'vault' | 'diag' | 'clips' | 'notes' | 'radar' | 'refs'
+export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks' | 'vault' | 'diag' | 'clips' | 'notes' | 'radar' | 'refs' | 'about'
 
 export interface Actions {
   newDoc(): void
@@ -22,6 +22,7 @@ export interface Actions {
   openPalette(mode: 'files' | 'commands' | 'recent'): void
   openFind(replace: boolean): void
   openSettings(): void
+  checkUpdate(): void
   format(name: FormatName): void
   zoom(delta: number): void
   fullscreen(): void
@@ -109,6 +110,8 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'view.weight', title: '顯示／隱藏段落權重', group: '檢視', keys: ['Mod+Alt+W'], run: a.toggleWeight },
     { id: 'doc.speak', title: '朗讀校對（選取處或從游標開始）', group: '檔案', keys: ['Mod+Alt+Y'], run: a.toggleSpeak },
     { id: 'panel.links', title: '連結與反向連結', group: '面板', keys: ['Mod+Alt+L'], run: () => a.openPanel('links') },
+    { id: 'app.about', title: '關於 Flowiter／說明與回饋', group: '檢視', run: () => a.openPanel('about') },
+    { id: 'app.checkUpdate', title: '檢查更新', group: '檢視', run: a.checkUpdate },
     { id: 'app.settings', title: '偏好設定', group: '檢視', keys: ['Mod+Comma'], run: a.openSettings },
 
     // 編輯

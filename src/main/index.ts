@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url'
 import { release, tmpdir } from 'node:os'
 import { createHash } from 'node:crypto'
 import { setupInbox } from './inbox'
+import { setupUpdater } from './updater'
 import { runNative, stopNative } from './nativeRun'
 import type { DirEntry, FileListItem, MaterialSupport, SearchHit } from '../shared/types'
 
@@ -1025,6 +1026,16 @@ function registerIpc(): void {
 
 app.whenReady().then(() => {
   setupInbox()
+  setupUpdater(() => {
+    // 有未儲存內容時先確認，避免重啟更新把更改丟掉
+    if (dirty) {
+      const w = BrowserWindow.getAllWindows()[0]
+      const r = dialog.showMessageBoxSync(w, { type: 'warning', buttons: ['取消（我先儲存）', '不儲存並更新'], defaultId: 0, cancelId: 0, message: '有尚未儲存的更改', detail: '重啟更新會捨棄這些更改。' })
+      if (r !== 1) return false
+    }
+    forceClose = true // 略過關閉視窗時的詢問，交給安裝程式收尾
+    return true
+  })
   protocol.handle('inkwell', (req) => {
     try {
       const u = new URL(req.url)

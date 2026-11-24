@@ -402,3 +402,20 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
 @keyframes splash-pen { 0% { left: 0; opacity: 1; } 92% { opacity: 1; } 100% { left: 100%; opacity: 0; } }
 @keyframes splash-fade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .splash-word { animation: none; clip-path: none; } .splash-pen { display: none; } }
+
+/* 關於／更新 */
+.about { display: flex; flex-direction: column; gap: 8px; padding: 4px 2px 12px; }
+.about-name { font: 700 24px var(--font-body); }
+.about-ver { color: var(--fg-muted); font-size: 12.5px; }
+.about-desc, .about-hint { margin: 2px 0; color: var(--fg-muted); font-size: 12.5px; line-height: 1.6; }
+.about-hint { font-size: 11.5px; color: var(--fg-faint); }
+.about-sec { margin-top: 12px; font-weight: 600; font-size: 12.5px; color: var(--fg); }
+.about-upd { font-size: 12.5px; color: var(--fg-muted); }
+.about-upd.error { color: #d0463a; }
+.about-upd.available, .about-upd.downloaded { color: var(--accent); }
+.about-mail { padding: 8px 10px; border-radius: 8px; background: var(--block-bg); font: 13px var(--font-mono, monospace); user-select: all; }
+.about-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.upd-banner { position: fixed; right: 16px; bottom: 44px; z-index: 60; display: flex; align-items: center; gap: 14px; padding: 10px 14px; border-radius: 14px; font-size: 12.5px;
+  background: color-mix(in srgb, var(--elev, var(--bg)) 70%, transparent); border: 1px solid var(--line); box-shadow: 0 14px 40px -16px rgba(0, 0, 0, 0.35);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4); }
+.upd-actions { display: flex; gap: 6px; }

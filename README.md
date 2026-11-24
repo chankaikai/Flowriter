@@ -259,3 +259,10 @@ GitHub Actions（`.github/workflows/ci.yml`）在每次推送與 PR 上跑單元
 - 淺色主題的次要文字加深（對比約 6～7:1），不刺眼也不過淡。
 - 列表圓點／數字與第一行文字對齊；語言選單只剩一條捲軸、字體縮小。
 - 流程圖：語言標籤不是 mermaid、但內容是 Mermaid 圖時也會渲染。
+
+## 自動更新與關於
+
+- 「說明 → 檢查更新」或「關於 Flowiter」可手動檢查；打包版啟動 10 秒後會自動檢查，之後每 6 小時一次。發現新版會在右下角提示，按「立即更新」才下載，下載完按「重啟並安裝」（有未儲存內容會先詢問）。`npm run dev` 不會檢查更新。
+- 更新來源是 GitHub Releases（`chankaikai/Flowriter`）。發布方式：把 `package.json` 的 `version` 調高，提交後推 `v版本號` 標籤（例如 `git tag v0.2.0 && git push origin v0.2.0`），GitHub Actions 會自動打包並建立 Release，內含 `latest.yml`。需要倉庫的 Actions 具有寫入權限（Settings → Actions → General → Workflow permissions）。
+- 未做程式碼簽章時 Windows 會出現 SmartScreen 警告；macOS 自動更新必須簽章並公證。免安裝版與 zip 不支援自動更新。
+- 「關於」內含版本號、檢查更新與回饋信箱 kaikai122148@163.com（可一鍵寫信或複製）。

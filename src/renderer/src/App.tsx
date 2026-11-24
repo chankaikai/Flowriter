@@ -41,6 +41,8 @@ import { basename, dirname, stripExt, toAbsolutePath, toDisplayUrl } from '@/lib
 import { THEMES, isDarkTheme } from '@/lib/themes'
 import { useApplySettings, useSettings, type SidebarTab, type ThemeName } from '@/lib/settings'
 import { Splash, welcomed } from '@/components/Splash'
+import { AboutPanel, UpdateBanner } from '@/components/AboutPanel'
+import type { UpdateStatus } from '../../shared/update'
 import { WELCOME } from '@/lib/welcome'
 import { buildHtmlDocument, renderHtmlBody } from '@/export/exportHtml'
 import { buildDocx } from '@/export/exportDocx'
@@ -116,6 +118,9 @@ export default function App() {
   const session = { key: activeEntry ? activeEntry.key : -srcKey }
   const [mode, setMode] = useState<Mode>('wysiwyg')
   const [dirty, setDirty] = useState(false)
+  const [appVersion, setAppVersion] = useState('')
+  const [upd, setUpd] = useState<UpdateStatus>({ state: 'idle' })
+  const [updHidden, setUpdHidden] = useState(false)
   const [splashOn, setSplashOn] = useState(() => !welcomed())
   const [stats, setStats] = useState<DocStats>(() => computeStats(WELCOME))
   const [outline, setOutline] = useState<OutlineItem[]>(() => parseOutline(WELCOME))
@@ -913,6 +918,11 @@ export default function App() {
       setFindSignal((n) => n + 1)
     },
     openSettings: () => setSettingsOpen(true),
+    checkUpdate: () => {
+      setUpdHidden(false)
+      setPanel('about')
+      void window.api.updateCheck()
+    },
     format: (name: FormatName) => editorRef.current?.format(name),
     zoom: (d) => update({ fontSize: Math.max(13, Math.min(26, settings.fontSize + d)) }),
     fullscreen: () => window.api.toggleFullscreen(),
@@ -1167,6 +1177,16 @@ export default function App() {
   )
   useEffect(() => () => setAmbient('off', 0), [])
 
+  // 版本號與自動更新狀態
+  useEffect(() => {
+    void window.api.appVersion().then(setAppVersion)
+    void window.api.updateStatus().then(setUpd)
+    return window.api.onUpdate((s) => {
+      setUpd(s)
+      if (s.state === 'available') setUpdHidden(false)
+    })
+  }, [])
+
   // 全域快捷鍵（開啟時才註冊；被其他程式占用會提示）
   useEffect(() => {
     let alive = true
@@ -1387,6 +1407,7 @@ export default function App() {
       data-sidebar={settings.sidebarOpen ? 'open' : 'closed'}
       data-mode={mode}
     >
+      {!updHidden && panel !== 'about' && <UpdateBanner status={upd} onDismiss={() => setUpdHidden(true)} onAbout={() => setPanel('about')} />}
       {splashOn && <Splash onDone={() => setSplashOn(false)} />}
       <header className="topbar">
         <img className="tb-logo" src={logo} alt="" />
@@ -1687,6 +1708,9 @@ export default function App() {
                 }}
               />
             )}
+          </Popover>
+          <Popover open={panel === 'about'} icon="sparkle" title="關於 Flowiter" onClose={() => setPanel(null)}>
+            {panel === 'about' && <AboutPanel version={appVersion} status={upd} />}
           </Popover>
           <Popover open={panel === 'notes'} icon="pen" title="頁邊便條" onClose={() => setPanel(null)}>
             {panel === 'notes' && (
