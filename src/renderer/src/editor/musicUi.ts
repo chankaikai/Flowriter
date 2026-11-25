@@ -11,6 +11,9 @@ import { createJianpuRenderer } from '@/lib/music/jianpuRender'
 import { jianpuEdit, type JianpuTool } from '@/lib/music/jianpuEdit'
 import { createVerovioRenderer } from '@/lib/music/verovioRenderer'
 import { listScoreParts } from '@/lib/music/scoreParts'
+import { createGongcheRenderer } from '@/lib/music/gongcheRender'
+import { gongcheEdit } from '@/lib/music/gongcheEdit'
+import { GONGCHE_CHARS } from '@/lib/music/gongche'
 import { createTabRenderer } from '@/lib/music/tabRenderer'
 import { tabEdit, type TabTool } from '@/lib/music/tabEdit'
 import type { MusicRenderer } from '@/lib/music/types'
@@ -126,7 +129,7 @@ function create(lang: MusicLang, source: string, key: string, reg: Reg): Block {
   const err = document.createElement('div')
   err.className = 'music-err'
   el.append(bar, mount, err)
-  const b: Block = { lang, el, mount, err, bar, select, playBtn, engine: lang === 'abc' ? createAbcRenderer() : lang === 'tab' ? createTabRenderer() : lang === 'mei' || lang === 'xml' ? createVerovioRenderer(lang) : createJianpuRenderer(), part: 'all', source, timer: 0, seq: 0, dead: false }
+  const b: Block = { lang, el, mount, err, bar, select, playBtn, engine: lang === 'abc' ? createAbcRenderer() : lang === 'tab' ? createTabRenderer() : lang === 'gongche' ? createGongcheRenderer() : lang === 'mei' || lang === 'xml' ? createVerovioRenderer(lang) : createJianpuRenderer(), part: 'all', source, timer: 0, seq: 0, dead: false }
   select.addEventListener('change', () => {
     b.part = select.value
     schedule(b, true)
@@ -246,7 +249,13 @@ const TAB_TOOLS: ToolDef[] = [
   { id: 'tie', label: '連結音', title: '插入 -.3（與同弦前一音相連）' },
   { id: 'rest', label: '休止', title: '插入 r.4' }
 ]
-const TOOLS: Partial<Record<MusicLang, ToolDef[]>> = { abc: ABC_TOOLS, jianpu: JIANPU_TOOLS, tab: TAB_TOOLS }
+const GONGCHE_TOOLS: ToolDef[] = [
+  ...GONGCHE_CHARS.map((c) => ({ id: `ch:${c}`, label: c, title: `插入「${c}」加一個空格` })),
+  { id: 'dot', label: '附點', title: '給前一個譜字加 .（已有就不重複）' },
+  { id: 'octUp', label: '高八度', title: "給前一個譜字加 '（已有低八度記號則改為拿掉一個 ,）" },
+  { id: 'bar', label: '小節線', title: '插入 | ' }
+]
+const TOOLS: Partial<Record<MusicLang, ToolDef[]>> = { abc: ABC_TOOLS, jianpu: JIANPU_TOOLS, tab: TAB_TOOLS, gongche: GONGCHE_TOOLS }
 
 function musicContext(v: EditorView): { node: PMNode; pos: number; lang: MusicLang } | null {
   const { $from } = v.state.selection
@@ -267,7 +276,7 @@ function runTool(v: EditorView, id: string): void {
   const { from, to } = v.state.selection
   const a = Math.max(0, from - base)
   const b = Math.max(0, to - base)
-  const e = ctx.lang === 'abc' ? abcEdit(id as AbcTool, text, a, b) : ctx.lang === 'tab' ? tabEdit(id as TabTool, text, a, b) : jianpuEdit(id as JianpuTool, text, a, b)
+  const e = ctx.lang === 'abc' ? abcEdit(id as AbcTool, text, a, b) : ctx.lang === 'tab' ? tabEdit(id as TabTool, text, a, b) : ctx.lang === 'gongche' ? gongcheEdit(id, text, a, b) : jianpuEdit(id as JianpuTool, text, a, b)
   if (!e.insert && e.from === e.to) return // 不需要改（例如已經有 func: 行）
   const tr = v.state.tr
   if (e.insert) tr.insertText(e.insert, base + e.from, base + e.to)
