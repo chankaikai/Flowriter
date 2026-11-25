@@ -1,5 +1,5 @@
 import type { MusicRenderer, MusicRenderOptions } from './types'
-import { filterAbcPart } from './abc'
+import { extractAbcParams, filterAbcPart } from './abc'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -35,10 +35,12 @@ export function createAbcRenderer(): MusicRenderer & { play(): Promise<void>; st
       stop() // 文字變了，舊的聲音不能繼續
       mount = el
       if (!/^K:/m.test(source)) throw new MusicError('缺少 K:（調號）欄位')
+      const { params, error } = extractAbcParams(source)
+      if (error) throw new MusicError(error)
       const abcjs: any = await import('abcjs')
       lastSource = filterAbcPart(source, options.part)
       el.replaceChildren() // 先清掉上一次的 SVG，不要疊出多份
-      const tunes: any[] = abcjs.renderAbc(el, lastSource, { responsive: 'resize', add_classes: true, paddingleft: 0, paddingright: 0 })
+      const tunes: any[] = abcjs.renderAbc(el, lastSource, { responsive: 'resize', add_classes: true, paddingleft: 0, paddingright: 0, ...(params.tablature ? { tablature: params.tablature } : {}) })
       visual = tunes?.[0] ?? null
       const lines = visual?.lines?.length ?? 0
       if (!visual || lines === 0) {

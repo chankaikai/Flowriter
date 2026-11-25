@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "abcjs": "^6.4.4",
+    "@coderline/alphatab": "^1.8.2",
     "electron-updater": "^6.6.2"
   },
   "devDependencies": {
@@ -42,6 +43,7 @@
     "docx": "^9.0.0",
     "electron": "^38.0.0",
     "electron-builder": "^26.0.0",
+    "@coderline/alphatab-vite": "^1.8.1",
     "electron-vite": "^4.0.0",
     "jsdom": "^26.1.0",
     "katex": "^0.16.11",

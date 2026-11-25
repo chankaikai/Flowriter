@@ -9,6 +9,8 @@ import { abcEdit, type AbcTool } from '@/lib/music/abcEdit'
 import { createAbcRenderer, MusicError } from '@/lib/music/abcRenderer'
 import { createJianpuRenderer } from '@/lib/music/jianpuRender'
 import { jianpuEdit, type JianpuTool } from '@/lib/music/jianpuEdit'
+import { createTabRenderer } from '@/lib/music/tabRenderer'
+import { tabEdit, type TabTool } from '@/lib/music/tabEdit'
 import type { MusicRenderer } from '@/lib/music/types'
 
 /**
@@ -108,14 +110,15 @@ function create(lang: MusicLang, source: string, key: string, reg: Reg): Block {
     const v = reg.view
     if (v && !v.isDestroyed) v.dispatch(v.state.tr.setMeta(musicKey, 'rebuild'))
   })
-  if (lang === 'abc') bar.append(select, playBtn)
+  if (lang === 'abc') bar.append(select)
+  if (lang === 'abc' || lang === 'tab') bar.append(playBtn)
   bar.append(hideBtn)
   const mount = document.createElement('div')
   mount.className = 'music-mount'
   const err = document.createElement('div')
   err.className = 'music-err'
   el.append(bar, mount, err)
-  const b: Block = { lang, el, mount, err, bar, select, playBtn, engine: lang === 'abc' ? createAbcRenderer() : createJianpuRenderer(), part: 'all', source, timer: 0, seq: 0, dead: false }
+  const b: Block = { lang, el, mount, err, bar, select, playBtn, engine: lang === 'abc' ? createAbcRenderer() : lang === 'tab' ? createTabRenderer() : createJianpuRenderer(), part: 'all', source, timer: 0, seq: 0, dead: false }
   select.addEventListener('change', () => {
     b.part = select.value
     schedule(b, true)
@@ -211,7 +214,8 @@ const ABC_TOOLS: ToolDef[] = [
   { id: 'tie', label: '延音線', title: '在選區最後一個音後插入 -' },
   { id: 'triplet', label: '三連音', title: '選區變成 (3 …)，沒有選區插入 (3 C D E' },
   { id: 'ped', label: '踏板踩下', title: '插入 !ped!' },
-  { id: 'pedUp', label: '踏板抬起', title: '插入 !ped-up!' }
+  { id: 'pedUp', label: '踏板抬起', title: '插入 !ped-up!' },
+  { id: 'tablature', label: '六線譜', title: '在最前面加一行 %%abcjs_render_params，譜下方同步顯示吉他六線譜（已有就不重複插）' }
 ]
 const JIANPU_TOOLS: ToolDef[] = [
   { id: 'octUp', label: '高八度', title: "選中一個音符就加 '，否則插入 1'" },
@@ -224,7 +228,15 @@ const JIANPU_TOOLS: ToolDef[] = [
   { id: 'tuplet', label: '三連音', title: '插入 (3: 1 2 3)' },
   { id: 'func', label: '功能標記', title: '在第一行下方插入 func: T（已有就不再插）' }
 ]
-const TOOLS: Partial<Record<MusicLang, ToolDef[]>> = { abc: ABC_TOOLS, jianpu: JIANPU_TOOLS }
+const TAB_TOOLS: ToolDef[] = [
+  { id: 'tuning', label: '標準調弦', title: '在最前面插入 \\tuning E4 B3 G3 D3 A2 E2（已有就不重複插）' },
+  { id: 'bar', label: '小節線', title: '插入 |' },
+  { id: 'dur8', label: '八分音符', title: '插入 :8（之後的音都是八分）' },
+  { id: 'chord', label: '和弦', title: '選區包成 (…)，否則插入 (0.3 2.2)' },
+  { id: 'tie', label: '連結音', title: '插入 -.3（與同弦前一音相連）' },
+  { id: 'rest', label: '休止', title: '插入 r.4' }
+]
+const TOOLS: Partial<Record<MusicLang, ToolDef[]>> = { abc: ABC_TOOLS, jianpu: JIANPU_TOOLS, tab: TAB_TOOLS }
 
 function musicContext(v: EditorView): { node: PMNode; pos: number; lang: MusicLang } | null {
   const { $from } = v.state.selection
@@ -245,7 +257,7 @@ function runTool(v: EditorView, id: string): void {
   const { from, to } = v.state.selection
   const a = Math.max(0, from - base)
   const b = Math.max(0, to - base)
-  const e = ctx.lang === 'abc' ? abcEdit(id as AbcTool, text, a, b) : jianpuEdit(id as JianpuTool, text, a, b)
+  const e = ctx.lang === 'abc' ? abcEdit(id as AbcTool, text, a, b) : ctx.lang === 'tab' ? tabEdit(id as TabTool, text, a, b) : jianpuEdit(id as JianpuTool, text, a, b)
   if (!e.insert && e.from === e.to) return // 不需要改（例如已經有 func: 行）
   const tr = v.state.tr
   if (e.insert) tr.insertText(e.insert, base + e.from, base + e.to)

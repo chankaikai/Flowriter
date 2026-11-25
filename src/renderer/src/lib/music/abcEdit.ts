@@ -2,7 +2,7 @@
  * ABC 工具列的純文字編輯：只回傳「要把 [from, to) 換成什麼」，不碰編輯器。
  * 位置都是代碼塊內文的字元偏移。
  */
-export type AbcTool = 'treble' | 'bass' | 'alto' | 'key' | 'meter' | 'slur' | 'tie' | 'triplet' | 'ped' | 'pedUp'
+export type AbcTool = 'treble' | 'bass' | 'alto' | 'key' | 'meter' | 'slur' | 'tie' | 'triplet' | 'ped' | 'pedUp' | 'tablature'
 
 export interface Edit {
   from: number
@@ -75,6 +75,10 @@ export function abcEdit(tool: AbcTool, text: string, from: number, to: number): 
     case 'triplet':
       return sel ? { from, to, insert: `(3 ${sel})` } : { from, to, insert: '(3 C D E' }
     case 'ped': return { from: to, to, insert: '!ped!' }
+    case 'tablature': {
+      if (/^\s*%%abcjs_render_params\b/m.test(text)) return { from: 0, to: 0, insert: '' } // 已經有了，不重複插
+      return { from: 0, to: 0, insert: '%%abcjs_render_params {"tablature":[{"instrument":"guitar"}]}\n' }
+    }
     case 'pedUp': return { from: to, to, insert: '!ped-up!' }
   }
 }
