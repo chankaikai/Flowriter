@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { createPortal } from 'react-dom'
 import { GlassCard } from './GlassCard'
 import { Icon, type IconName } from './Icon'
+import { tr } from '@/lib/i18n'
 
 type Phase = 'closed' | 'opening' | 'open' | 'closing'
 
@@ -154,7 +155,7 @@ export function ExpandCard({
                   <Icon name={icon} size={17} />
                 </span>
                 <h2>{title}</h2>
-                <button className="icon-btn" onClick={close} title="返回 (Esc)">
+                <button className="icon-btn" onClick={close} title={tr('返回 (Esc)')}>
                   <Icon name="close" />
                 </button>
               </div>

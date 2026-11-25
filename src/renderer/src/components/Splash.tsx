@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { tr } from '@/lib/i18n'
 
 const FLAG = 'flowiter.welcomed'
 /** 是否已經看過歡迎畫面（只在第一次安裝後啟動時顯示） */
@@ -71,7 +72,7 @@ export function Splash({ onDone }: { onDone(): void }) {
 
   const w = HELLOS[i]
   return (
-    <div className={`splash${out ? ' out' : ''}`} role="dialog" aria-label="歡迎使用 Flowiter">
+    <div className={`splash${out ? ' out' : ''}`} role="dialog" aria-label={tr('歡迎使用 Flowiter')}>
       <div className="splash-card">
         <div className="splash-stage" key={i}>
           <span className="splash-word" lang={w.lang}>

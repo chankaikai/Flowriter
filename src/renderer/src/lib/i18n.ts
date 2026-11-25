@@ -22,6 +22,7 @@ export const LANGS = [
 export type LangId = (typeof LANGS)[number]['id']
 
 import { EN, toSimplified } from './i18nExtra'
+import { PANELS } from './i18nPanels'
 
 const KEYS = [
   '檔案', '編輯', '插入', '格式', '檢視', '工具', '說明', '常用', '匯出', '復原',
@@ -65,7 +66,7 @@ export function tr(zh: string): string {
   if (hit) return hit
   if (current === 'zh-CN') return toSimplified(zh)
   // 其他語言：查不到就退回英文，再不行才顯示原文
-  return EN[zh] ?? zh
+  return EN[zh] ?? PANELS[zh] ?? zh
 }
 export const I18N_KEYS = KEYS
 export const I18N_TABLES = D

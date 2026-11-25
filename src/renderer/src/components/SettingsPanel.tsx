@@ -85,7 +85,7 @@ export function SettingsPanel({
       >
         <div className="drawer-head">
           <h2>{tr('偏好設定')}</h2>
-          <button className="icon-btn" onClick={onClose} title="關閉">
+          <button className="icon-btn" onClick={onClose} title={tr('關閉')}>
             <Icon name="close" />
           </button>
         </div>
@@ -247,7 +247,7 @@ export function SettingsPanel({
             </ExpandCard>
 
             <ExpandCard active={open} icon="type" title={tr('語言')} summary={LANGS.find((l) => l.id === settings.uiLang)?.label ?? ''}>
-              <div className="set-help">選單列、功能區分頁與群組、設定卡片標題會切換成所選語言；功能區按鈕與面板內文暫時仍是繁體中文（逐步補齊中）。</div>
+              <div className="set-help">{tr('選單列、功能區分頁與群組、設定卡片標題會切換成所選語言；功能區按鈕與面板內文暫時仍是繁體中文（逐步補齊中）。')}</div>
               <div className="lang-grid">
                 {LANGS.map((l) => (
                   <button
@@ -337,9 +337,9 @@ function CssSettings({ settings, update }: { settings: Settings; update(p: Parti
     <>
       <pre className="set-help">{CSS_HELP}</pre>
       <div className="css-actions">
-        <button className="btn" onClick={pick}>匯入 Typora／Obsidian 主題（.css）</button>
+        <button className="btn" onClick={pick}>{tr('匯入 Typora／Obsidian 主題（.css）')}</button>
         {imported.map((n) => (
-          <button key={n} className="btn ghost" onClick={() => update({ customCss: removeImported(settings.customCss, n) })} title="移除這個已匯入的主題">
+          <button key={n} className="btn ghost" onClick={() => update({ customCss: removeImported(settings.customCss, n) })} title={tr('移除這個已匯入的主題')}>
             移除「{n}」
           </button>
         ))}

@@ -9,6 +9,7 @@ import { AiSetup } from './AiSetup'
 import { recordUsage, fmtTokens } from '@/lib/aiUsage'
 import { collectTasks } from '@/lib/tasks'
 import { resolveAi, type AiPrefs } from '@/lib/ai'
+import { tr } from '@/lib/i18n'
 
 /** 停靠欄上方的浮動玻璃面板，一次只開一個。 */
 export function Popover({
@@ -35,7 +36,7 @@ export function Popover({
         <Icon name={icon} size={16} />
         <h3>{title}</h3>
         <span className="grow" />
-        <button className="icon-btn sm" onClick={onClose} title="關閉">
+        <button className="icon-btn sm" onClick={onClose} title={tr('關閉')}>
           <Icon name="close" size={14} />
         </button>
       </div>
@@ -106,9 +107,9 @@ export function HistoryPanel({
     }
   }, [path, sel?.ts])
 
-  if (!path) return <p className="pop-empty">先儲存檔案，才會開始記錄版本。</p>
-  if (!items) return <p className="pop-empty">讀取中…</p>
-  if (!items.length) return <p className="pop-empty">還沒有歷史版本。每次儲存都會留下快照（內容相同不重複記錄）。</p>
+  if (!path) return <p className="pop-empty">{tr('先儲存檔案，才會開始記錄版本。')}</p>
+  if (!items) return <p className="pop-empty">{tr('讀取中…')}</p>
+  if (!items.length) return <p className="pop-empty">{tr('還沒有歷史版本。每次儲存都會留下快照（內容相同不重複記錄）。')}</p>
 
   const curLines = new Set(cur.split('\n'))
   const lines = (text ?? '').split('\n')
@@ -190,13 +191,13 @@ export function AmbientPanel({ ambient, setAmbientKind }: { ambient: AmbientKind
           setAmbientVolume(+e.target.value)
         }}
       />
-      <div className="hist-hint">● 表示有真實錄音。沒有錄音的種類是軟體合成的，聽起來比較單調。</div>
+      <div className="hist-hint">{tr('● 表示有真實錄音。沒有錄音的種類是軟體合成的，聽起來比較單調。')}</div>
       {ambient !== 'off' && real === null && <div className="hist-hint">「{AMBIENT_LIST.find((a) => a.k === ambient)?.label}」沒有錄音檔就不會有聲音，請按下面的「匯入錄音」。</div>}
       {ambient !== 'off' && (
         <div className="pop-actions">
-          <button className="btn ghost" onClick={async () => { if (await window.api.ambientImport(ambient)) setFiles(await refreshAmbientFiles()) }}>匯入錄音</button>
+          <button className="btn ghost" onClick={async () => { if (await window.api.ambientImport(ambient)) setFiles(await refreshAmbientFiles()) }}>{tr('匯入錄音')}</button>
           {files[ambient] === 'user' && (
-            <button className="btn ghost" onClick={async () => { await window.api.ambientRemove(ambient); setFiles(await refreshAmbientFiles()) }}>移除我匯入的錄音</button>
+            <button className="btn ghost" onClick={async () => { await window.api.ambientRemove(ambient); setFiles(await refreshAmbientFiles()) }}>{tr('移除我匯入的錄音')}</button>
           )}
         </div>
       )}
@@ -263,7 +264,7 @@ export function AiPanel({
       <AiSetup s={prefs} update={update} compact />
       {cfg.missing && <p className="pop-empty">{cfg.missing}。</p>}
       {!source ? (
-        <p className="pop-empty">先在編輯器中選取一段文字（或把游標放在想續寫的地方），再打開這個面板。</p>
+        <p className="pop-empty">{tr('先在編輯器中選取一段文字（或把游標放在想續寫的地方），再打開這個面板。')}</p>
       ) : (
         <>
           <div className="ai-src">
@@ -280,7 +281,7 @@ export function AiPanel({
           {selection && (
             <div className="ai-row">
               <input
-                className="ai-input" placeholder="或輸入自訂指示，Enter 送出" value={custom}
+                className="ai-input" placeholder={tr('或輸入自訂指示，Enter 送出')} value={custom}
                 onChange={(e) => setCustom(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && void run(custom)}
               />
@@ -294,9 +295,9 @@ export function AiPanel({
               <div className="ai-out">{out}</div>
               {last && <div className="hist-hint">本次用量：輸入 {fmtTokens(last.in)}、輸出 {fmtTokens(last.out)} tokens</div>}
               <div className="pop-actions">
-                {selection && <button className="btn" onClick={() => onApply(out)}>取代選取內容</button>}
-                <button className={`btn${selection ? ' ghost' : ''}`} onClick={() => onAppend(out)}>接在後面插入</button>
-                <button className="btn ghost" onClick={() => void navigator.clipboard.writeText(out)}>複製</button>
+                {selection && <button className="btn" onClick={() => onApply(out)}>{tr('取代選取內容')}</button>}
+                <button className={`btn${selection ? ' ghost' : ''}`} onClick={() => onAppend(out)}>{tr('接在後面插入')}</button>
+                <button className="btn ghost" onClick={() => void navigator.clipboard.writeText(out)}>{tr('複製')}</button>
               </div>
             </>
           )}
@@ -368,22 +369,22 @@ export function LinksPanel({
 
   return (
     <>
-      <div className="hist-hint">本文連出（點擊開啟，不存在則建立）</div>
+      <div className="hist-hint">{tr('本文連出（點擊開啟，不存在則建立）')}</div>
       <div className="link-list">
         {outgoing.length ? (
           outgoing.map((n) => (
             <button key={n} onClick={() => onOpenLink(n)}>[[{n}]]</button>
           ))
         ) : (
-          <span className="pop-empty">在文中輸入 [[筆記名稱]] 即可建立連結。</span>
+          <span className="pop-empty">{tr('在文中輸入 [[筆記名稱]] 即可建立連結。')}</span>
         )}
       </div>
       <div className="set-sep" />
-      <div className="hist-hint">反向連結（其他筆記指向本文）</div>
+      <div className="hist-hint">{tr('反向連結（其他筆記指向本文）')}</div>
       {!folder || !stem ? (
-        <p className="pop-empty">開啟資料夾並儲存檔案後可用。</p>
+        <p className="pop-empty">{tr('開啟資料夾並儲存檔案後可用。')}</p>
       ) : hits == null ? (
-        <p className="pop-empty">搜尋中…</p>
+        <p className="pop-empty">{tr('搜尋中…')}</p>
       ) : hits.length ? (
         <div className="link-list col">
           {hits.map((h) => (
@@ -394,14 +395,14 @@ export function LinksPanel({
           ))}
         </div>
       ) : (
-        <p className="pop-empty">目前沒有其他筆記連到這裡。</p>
+        <p className="pop-empty">{tr('目前沒有其他筆記連到這裡。')}</p>
       )}
       {folder && stem && (
         <>
           <div className="set-sep" />
-          <div className="hist-hint">二跳關係：與本文引用相同對象的筆記</div>
+          <div className="hist-hint">{tr('二跳關係：與本文引用相同對象的筆記')}</div>
           {hop == null ? (
-            <p className="pop-empty">計算中…</p>
+            <p className="pop-empty">{tr('計算中…')}</p>
           ) : hop.shared.length ? (
             <div className="link-list col">
               {hop.shared.map((r) => (
@@ -412,9 +413,9 @@ export function LinksPanel({
               ))}
             </div>
           ) : (
-            <p className="pop-empty">沒有找到。</p>
+            <p className="pop-empty">{tr('沒有找到。')}</p>
           )}
-          <div className="hist-hint">二跳關係：經由反向連結再連出的筆記</div>
+          <div className="hist-hint">{tr('二跳關係：經由反向連結再連出的筆記')}</div>
           {hop && hop.out.length > 0 && (
             <div className="link-list col">
               {hop.out.map((r) => (
@@ -425,7 +426,7 @@ export function LinksPanel({
               ))}
             </div>
           )}
-          {hop && hop.out.length === 0 && <p className="pop-empty">沒有找到。</p>}
+          {hop && hop.out.length === 0 && <p className="pop-empty">{tr('沒有找到。')}</p>}
         </>
       )}
     </>

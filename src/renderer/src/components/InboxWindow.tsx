@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { loadSettings } from '@/lib/settings'
 import { applyThemeVars, isDarkTheme } from '@/lib/themes'
+import { tr } from '@/lib/i18n'
 
 /** 全域快捷鍵叫出的收件匣小視窗：Enter 存入 Inbox.md，Esc 關閉。 */
 export default function InboxWindow() {
@@ -32,7 +33,7 @@ export default function InboxWindow() {
       <textarea
         ref={ta}
         value={text}
-        placeholder="記下一個念頭…  Enter 存入收件匣，Shift+Enter 換行，Esc 取消"
+        placeholder={tr('記下一個念頭…  Enter 存入收件匣，Shift+Enter 換行，Esc 取消')}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Escape') window.api.inboxClose()

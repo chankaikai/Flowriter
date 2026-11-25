@@ -52,6 +52,7 @@ import type { UpdateStatus } from '../../shared/update'
 import { WELCOME } from '@/lib/welcome'
 import { buildHtmlDocument, renderHtmlBody } from '@/export/exportHtml'
 import { buildDocx } from '@/export/exportDocx'
+import { tr } from '@/lib/i18n'
 
 type Mode = 'wysiwyg' | 'source'
 interface DocMeta {
@@ -1604,7 +1605,7 @@ export default function App() {
         className="side-resizer"
         role="separator"
         aria-orientation="vertical"
-        title="拖曳調整側邊欄寬度（雙擊還原）"
+        title={tr('拖曳調整側邊欄寬度（雙擊還原）')}
         onDoubleClick={() => update({ sidebarWidth: 264 })}
         onPointerDown={(e) => {
           if (e.button !== 0 || !appRef.current) return
@@ -1666,14 +1667,14 @@ export default function App() {
                     e.stopPropagation()
                     void closeTab(t.id)
                   }}
-                  title="關閉分頁"
+                  title={tr('關閉分頁')}
                 >
                   <i className="tab-dot" />
                   <Icon name="close" size={12} />
                 </button>
               </div>
             ))}
-            <button className="icon-btn sm tab-add" onClick={() => void newDoc()} title="新建 (Ctrl/⌘+N)">
+            <button className="icon-btn sm tab-add" onClick={() => void newDoc()} title={tr('新建 (Ctrl/⌘+N)')}>
               <Icon name="plus" size={15} />
             </button>
           </div>
@@ -1767,7 +1768,7 @@ export default function App() {
           />
           <div className={`loading-veil${loading ? ' on' : ''}`}>
             <i />
-            <span>正在載入大型文件…</span>
+            <span>{tr('正在載入大型文件…')}</span>
           </div>
           <SelectionBubble
             actions={(
@@ -1797,7 +1798,7 @@ export default function App() {
           )}
           <ResumeBubble hint={resume?.hint ?? null} rect={resume?.rect ?? null} onDone={() => setResume(null)} />
           {sticky && (
-            <button className="sticky-chip" onClick={toggleSticky} title="退出迷你模式，還原視窗（不會關閉程式）">
+            <button className="sticky-chip" onClick={toggleSticky} title={tr('退出迷你模式，還原視窗（不會關閉程式）')}>
               ↩ 退出迷你模式
             </button>
           )}
@@ -1805,12 +1806,12 @@ export default function App() {
           {reading && (
             <div className="reading-chip">
               <span>閱讀 {minutes}</span>
-              <button className="icon-btn sm" onClick={toggleReading} title="退出閱讀模式 (Esc)">
+              <button className="icon-btn sm" onClick={toggleReading} title={tr('退出閱讀模式 (Esc)')}>
                 <Icon name="close" size={14} />
               </button>
             </div>
           )}
-          <Popover open={panel === 'history'} icon="history" title="版本時光機" onClose={() => setPanel(null)} wide>
+          <Popover open={panel === 'history'} icon="history" title={tr('版本時光機')} onClose={() => setPanel(null)} wide>
             {panel === 'history' && (
               <TimeMachine
                 path={doc.path}
@@ -1829,7 +1830,7 @@ export default function App() {
               />
             )}
           </Popover>
-          <Popover open={panel === 'diag'} icon="diag" title="文件健檢、排版與文風" onClose={() => setPanel(null)} wide>
+          <Popover open={panel === 'diag'} icon="diag" title={tr('文件健檢、排版與文風')} onClose={() => setPanel(null)} wide>
             {panel === 'diag' && (
               <DiagnosticsPanel
                 md={mdRef.current}
@@ -1842,10 +1843,10 @@ export default function App() {
               />
             )}
           </Popover>
-          <Popover open={panel === 'clips'} icon="clip" title="剪貼簿收集" onClose={() => setPanel(null)}>
+          <Popover open={panel === 'clips'} icon="clip" title={tr('剪貼簿收集')} onClose={() => setPanel(null)}>
             <ClipPanel stack={clipStack} prefs={settings} onInsert={(t) => editorRef.current?.insert(t)} />
           </Popover>
-          <Popover open={panel === 'vault'} icon="lock" title="時間膠囊與加密抽屜" onClose={() => setPanel(null)}>
+          <Popover open={panel === 'vault'} icon="lock" title={tr('時間膠囊與加密抽屜')} onClose={() => setPanel(null)}>
             {panel === 'vault' && (
               <VaultPanel
                 selection={aiSel}
@@ -1856,12 +1857,12 @@ export default function App() {
               />
             )}
           </Popover>
-          <Popover open={panel === 'radar'} icon="search" title="本地知識雷達" onClose={() => setPanel(null)}>
+          <Popover open={panel === 'radar'} icon="search" title={tr('本地知識雷達')} onClose={() => setPanel(null)}>
             {panel === 'radar' && (
               <RadarPanel folder={folder} docPath={doc.path} query={radarQ} onOpen={(p) => void openPath(p)} />
             )}
           </Popover>
-          <Popover open={panel === 'refs'} icon="book" title="參考資料抽屜" onClose={() => setPanel(null)}>
+          <Popover open={panel === 'refs'} icon="book" title={tr('參考資料抽屜')} onClose={() => setPanel(null)}>
             {panel === 'refs' && (
               <RefsPanel
                 saved={!!doc.path}
@@ -1876,10 +1877,10 @@ export default function App() {
               />
             )}
           </Popover>
-          <Popover open={panel === 'about'} icon="sparkle" title="關於 Flowiter" onClose={() => setPanel(null)}>
+          <Popover open={panel === 'about'} icon="sparkle" title={tr('關於 Flowiter')} onClose={() => setPanel(null)}>
             {panel === 'about' && <AboutPanel version={appVersion} status={upd} />}
           </Popover>
-          <Popover open={panel === 'resumes'} icon="pin" title="接續列表" onClose={() => setPanel(null)}>
+          <Popover open={panel === 'resumes'} icon="pin" title={tr('接續列表')} onClose={() => setPanel(null)}>
             {panel === 'resumes' && (
               <ResumePanel
                 key={resumeTick}
@@ -1891,7 +1892,7 @@ export default function App() {
               />
             )}
           </Popover>
-          <Popover open={panel === 'notes'} icon="pen" title="頁邊便條" onClose={() => setPanel(null)}>
+          <Popover open={panel === 'notes'} icon="pen" title={tr('頁邊便條')} onClose={() => setPanel(null)}>
             {panel === 'notes' && (
               <NotesPanel
                 saved={!!doc.path}
@@ -1905,7 +1906,7 @@ export default function App() {
               />
             )}
           </Popover>
-          <Popover open={panel === 'tasks'} icon="tasks" title="任務收集" onClose={() => setPanel(null)}>
+          <Popover open={panel === 'tasks'} icon="tasks" title={tr('任務收集')} onClose={() => setPanel(null)}>
             {panel === 'tasks' && (
               <TasksPanel
                 md={mdRef.current}
@@ -1916,7 +1917,7 @@ export default function App() {
               />
             )}
           </Popover>
-          <Popover open={panel === 'links'} icon="link" title="連結與反向連結" onClose={() => setPanel(null)}>
+          <Popover open={panel === 'links'} icon="link" title={tr('連結與反向連結')} onClose={() => setPanel(null)}>
             {panel === 'links' && (
               <LinksPanel
                 folder={folder}
@@ -1927,7 +1928,7 @@ export default function App() {
               />
             )}
           </Popover>
-          <Popover open={panel === 'ai'} icon="sparkle" title="AI 改寫" onClose={() => setPanel(null)}>
+          <Popover open={panel === 'ai'} icon="sparkle" title={tr('AI 改寫')} onClose={() => setPanel(null)}>
             {panel === 'ai' && (
               <AiPanel
                 selection={aiSel}
@@ -1946,7 +1947,7 @@ export default function App() {
               />
             )}
           </Popover>
-          <Popover open={panel === 'dashboard'} icon="chart" title="寫作儀表板" onClose={() => setPanel(null)}>
+          <Popover open={panel === 'dashboard'} icon="chart" title={tr('寫作儀表板')} onClose={() => setPanel(null)}>
             {panel === 'dashboard' && (
               <Dashboard
                 path={doc.path}
@@ -1966,7 +1967,7 @@ export default function App() {
               />
             )}
           </Popover>
-          <Popover open={panel === 'ambient'} icon="timer" title="氛圍音" onClose={() => setPanel(null)}>
+          <Popover open={panel === 'ambient'} icon="timer" title={tr('氛圍音')} onClose={() => setPanel(null)}>
             <AmbientPanel ambient={ambient} setAmbientKind={setAmbientKind} />
           </Popover>
         </div>
@@ -1977,9 +1978,9 @@ export default function App() {
       <footer className="statusbar">
         <button className="sb-btn gear" onClick={() => setSettingsOpen(true)} title={`偏好設定 (${hint('app.settings') ?? ''})`}>
           <Icon name="gear" size={15} />
-          <span>設定</span>
+          <span>{tr('設定')}</span>
         </button>
-        <button className={`sb-btn${settings.sidebarOpen ? ' on' : ''}`} onClick={() => update({ sidebarOpen: !settings.sidebarOpen })} title="側邊欄">
+        <button className={`sb-btn${settings.sidebarOpen ? ' on' : ''}`} onClick={() => update({ sidebarOpen: !settings.sidebarOpen })} title={tr('側邊欄')}>
           <Icon name="sidebar" size={14} />
         </button>
         <span className="sb-text">{stats.words.toLocaleString()} 字</span>
@@ -1988,34 +1989,34 @@ export default function App() {
         <span className={`save-state${dirty ? ' unsaved' : ''}`}>
           {doc.path ? (dirty ? (settings.autosave ? '自動儲存中…' : '未儲存') : '已儲存') : dirty ? '未儲存' : ''}
         </span>
-        <button className={`sb-btn${mode === 'source' ? ' on' : ''}`} onClick={toggleSource} title="源碼模式">
+        <button className={`sb-btn${mode === 'source' ? ' on' : ''}`} onClick={toggleSource} title={tr('源碼模式')}>
           <Icon name="code" size={14} />
           <span>{mode === 'source' ? '源碼' : '所見即所得'}</span>
         </button>
-        <button className={`sb-btn${settings.focusMode ? ' on' : ''}`} onClick={() => update({ focusMode: !settings.focusMode })} title="聚焦模式">
+        <button className={`sb-btn${settings.focusMode ? ' on' : ''}`} onClick={() => update({ focusMode: !settings.focusMode })} title={tr('聚焦模式')}>
           <Icon name="focus" size={14} />
         </button>
-        <button className={`sb-btn${settings.typewriter ? ' on' : ''}`} onClick={() => update({ typewriter: !settings.typewriter })} title="打字機模式">
+        <button className={`sb-btn${settings.typewriter ? ' on' : ''}`} onClick={() => update({ typewriter: !settings.typewriter })} title={tr('打字機模式')}>
           <Icon name="type" size={14} />
         </button>
-        <button className={`sb-btn${reading ? ' on' : ''}`} onClick={toggleReading} title="閱讀模式">
+        <button className={`sb-btn${reading ? ' on' : ''}`} onClick={toggleReading} title={tr('閱讀模式')}>
           <Icon name="book" size={14} />
         </button>
-        <button className={`sb-btn${sticky ? ' on' : ''}`} onClick={toggleSticky} title="迷你置頂便籤">
+        <button className={`sb-btn${sticky ? ' on' : ''}`} onClick={toggleSticky} title={tr('迷你置頂便籤')}>
           <Icon name="pin" size={14} />
         </button>
-        <button className="sb-btn" onClick={() => cmdRun('view.zoomOut')} title="縮小字體">
+        <button className="sb-btn" onClick={() => cmdRun('view.zoomOut')} title={tr('縮小字體')}>
           <span>A−</span>
         </button>
         <span className="sb-text">{settings.fontSize}px</span>
-        <button className="sb-btn" onClick={() => cmdRun('view.zoomIn')} title="放大字體">
+        <button className="sb-btn" onClick={() => cmdRun('view.zoomIn')} title={tr('放大字體')}>
           <span>A+</span>
         </button>
         <select
           className="sb-select"
           value={settings.theme}
           onChange={(e) => update({ theme: e.target.value })}
-          title="主題"
+          title={tr('主題')}
         >
           <optgroup label="淺色">
             {THEMES.filter((t) => !t.dark).map((t) => (
@@ -2027,7 +2028,7 @@ export default function App() {
               <option key={t.id} value={t.id}>{t.label}</option>
             ))}
           </optgroup>
-          <option value="system">跟隨系統</option>
+          <option value="system">{tr('跟隨系統')}</option>
         </select>
       </footer>
 

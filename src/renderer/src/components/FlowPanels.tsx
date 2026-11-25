@@ -7,6 +7,7 @@ import { buildStitch, type StitchStyle } from '@/lib/stitch'
 import { resolveAi, type AiPrefs } from '@/lib/ai'
 import { recordUsage } from '@/lib/aiUsage'
 import { dayKey } from '@/lib/writing'
+import { tr } from '@/lib/i18n'
 
 type Tab = 'health' | 'typo' | 'style'
 
@@ -61,8 +62,8 @@ export function useHealth(md: string, docDir: string | null): HealthIssue[] | nu
 
 function HealthTab({ md, docDir, onJump }: { md: string; docDir: string | null; onJump(t: string): void }) {
   const issues = useHealth(md, docDir)
-  if (!issues) return <p className="pop-empty">檢查中…</p>
-  if (!issues.length) return <p className="pop-empty">沒有發現問題，可以放心匯出。</p>
+  if (!issues) return <p className="pop-empty">{tr('檢查中…')}</p>
+  if (!issues.length) return <p className="pop-empty">{tr('沒有發現問題，可以放心匯出。')}</p>
   const n = (l: string) => issues.filter((i) => i.level === l).length
   return (
     <>
@@ -79,10 +80,10 @@ function HealthTab({ md, docDir, onJump }: { md: string; docDir: string | null; 
 function TypoTab({ md, onJump, onReplace }: { md: string; onJump(t: string): void; onReplace(md: string): void }) {
   const issues = useMemo(() => typographyIssues(md), [md])
   const fixable = issues.filter((i) => i.fix !== undefined).length
-  if (!issues.length) return <p className="pop-empty">排版沒有問題。</p>
+  if (!issues.length) return <p className="pop-empty">{tr('排版沒有問題。')}</p>
   return (
     <>
-      <div className="hist-hint">中英文空格、全半形標點、重複標點、括號配對。程式碼、網址、front matter 不檢查。</div>
+      <div className="hist-hint">{tr('中英文空格、全半形標點、重複標點、括號配對。程式碼、網址、front matter 不檢查。')}</div>
       <div className="pop-actions">
         <button className="btn" disabled={!fixable} onClick={() => onReplace(applyFixes(md, issues).md)}>一鍵修正 {fixable} 處</button>
       </div>
@@ -97,10 +98,10 @@ function TypoTab({ md, onJump, onReplace }: { md: string; onJump(t: string): voi
 
 function StyleTab({ md, onJump }: { md: string; onJump(t: string): void }) {
   const issues = useMemo(() => styleIssues(md), [md])
-  if (!issues.length) return <p className="pop-empty">沒有明顯的文風問題。</p>
+  if (!issues.length) return <p className="pop-empty">{tr('沒有明顯的文風問題。')}</p>
   return (
     <>
-      <div className="hist-hint">只提示，不會改你的文字。長句、「的」過多、連續同開頭、弱化詞、重複用詞。</div>
+      <div className="hist-hint">{tr('只提示，不會改你的文字。長句、「的」過多、連續同開頭、弱化詞、重複用詞。')}</div>
       <div className="tm-list">
         {issues.slice(0, 100).map((i, k) => (
           <Row key={k} level={i.level} text={`第 ${i.line + 1} 行 · ${i.message}`} onClick={() => onJump(plain(i.snippet) || lineText(md, i.line))} />
@@ -176,7 +177,7 @@ export function ClipPanel({
       </div>
       <div className="pop-actions">
         <button className={`btn${stack.on ? '' : ' ghost'}`} onClick={stack.toggle}>{stack.on ? '收集中，點擊停止' : '開始收集'}</button>
-        <button className="btn ghost" disabled={!stack.items.length} onClick={() => { stack.clear(); setPicked(new Set()) }}>清空</button>
+        <button className="btn ghost" disabled={!stack.items.length} onClick={() => { stack.clear(); setPicked(new Set()) }}>{tr('清空')}</button>
       </div>
       <div className="tm-list">
         {stack.items.map((t, i) => (
@@ -186,22 +187,22 @@ export function ClipPanel({
             </label>
             <div style={{ whiteSpace: 'pre-wrap', maxHeight: 90, overflow: 'hidden' }}>{t.length > 300 ? t.slice(0, 300) + '…' : t}</div>
             <div className="pop-actions">
-              <button className="btn ghost" onClick={() => onInsert(t)}>插入游標處</button>
-              <button className="btn ghost" onClick={() => { stack.remove(i); setPicked(new Set()) }}>移除</button>
+              <button className="btn ghost" onClick={() => onInsert(t)}>{tr('插入游標處')}</button>
+              <button className="btn ghost" onClick={() => { stack.remove(i); setPicked(new Set()) }}>{tr('移除')}</button>
             </div>
           </div>
         ))}
-        {stack.on && !stack.items.length && <p className="pop-empty">等你複製…</p>}
+        {stack.on && !stack.items.length && <p className="pop-empty">{tr('等你複製…')}</p>}
       </div>
       {stack.items.length > 1 && (
         <>
           <div className="set-sep" />
-          <div className="hist-hint">AI 片段縫合：勾選 2 則以上，合成一段。按下後選取的片段會送到你設定的 AI 服務。</div>
+          <div className="hist-hint">{tr('AI 片段縫合：勾選 2 則以上，合成一段。按下後選取的片段會送到你設定的 AI 服務。')}</div>
           <div className="pop-actions">
             <select className="sb-select" value={style} onChange={(e) => setStyle(e.target.value as StitchStyle)}>
-              <option value="plain">連貫段落</option>
-              <option value="bullets">條列整理</option>
-              <option value="outline">大綱</option>
+              <option value="plain">{tr('連貫段落')}</option>
+              <option value="bullets">{tr('條列整理')}</option>
+              <option value="outline">{tr('大綱')}</option>
             </select>
             <button className="btn" disabled={busy || chosen.length < 2 || !!cfg.missing} onClick={() => void stitch()}>
               {busy ? '縫合中…' : `縫合 ${chosen.length} 則`}
@@ -213,8 +214,8 @@ export function ClipPanel({
             <div className="tm-card">
               <div style={{ whiteSpace: 'pre-wrap' }}>{out}</div>
               <div className="pop-actions">
-                <button className="btn" onClick={() => onInsert(out)}>插入游標處</button>
-                <button className="btn ghost" onClick={() => setOut(null)}>捨棄</button>
+                <button className="btn" onClick={() => onInsert(out)}>{tr('插入游標處')}</button>
+                <button className="btn ghost" onClick={() => setOut(null)}>{tr('捨棄')}</button>
               </div>
             </div>
           )}
@@ -259,7 +260,7 @@ export function RadarPanel({
 
   const hits = useMemo(() => (idx ? queryIndex(idx, q, { exclude: docPath ?? undefined }) : []), [idx, q, docPath])
 
-  if (!folder) return <p className="pop-empty">先開啟一個資料夾，雷達才有範圍可以掃描。</p>
+  if (!folder) return <p className="pop-empty">{tr('先開啟一個資料夾，雷達才有範圍可以掃描。')}</p>
   return (
     <>
       <div className="hist-hint">
@@ -269,7 +270,7 @@ export function RadarPanel({
         className="radar-q"
         rows={3}
         value={q}
-        placeholder="輸入想找的內容…"
+        placeholder={tr('輸入想找的內容…')}
         onChange={(e) => setQ(e.target.value)}
       />
       <div className="pop-actions">
@@ -285,7 +286,7 @@ export function RadarPanel({
             <small>相符：{h.terms.join('、')}</small>
           </button>
         ))}
-        {idx && q.trim() && !hits.length && <p className="pop-empty">沒有找到相關筆記。</p>}
+        {idx && q.trim() && !hits.length && <p className="pop-empty">{tr('沒有找到相關筆記。')}</p>}
       </div>
     </>
   )

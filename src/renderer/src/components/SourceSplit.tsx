@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { buildHtmlDocument, renderHtmlBody } from '@/export/exportHtml'
 import { Icon } from './Icon'
+import { tr } from '@/lib/i18n'
 
 export type SrcLayout = 'only' | 'split'
 
@@ -56,13 +57,13 @@ export function SourceSplit(p: Props) {
     <div className="src-wrap">
       <div className="src-bar">
         <div className="src-seg" role="tablist">
-          <button className={p.layout === 'only' ? 'on' : ''} onClick={() => p.onLayout('only')}>僅源碼</button>
-          <button className={p.layout === 'split' ? 'on' : ''} onClick={() => p.onLayout('split')}>源碼＋預覽</button>
+          <button className={p.layout === 'only' ? 'on' : ''} onClick={() => p.onLayout('only')}>{tr('僅源碼')}</button>
+          <button className={p.layout === 'split' ? 'on' : ''} onClick={() => p.onLayout('split')}>{tr('源碼＋預覽')}</button>
         </div>
         {p.layout === 'split' && (
-          <button className="src-swap" title="左右互換（源碼／預覽）" onClick={p.onSwap}>
+          <button className="src-swap" title={tr('左右互換（源碼／預覽）')} onClick={p.onSwap}>
             <Icon name="swap" size={15} />
-            <span>左右互換</span>
+            <span>{tr('左右互換')}</span>
           </button>
         )}
       </div>
@@ -71,7 +72,7 @@ export function SourceSplit(p: Props) {
       ) : (
         <div className="src-split" ref={box} style={{ gridTemplateColumns: `${ratio}fr 6px ${1 - ratio}fr` }}>
           <div className="src-pane">{p.swap ? <Preview {...p} /> : p.source}</div>
-          <div className="src-divider" role="separator" aria-orientation="vertical" onPointerDown={onDown} onDoubleClick={() => p.onRatio(0.5)} title="拖曳調整寬度，雙擊還原" />
+          <div className="src-divider" role="separator" aria-orientation="vertical" onPointerDown={onDown} onDoubleClick={() => p.onRatio(0.5)} title={tr('拖曳調整寬度，雙擊還原')} />
           <div className="src-pane">{p.swap ? p.source : <Preview {...p} />}</div>
         </div>
       )}
@@ -94,5 +95,5 @@ function Preview({ getMd, rev, title, docDir }: Pick<Props, 'getMd' | 'rev' | 't
     return () => window.clearTimeout(t)
   }, [rev, getMd, title, docDir])
   // sandbox="" ＝ 不允許腳本、表單、彈窗、同源存取
-  return <iframe className="src-preview" sandbox="" title="預覽" srcDoc={html} />
+  return <iframe className="src-preview" sandbox="" title={tr('預覽')} srcDoc={html} />
 }

@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { diffBlocks, mergeHunks, splitBlocks, type Hunk } from '@/lib/diff'
 import { diffInline, type Seg } from '@/lib/inlineDiff'
 import { Icon } from './Icon'
+import { tr } from '@/lib/i18n'
 
 export interface CompareSource { label: string; md: string }
 
@@ -48,14 +49,14 @@ export function CompareView({ current, others, onPickFile, onApply, onClose }: P
       <div className="cmp-box" onMouseDown={(e) => e.stopPropagation()}>
         <div className="cmp-head">
           <Icon name="diag" size={16} />
-          <h3>文件比對</h3>
+          <h3>{tr('文件比對')}</h3>
           <span className="grow" />
-          <button className="icon-btn sm" onClick={onClose} title="關閉"><Icon name="close" size={14} /></button>
+          <button className="icon-btn sm" onClick={onClose} title={tr('關閉')}><Icon name="close" size={14} /></button>
         </div>
 
         <div className="cmp-bar">
           <span className="cmp-side a">A　{current.label}（目前文件）</span>
-          <span className="cmp-vs">比對</span>
+          <span className="cmp-vs">{tr('比對')}</span>
           <select
             className="tm-select" value={other && others.some((o) => o === other) ? others.indexOf(other) : -1}
             onChange={(e) => { setOther(others[+e.target.value] ?? null); setAccept(new Set()); setCursor(0) }}
@@ -63,23 +64,23 @@ export function CompareView({ current, others, onPickFile, onApply, onClose }: P
             {!others.includes(other as CompareSource) && <option value={-1}>{other ? `B　${other.label}` : '選擇要比對的文件…'}</option>}
             {others.map((o, i) => <option key={i} value={i}>B　{o.label}</option>)}
           </select>
-          <button className="btn ghost sm" onClick={async () => { const f = await onPickFile(); if (f) { setOther(f); setAccept(new Set()); setCursor(0) } }}>選擇檔案…</button>
+          <button className="btn ghost sm" onClick={async () => { const f = await onPickFile(); if (f) { setOther(f); setAccept(new Set()); setCursor(0) } }}>{tr('選擇檔案…')}</button>
         </div>
 
         {!other ? (
-          <p className="pop-empty">請選一份要比對的文件（其他已開啟的分頁，或從磁碟選擇）。</p>
+          <p className="pop-empty">{tr('請選一份要比對的文件（其他已開啟的分頁，或從磁碟選擇）。')}</p>
         ) : (
           <>
             <div className="cmp-bar">
               <span className="hist-hint">{changes.length ? `共 ${changes.length} 處不同` : 'A、B 的內容完全相同'}</span>
               <span className="grow" />
-              <button className="btn ghost sm" disabled={!changes.length} onClick={() => go(-1)}>↑ 上一處</button>
-              <button className="btn ghost sm" disabled={!changes.length} onClick={() => go(1)}>↓ 下一處</button>
-              <label className="check-row"><input type="checkbox" checked={showSame} onChange={(e) => setShowSame(e.target.checked)} />顯示相同段落</label>
+              <button className="btn ghost sm" disabled={!changes.length} onClick={() => go(-1)}>{tr('↑ 上一處')}</button>
+              <button className="btn ghost sm" disabled={!changes.length} onClick={() => go(1)}>{tr('↓ 下一處')}</button>
+              <label className="check-row"><input type="checkbox" checked={showSame} onChange={(e) => setShowSame(e.target.checked)} />{tr('顯示相同段落')}</label>
               <button className="btn sm" disabled={!accept.size} onClick={() => onApply(mergeHunks(hunks, accept))}>套用勾選的 {accept.size} 處</button>
-              <button className="btn ghost sm" disabled={!changes.length} onClick={() => setAccept(new Set(changes))}>全選</button>
+              <button className="btn ghost sm" disabled={!changes.length} onClick={() => setAccept(new Set(changes))}>{tr('全選')}</button>
             </div>
-            <div className="cmp-cols"><b>A（目前）</b><b>B（{other.label}）</b></div>
+            <div className="cmp-cols"><b>{tr('A（目前）')}</b><b>B（{other.label}）</b></div>
             <div className="cmp-body" ref={body}>
               {hunks.map((h, i) => {
                 if (h.kind === 'same') {
@@ -95,7 +96,7 @@ export function CompareView({ current, others, onPickFile, onApply, onClose }: P
                 const rows = Math.max(h.cur.length, h.old.length)
                 return (
                   <div key={i} data-h={i} className={`cmp-row change${changes[cursor] === i ? ' cur' : ''}`}>
-                    <label className="cmp-pick" title="套用 B 的內容到 A">
+                    <label className="cmp-pick" title={tr('套用 B 的內容到 A')}>
                       <input type="checkbox" checked={accept.has(i)} onChange={() => toggle(i)} />
                     </label>
                     <div className="cmp-pair">

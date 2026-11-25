@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { tr } from '@/lib/i18n'
 
 export interface PromptRequest {
   title: string
@@ -37,7 +38,7 @@ export function TextPrompt({ req }: { req: PromptRequest | null }) {
         />
         <div className="pop-actions">
           <button className="btn" onClick={() => done(value)}>{req.okLabel ?? '確定'}</button>
-          <button className="btn ghost" onClick={() => done(null)}>取消</button>
+          <button className="btn ghost" onClick={() => done(null)}>{tr('取消')}</button>
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { tr } from '@/lib/i18n'
 
 /** 重新打開文件、游標跳回上次落筆處時顯示；任何按鍵或點擊後消失。 */
 export function ResumeBubble({
@@ -26,7 +27,7 @@ export function ResumeBubble({
       className={`resume-bubble${shown ? ' in' : ''}${below ? ' below' : ''}`}
       style={{ left: Math.min(window.innerWidth - 40, Math.max(40, rect.left)), top: below ? rect.bottom + 12 : rect.top - 12 }}
     >
-      <b>上次寫到這裡</b>
+      <b>{tr('上次寫到這裡')}</b>
       {hint && <span>接續提示：{hint}</span>}
     </div>
   )

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { fmtClock, PRESETS, usePomodoro } from '@/lib/pomodoro'
 import { Ring } from './Panels'
 import { Icon } from './Icon'
+import { tr } from '@/lib/i18n'
 
 const POS_KEY = 'inkwell.pomo.pos.v1'
 interface Pos { x: number; y: number; pinned: boolean }
@@ -108,7 +109,7 @@ export function Pomodoro({ getWords, openSignal }: { getWords(): number; openSig
   if (!open) {
     if (idle || (!st.running && !st.pending)) return null
     return (
-      <button className={`pomo-chip${st.phase === 'rest' ? ' rest' : ''}${st.pending ? ' pending' : ''}`} style={style} onClick={() => setOpen(true)} title="展開番茄鐘">
+      <button className={`pomo-chip${st.phase === 'rest' ? ' rest' : ''}${st.pending ? ' pending' : ''}`} style={style} onClick={() => setOpen(true)} title={tr('展開番茄鐘')}>
         <Icon name="timer" size={14} />
         <b>{st.pending ? '專注完成' : fmtClock(st.left)}</b>
         <span>{st.pending ? '點開選擇' : phaseLabel}</span>
@@ -120,7 +121,7 @@ export function Pomodoro({ getWords, openSignal }: { getWords(): number; openSig
     <div ref={box} className="pomo-panel" style={style}>
       <div className={`pomo-head${pos.pinned ? ' pinned' : ''}`} onPointerDown={onDrag}>
         <Icon name="timer" size={15} />
-        <b>番茄鐘</b>
+        <b>{tr('番茄鐘')}</b>
         <span className="grow" />
         <button className="icon-btn sm" title={st.muted ? '已靜音（點一下開啟提示音）' : '提示音開啟（點一下靜音）'} onPointerDown={tap(() => setConfig({ muted: !st.muted }))}>
           <span aria-hidden>{st.muted ? '🔕' : '🔔'}</span>
@@ -128,7 +129,7 @@ export function Pomodoro({ getWords, openSignal }: { getWords(): number; openSig
         <button className={`icon-btn sm${pos.pinned ? ' on' : ''}`} title={pos.pinned ? '已固定位置（點一下可拖曳）' : '固定位置'} onPointerDown={tap(() => savePos({ ...pos, x: pos.x >= 0 ? pos.x : box.current?.getBoundingClientRect().left ?? 0, y: pos.y >= 0 ? pos.y : box.current?.getBoundingClientRect().top ?? 0, pinned: !pos.pinned }))}>
           <Icon name="pin" size={13} />
         </button>
-        <button className="icon-btn sm" title="關閉番茄鐘" onPointerDown={tap(() => setOpen(false))}>
+        <button className="icon-btn sm" title={tr('關閉番茄鐘')} onPointerDown={tap(() => setOpen(false))}>
           <Icon name="close" size={14} />
         </button>
       </div>
@@ -145,16 +146,16 @@ export function Pomodoro({ getWords, openSignal }: { getWords(): number; openSig
               {st.summary && st.summary.goal > 0 ? (st.summary.delta >= st.summary.goal ? ' · 達標 🎉' : ` · 離目標還差 ${st.summary.goal - st.summary.delta} 字`) : ''}
             </div>
             <div className="pomo-ctl">
-              <button className="btn" onClick={enterRest}>進入休息</button>
-              <button className="btn ghost" onClick={() => extend(5)}>延展 5 分鐘</button>
+              <button className="btn" onClick={enterRest}>{tr('進入休息')}</button>
+              <button className="btn ghost" onClick={() => extend(5)}>{tr('延展 5 分鐘')}</button>
             </div>
           </div>
         ) : (
           <>
             <div className="pomo-ctl">
               <button className="btn" onClick={toggle}>{st.running ? '暫停' : '開始'}</button>
-              <button className="btn ghost" onClick={reset}>重設</button>
-              <button className="btn ghost" onClick={skip}>跳過</button>
+              <button className="btn ghost" onClick={reset}>{tr('重設')}</button>
+              <button className="btn ghost" onClick={skip}>{tr('跳過')}</button>
             </div>
             {st.phase === 'work' && (st.running || goal > 0) && (
               <div className="pomo-words">
@@ -171,7 +172,7 @@ export function Pomodoro({ getWords, openSignal }: { getWords(): number; openSig
               {p.label}
             </button>
           ))}
-          <button className={`chip${custom || !isPreset ? ' on' : ''}`} onClick={() => setCustom(!custom)}>自訂</button>
+          <button className={`chip${custom || !isPreset ? ' on' : ''}`} onClick={() => setCustom(!custom)}>{tr('自訂')}</button>
         </div>
         {(custom || !isPreset) && (
           <div className="pomo-cfg">

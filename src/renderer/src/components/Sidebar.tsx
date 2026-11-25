@@ -217,10 +217,10 @@ function FileTree({
 
   return (
     <div className="tree" onContextMenu={(ev) => { ev.preventDefault(); setMenu({ x: ev.clientX, y: ev.clientY, entry: null }) }}>
-      {!entries && <div className="side-empty">載入中…</div>}
+      {!entries && <div className="side-empty">{tr('載入中…')}</div>}
       {entries && newRow(root, 0)}
       {entries && entries.length === 0 && !editing && (
-        <div className="side-empty">此資料夾中沒有 Markdown 檔案</div>
+        <div className="side-empty">{tr('此資料夾中沒有 Markdown 檔案')}</div>
       )}
       {entries && render(entries, 0)}
       {menu && (
@@ -262,7 +262,7 @@ function Outline({
 }) {
   const [drag, setDrag] = useState<number | null>(null)
   const [over, setOver] = useState<number | null>(null)
-  if (items.length === 0) return <div className="side-empty">尚無標題</div>
+  if (items.length === 0) return <div className="side-empty">{tr('尚無標題')}</div>
   const minLevel = Math.min(...items.map((i) => i.level))
   /** 游標在列的下半部時，落點是「該段落（含子標題）之後」 */
   const afterSection = (i: number) => {
@@ -381,7 +381,7 @@ function FolderSearch({
         />
       </div>
       <div className="fsearch-results">
-        {q.trim() && !busy && hits.length === 0 && <div className="side-empty">沒有找到結果</div>}
+        {q.trim() && !busy && hits.length === 0 && <div className="side-empty">{tr('沒有找到結果')}</div>}
         {[...groups.entries()].map(([path, list]) => (
           <div key={path} className="fgroup">
             <div className="fgroup-title">
@@ -424,6 +424,7 @@ export interface SidebarProps {
 }
 
 import logo from '../assets/logo.png'
+import { tr } from '@/lib/i18n'
 
 export function Sidebar(p: SidebarProps) {
   const [newSignal, setNewSignal] = useState(0)
@@ -442,12 +443,12 @@ export function Sidebar(p: SidebarProps) {
                   p.onTab('files')
                   setNewSignal((n) => n + 1)
                 }}
-                title="新建文件"
+                title={tr('新建文件')}
               >
                 <Icon name="plus" />
               </button>
             )}
-            <button className="icon-btn" onClick={p.onOpenFolder} title="開啟資料夾">
+            <button className="icon-btn" onClick={p.onOpenFolder} title={tr('開啟資料夾')}>
               <Icon name="folderOpen" />
             </button>
           </div>
@@ -476,7 +477,7 @@ export function Sidebar(p: SidebarProps) {
               />
             ) : (
               <div className="side-empty">
-                <p>尚未開啟資料夾</p>
+                <p>{tr('尚未開啟資料夾')}</p>
                 <button className="btn" onClick={p.onOpenFolder}>
                   開啟資料夾
                 </button>

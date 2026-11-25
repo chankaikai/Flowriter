@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { FEEDBACK_EMAIL, REPO_URL, type UpdateStatus } from '../../../shared/update'
+import { tr } from '@/lib/i18n'
 
 interface Props {
   version: string
@@ -42,22 +43,22 @@ export function AboutPanel({ version, status }: Props) {
     <div className="about">
       <div className="about-name">Flowiter</div>
       <div className="about-ver">版本 {version || '—'}</div>
-      <p className="about-desc">所見即所得的 Markdown 編輯器。檔案永遠是標準 Markdown，內容存在你自己的電腦上。</p>
+      <p className="about-desc">{tr('所見即所得的 Markdown 編輯器。檔案永遠是標準 Markdown，內容存在你自己的電腦上。')}</p>
 
-      <div className="about-sec">檢查更新</div>
+      <div className="about-sec">{tr('檢查更新')}</div>
       <div className={`about-upd ${status.state}`}>{updateText(status) || '點下面的按鈕檢查是否有新版本'}</div>
       <div className="about-row">
         {status.state === 'available' ? (
-          <button className="btn" onClick={() => void window.api.updateDownload()}>立即更新</button>
+          <button className="btn" onClick={() => void window.api.updateDownload()}>{tr('立即更新')}</button>
         ) : status.state === 'downloaded' ? (
-          <button className="btn" onClick={() => window.api.updateInstall()}>重啟並安裝</button>
+          <button className="btn" onClick={() => window.api.updateInstall()}>{tr('重啟並安裝')}</button>
         ) : (
-          <button className="btn" disabled={busy || status.state === 'dev'} onClick={() => void window.api.updateCheck()}>檢查更新</button>
+          <button className="btn" disabled={busy || status.state === 'dev'} onClick={() => void window.api.updateCheck()}>{tr('檢查更新')}</button>
         )}
       </div>
 
-      <div className="about-sec">說明與回饋</div>
-      <p className="about-desc">遇到問題、想要新功能，或有任何建議，歡迎來信：</p>
+      <div className="about-sec">{tr('說明與回饋')}</div>
+      <p className="about-desc">{tr('遇到問題、想要新功能，或有任何建議，歡迎來信：')}</p>
       <div className="about-mail">{FEEDBACK_EMAIL}</div>
       <div className="about-row">
         <button
@@ -68,12 +69,12 @@ export function AboutPanel({ version, status }: Props) {
         </button>
         <button className="btn ghost" onClick={copy}>{copied ? '已複製' : '複製信箱'}</button>
       </div>
-      <p className="about-hint">來信時附上版本號和操作步驟（最好附截圖），我們比較容易重現問題。</p>
+      <p className="about-hint">{tr('來信時附上版本號和操作步驟（最好附截圖），我們比較容易重現問題。')}</p>
 
-      <div className="about-sec">專案</div>
+      <div className="about-sec">{tr('專案')}</div>
       <div className="about-row">
-        <button className="btn ghost" onClick={() => window.api.openExternal(REPO_URL)}>GitHub 專案頁</button>
-        <button className="btn ghost" onClick={() => window.api.openExternal(`${REPO_URL}/releases`)}>版本紀錄</button>
+        <button className="btn ghost" onClick={() => window.api.openExternal(REPO_URL)}>{tr('GitHub 專案頁')}</button>
+        <button className="btn ghost" onClick={() => window.api.openExternal(`${REPO_URL}/releases`)}>{tr('版本紀錄')}</button>
       </div>
     </div>
   )
@@ -90,10 +91,10 @@ export function UpdateBanner({ status, onDismiss, onAbout }: { status: UpdateSta
         {status.state === 'downloaded' && `新版本 ${status.version ?? ''} 已就緒`}
       </div>
       <div className="upd-actions">
-        {status.state === 'available' && <button className="btn" onClick={() => void window.api.updateDownload()}>立即更新</button>}
-        {status.state === 'downloaded' && <button className="btn" onClick={() => window.api.updateInstall()}>重啟並安裝</button>}
-        <button className="btn ghost" onClick={onAbout}>詳情</button>
-        <button className="btn ghost" onClick={onDismiss}>稍後</button>
+        {status.state === 'available' && <button className="btn" onClick={() => void window.api.updateDownload()}>{tr('立即更新')}</button>}
+        {status.state === 'downloaded' && <button className="btn" onClick={() => window.api.updateInstall()}>{tr('重啟並安裝')}</button>}
+        <button className="btn ghost" onClick={onAbout}>{tr('詳情')}</button>
+        <button className="btn ghost" onClick={onDismiss}>{tr('稍後')}</button>
       </div>
     </div>
   )

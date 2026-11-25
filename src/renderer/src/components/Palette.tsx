@@ -4,6 +4,7 @@ import type { Cmd } from '@/lib/commands'
 import { formatKeys } from '@/lib/keys'
 import { fuzzyScore } from '@/lib/markdown'
 import { basename, stripExt } from '@/lib/path'
+import { tr } from '@/lib/i18n'
 
 interface Item {
   key: string
@@ -116,7 +117,7 @@ export function Palette({
         <div className="pal-list" ref={listRef}>
           {mode === 'files' && !folder && (
             <div className="pal-empty">
-              尚未開啟資料夾 <button className="btn sm" onClick={() => { onClose(); onOpenFolder() }}>開啟</button>
+              尚未開啟資料夾 <button className="btn sm" onClick={() => { onClose(); onOpenFolder() }}>{tr('開啟')}</button>
             </div>
           )}
           {items.map((it, i) => (
@@ -138,7 +139,7 @@ export function Palette({
             </div>
           ))}
           {open && items.length === 0 && (mode !== 'files' || folder) && (
-            <div className="pal-empty">沒有符合的項目</div>
+            <div className="pal-empty">{tr('沒有符合的項目')}</div>
           )}
         </div>
       </div>

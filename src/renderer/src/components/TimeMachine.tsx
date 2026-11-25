@@ -3,6 +3,7 @@ import { fmtTime, HistoryPanel } from './Panels'
 import { diffBlocks, findDeleted, mergeHunks, splitBlocks } from '@/lib/diff'
 import { parseOutline, sectionRange } from '@/lib/markdown'
 import { pickMemories, type Memory } from '@/lib/memories'
+import { tr } from '@/lib/i18n'
 
 type Tab = 'versions' | 'blocks' | 'trash' | 'section' | 'memory'
 const TABS: [Tab, string][] = [['versions', '版本'], ['blocks', '段落回滾'], ['trash', '垃圾桶'], ['section', '章節演進'], ['memory', '那年今天']]
@@ -61,9 +62,9 @@ function BlocksTab({ path, current, onRestore, onJump }: Props) {
   const snap = snaps?.find((s) => s.ts === ts) ?? snaps?.[0]
   const hunks = useMemo(() => (snap ? diffBlocks(splitBlocks(cur), splitBlocks(snap.md)) : []), [cur, snap])
   useEffect(() => setPick(new Set()), [snap?.ts])
-  if (!path) return <p className="pop-empty">先儲存檔案，才會開始記錄版本。</p>
-  if (!snaps) return <p className="pop-empty">讀取中…</p>
-  if (!snaps.length) return <p className="pop-empty">還沒有歷史版本。</p>
+  if (!path) return <p className="pop-empty">{tr('先儲存檔案，才會開始記錄版本。')}</p>
+  if (!snaps) return <p className="pop-empty">{tr('讀取中…')}</p>
+  if (!snaps.length) return <p className="pop-empty">{tr('還沒有歷史版本。')}</p>
   const changes = hunks.map((h, i) => [h, i] as const).filter(([h]) => h.kind === 'change')
   return (
     <>
@@ -80,7 +81,7 @@ function BlocksTab({ path, current, onRestore, onJump }: Props) {
                 <button
                   type="button" className="btn ghost sm"
                   onClick={(e) => { e.preventDefault(); onJump(h.cur[0].replace(/^\s*(#{1,6}\s+|>\s*|[-*+]\s+)/, '').replace(/[*_`~[\]]/g, '').slice(0, 30)) }}
-                >跳到目前位置</button>
+                >{tr('跳到目前位置')}</button>
               )}
               {h.cur.length > 0 && <pre className="tm-del">{h.cur.join('\n\n')}</pre>}
               {h.old.length > 0 && <pre className="tm-add">{h.old.join('\n\n')}</pre>}
@@ -100,12 +101,12 @@ function TrashTab({ path, current, onInsert }: Props) {
   const snaps = useSnaps(path, 80)
   const cur = useMemo(() => current(), [current])
   const items = useMemo(() => (snaps ? findDeleted(cur, snaps).slice(0, 60) : []), [snaps, cur])
-  if (!path) return <p className="pop-empty">先儲存檔案，才會開始記錄版本。</p>
-  if (!snaps) return <p className="pop-empty">讀取中…</p>
-  if (!items.length) return <p className="pop-empty">沒有找到被刪掉的段落。</p>
+  if (!path) return <p className="pop-empty">{tr('先儲存檔案，才會開始記錄版本。')}</p>
+  if (!snaps) return <p className="pop-empty">{tr('讀取中…')}</p>
+  if (!items.length) return <p className="pop-empty">{tr('沒有找到被刪掉的段落。')}</p>
   return (
     <>
-      <div className="hist-hint">這些段落曾經存在，現在已不在文件裡（短於 12 字的略過）。</div>
+      <div className="hist-hint">{tr('這些段落曾經存在，現在已不在文件裡（短於 12 字的略過）。')}</div>
       <div className="tm-list">
         {items.map((it, i) => (
           <div key={i} className="tm-hunk">
@@ -113,7 +114,7 @@ function TrashTab({ path, current, onInsert }: Props) {
               <small className="tm-when">{fmtTime(it.ts)} 還在</small>
               <pre className="tm-add">{it.text.length > 400 ? it.text.slice(0, 400) + '…' : it.text}</pre>
             </span>
-            <button className="btn ghost" onClick={() => onInsert(it.text)}>插回游標處</button>
+            <button className="btn ghost" onClick={() => onInsert(it.text)}>{tr('插回游標處')}</button>
           </div>
         ))}
       </div>
@@ -146,14 +147,14 @@ function SectionTab({ path, current }: Props) {
     }
     return out.reverse()
   }, [snaps, title])
-  if (!path) return <p className="pop-empty">先儲存檔案，才會開始記錄版本。</p>
-  if (!heads.length) return <p className="pop-empty">文件裡還沒有標題。</p>
+  if (!path) return <p className="pop-empty">{tr('先儲存檔案，才會開始記錄版本。')}</p>
+  if (!heads.length) return <p className="pop-empty">{tr('文件裡還沒有標題。')}</p>
   return (
     <>
       <select className="tm-select" value={h} onChange={(e) => { setH(+e.target.value); setOpen(null) }}>
         {heads.map((x, i) => <option key={i} value={i}>{'　'.repeat(x.level - 1)}{x.text}</option>)}
       </select>
-      {!snaps ? <p className="pop-empty">讀取中…</p> : !rows.length ? <p className="pop-empty">歷史版本裡沒有這個章節。</p> : (
+      {!snaps ? <p className="pop-empty">{tr('讀取中…')}</p> : !rows.length ? <p className="pop-empty">{tr('歷史版本裡沒有這個章節。')}</p> : (
         <div className="tm-list">
           {rows.map((r, i) => (
             <div key={r.ts} className="tm-hunk" style={{ display: 'block' }}>
@@ -190,15 +191,15 @@ function MemoryTab() {
       live = false
     }
   }, [])
-  if (!mem) return <p className="pop-empty">讀取中…</p>
-  if (!mem.length) return <p className="pop-empty">今天前後還沒有舊時的快照。寫得越久，這裡越有東西。</p>
+  if (!mem) return <p className="pop-empty">{tr('讀取中…')}</p>
+  if (!mem.length) return <p className="pop-empty">{tr('今天前後還沒有舊時的快照。寫得越久，這裡越有東西。')}</p>
   return (
     <div className="tm-list">
       {mem.map((m) => (
         <div key={`${m.key}-${m.ts}`} className="tm-card">
           <small className="tm-when">{m.label} · {new Date(m.ts).toLocaleDateString()} · {m.name}</small>
           <div>{m.excerpt || '（空白）'}</div>
-          <button className="btn ghost" onClick={() => void window.api.historyReadKey(m.key, m.ts).then((t) => t && navigator.clipboard.writeText(t))}>複製全文</button>
+          <button className="btn ghost" onClick={() => void window.api.historyReadKey(m.key, m.ts).then((t) => t && navigator.clipboard.writeText(t))}>{tr('複製全文')}</button>
         </div>
       ))}
     </div>

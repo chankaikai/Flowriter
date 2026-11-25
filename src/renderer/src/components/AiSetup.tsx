@@ -3,6 +3,7 @@ import { PROVIDERS, providerOf, resolveAi, type AiPrefs } from '@/lib/ai'
 import { balanceKind, isLocalUrl } from '../../../shared/aiHosts'
 import { fmtTokens, loadUsage, readUsage } from '@/lib/aiUsage'
 import { dayKey } from '@/lib/writing'
+import { tr } from '@/lib/i18n'
 
 type Update = (patch: Partial<AiPrefs>) => void
 
@@ -46,9 +47,9 @@ function QuotaBlock({ prefs }: { prefs: AiPrefs }) {
   }
   return (
     <div className="ai-quota">
-      <div className="ai-quota-title">額度與用量</div>
+      <div className="ai-quota-title">{tr('額度與用量')}</div>
       {local ? (
-        <p className="hist-hint">本機模型沒有帳戶額度，不計費；實際上限取決於模型的上下文長度與你的記憶體。</p>
+        <p className="hist-hint">{tr('本機模型沒有帳戶額度，不計費；實際上限取決於模型的上下文長度與你的記憶體。')}</p>
       ) : canQuery ? (
         <div className="ai-test">
           <button className="btn ghost" disabled={bal.s === 'busy'} onClick={() => void query()}>
@@ -61,7 +62,7 @@ function QuotaBlock({ prefs }: { prefs: AiPrefs }) {
         <p className="hist-hint">
           {cfg.provider.label} 沒有公開的餘額查詢介面，無法在這裡顯示剩餘額度。
           {cfg.provider.consoleUrl && (
-            <> <a href="#" onClick={(e) => { e.preventDefault(); window.api.openExternal(cfg.provider.consoleUrl!) }}>到控制台查看餘額與用量</a></>
+            <> <a href="#" onClick={(e) => { e.preventDefault(); window.api.openExternal(cfg.provider.consoleUrl!) }}>{tr('到控制台查看餘額與用量')}</a></>
           )}
         </p>
       )}
@@ -83,7 +84,7 @@ export function AiSetup({ s, update, compact }: { s: AiPrefs; update: Update; co
     <div className={`ai-setup${compact ? ' compact' : ''}`}>
       <div className="ai-grid">
         <label>
-          <span>服務商</span>
+          <span>{tr('服務商')}</span>
           <select className="ai-input" value={p.id} onChange={(e) => update({ aiProvider: e.target.value })}>
             {PROVIDERS.map((x) => (
               <option key={x.id} value={x.id}>
@@ -93,7 +94,7 @@ export function AiSetup({ s, update, compact }: { s: AiPrefs; update: Update; co
           </select>
         </label>
         <label>
-          <span>模型</span>
+          <span>{tr('模型')}</span>
           <input
             className="ai-input" list={listId} spellCheck={false}
             placeholder={p.models[0] || '模型名稱'}
@@ -112,14 +113,14 @@ export function AiSetup({ s, update, compact }: { s: AiPrefs; update: Update; co
       {!compact && (
         <>
           <label>
-            <span>回覆長度上限（max tokens）</span>
+            <span>{tr('回覆長度上限（max tokens）')}</span>
             <input
               className="ai-input" type="number" min={256} max={32768} step={256}
               value={s.aiMaxTokens ?? 4096}
               onChange={(e) => update({ aiMaxTokens: Math.max(256, Math.min(32768, Math.floor(+e.target.value || 4096))) })}
             />
           </label>
-          <p className="hist-hint">推理型模型（會先「思考」再回答）常把額度花在思考上；若改寫結果是空的，請調大這個值，或換成非推理模型。</p>
+          <p className="hist-hint">{tr('推理型模型（會先「思考」再回答）常把額度花在思考上；若改寫結果是空的，請調大這個值，或換成非推理模型。')}</p>
           <label>
             <span>{p.needsKey ? 'API 金鑰' : 'API 金鑰（可留空）'}</span>
             <input
@@ -130,7 +131,7 @@ export function AiSetup({ s, update, compact }: { s: AiPrefs; update: Update; co
             />
           </label>
           <label>
-            <span>服務網址（Base URL）</span>
+            <span>{tr('服務網址（Base URL）')}</span>
             <input
               className="ai-input" spellCheck={false} placeholder={p.baseUrl || 'https://…/v1'}
               value={s.aiBaseUrls[p.id] ?? ''}

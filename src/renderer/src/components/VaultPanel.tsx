@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { decryptJson, encryptJson } from '@/lib/vaultCrypto'
 import type { CapsuleMeta } from '../../../shared/types'
+import { tr } from '@/lib/i18n'
 
 type Tab = 'capsule' | 'drawer'
 
@@ -9,8 +10,8 @@ export function VaultPanel({ selection, onInsert }: { selection: string; onInser
   return (
     <>
       <div className="chips tm-tabs">
-        <button className={`chip${tab === 'capsule' ? ' on' : ''}`} onClick={() => setTab('capsule')}>時間膠囊</button>
-        <button className={`chip${tab === 'drawer' ? ' on' : ''}`} onClick={() => setTab('drawer')}>加密抽屜</button>
+        <button className={`chip${tab === 'capsule' ? ' on' : ''}`} onClick={() => setTab('capsule')}>{tr('時間膠囊')}</button>
+        <button className={`chip${tab === 'drawer' ? ' on' : ''}`} onClick={() => setTab('drawer')}>{tr('加密抽屜')}</button>
       </div>
       {tab === 'capsule' ? <Capsules selection={selection} onInsert={onInsert} /> : <Drawer />}
     </>
@@ -46,11 +47,11 @@ function Capsules({ selection, onInsert }: { selection: string; onInsert(md: str
   }
   return (
     <>
-      <div className="hist-hint">封存一段文字，到你選的時間之前無法開啟。這是依本機時鐘判斷的「軟鎖」，不是加密；需要真正保密請用加密抽屜。</div>
-      <input className="vault-input" placeholder="標題（選填）" value={title} onChange={(e) => setTitle(e.target.value)} />
-      <textarea className="vault-text" placeholder="要封存的內容（已帶入目前選取的文字）" value={text} onChange={(e) => setText(e.target.value)} />
+      <div className="hist-hint">{tr('封存一段文字，到你選的時間之前無法開啟。這是依本機時鐘判斷的「軟鎖」，不是加密；需要真正保密請用加密抽屜。')}</div>
+      <input className="vault-input" placeholder={tr('標題（選填）')} value={title} onChange={(e) => setTitle(e.target.value)} />
+      <textarea className="vault-text" placeholder={tr('要封存的內容（已帶入目前選取的文字）')} value={text} onChange={(e) => setText(e.target.value)} />
       <input className="vault-input" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
-      <div className="pop-actions"><button className="btn" onClick={() => void create()}>封存</button></div>
+      <div className="pop-actions"><button className="btn" onClick={() => void create()}>{tr('封存')}</button></div>
       {msg && <div className="hist-hint">{msg}</div>}
       <div className="tm-list">
         {(list ?? []).map((c) => {
@@ -60,8 +61,8 @@ function Capsules({ selection, onInsert }: { selection: string; onInsert(md: str
               <b>{c.title}</b>
               <small className="tm-when">{locked ? `🔒 ${new Date(c.unlockAt).toLocaleString()} 開啟` : '已到期，可以開啟'}</small>
               <div className="pop-actions">
-                <button className="btn ghost" disabled={locked} onClick={() => void window.api.capsuleOpen(c.id).then((r) => r.ok && setOpened({ title: r.title, text: r.text }))}>開啟</button>
-                <button className="btn ghost" onClick={() => void window.api.capsuleDelete(c.id).then(reload)}>刪除</button>
+                <button className="btn ghost" disabled={locked} onClick={() => void window.api.capsuleOpen(c.id).then((r) => r.ok && setOpened({ title: r.title, text: r.text }))}>{tr('開啟')}</button>
+                <button className="btn ghost" onClick={() => void window.api.capsuleDelete(c.id).then(reload)}>{tr('刪除')}</button>
               </div>
             </div>
           )
@@ -72,8 +73,8 @@ function Capsules({ selection, onInsert }: { selection: string; onInsert(md: str
           <b>{opened.title}</b>
           <div style={{ whiteSpace: 'pre-wrap' }}>{opened.text}</div>
           <div className="pop-actions">
-            <button className="btn ghost" onClick={() => onInsert(opened.text)}>插入文件</button>
-            <button className="btn ghost" onClick={() => setOpened(null)}>關閉</button>
+            <button className="btn ghost" onClick={() => onInsert(opened.text)}>{tr('插入文件')}</button>
+            <button className="btn ghost" onClick={() => setOpened(null)}>{tr('關閉')}</button>
           </div>
         </div>
       )}
@@ -122,7 +123,7 @@ function Drawer() {
     setDirty(false)
   }
 
-  if (blob === undefined) return <p className="pop-empty">讀取中…</p>
+  if (blob === undefined) return <p className="pop-empty">{tr('讀取中…')}</p>
 
   if (entries) {
     return (
@@ -132,14 +133,14 @@ function Drawer() {
             <div key={en.id} className="tm-card">
               <input className="vault-input" value={en.title} onChange={(e) => { setDirty(true); setEntries(entries.map((x, k) => (k === i ? { ...x, title: e.target.value } : x))) }} />
               <textarea className="vault-text" value={en.text} onChange={(e) => { setDirty(true); setEntries(entries.map((x, k) => (k === i ? { ...x, text: e.target.value } : x))) }} />
-              <button className="btn ghost" onClick={() => { setDirty(true); setEntries(entries.filter((_, k) => k !== i)) }}>刪除這則</button>
+              <button className="btn ghost" onClick={() => { setDirty(true); setEntries(entries.filter((_, k) => k !== i)) }}>{tr('刪除這則')}</button>
             </div>
           ))}
         </div>
         <div className="pop-actions">
-          <button className="btn ghost" onClick={() => { setDirty(true); setEntries([...entries, { id: String(Date.now()), title: '新的一則', text: '' }]) }}>新增一則</button>
-          <button className="btn" disabled={busy || !dirty} onClick={() => void save(entries)}>加密儲存</button>
-          <button className="btn ghost" onClick={lock}>鎖上</button>
+          <button className="btn ghost" onClick={() => { setDirty(true); setEntries([...entries, { id: String(Date.now()), title: '新的一則', text: '' }]) }}>{tr('新增一則')}</button>
+          <button className="btn" disabled={busy || !dirty} onClick={() => void save(entries)}>{tr('加密儲存')}</button>
+          <button className="btn ghost" onClick={lock}>{tr('鎖上')}</button>
         </div>
         {msg && <div className="hist-hint">{msg}</div>}
       </>
@@ -149,9 +150,9 @@ function Drawer() {
   if (blob) {
     return (
       <>
-        <div className="hist-hint">輸入密碼解鎖。內容以 AES-256-GCM 加密，只存在這台電腦上。</div>
-        <input className="vault-input" type="password" placeholder="密碼" value={pw} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void unlock()} />
-        <div className="pop-actions"><button className="btn" disabled={busy || !pw} onClick={() => void unlock()}>解鎖</button></div>
+        <div className="hist-hint">{tr('輸入密碼解鎖。內容以 AES-256-GCM 加密，只存在這台電腦上。')}</div>
+        <input className="vault-input" type="password" placeholder={tr('密碼')} value={pw} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void unlock()} />
+        <div className="pop-actions"><button className="btn" disabled={busy || !pw} onClick={() => void unlock()}>{tr('解鎖')}</button></div>
         {msg && <div className="hist-hint">{msg}</div>}
       </>
     )
@@ -159,9 +160,9 @@ function Drawer() {
 
   return (
     <>
-      <div className="hist-hint">建立加密抽屜，放不想被別人看到的草稿或筆記。密碼不會被儲存，忘記就無法找回。</div>
-      <input className="vault-input" type="password" placeholder="設定密碼（至少 8 個字元）" value={pw} onChange={(e) => setPw(e.target.value)} />
-      <input className="vault-input" type="password" placeholder="再輸入一次" value={pw2} onChange={(e) => setPw2(e.target.value)} />
+      <div className="hist-hint">{tr('建立加密抽屜，放不想被別人看到的草稿或筆記。密碼不會被儲存，忘記就無法找回。')}</div>
+      <input className="vault-input" type="password" placeholder={tr('設定密碼（至少 8 個字元）')} value={pw} onChange={(e) => setPw(e.target.value)} />
+      <input className="vault-input" type="password" placeholder={tr('再輸入一次')} value={pw2} onChange={(e) => setPw2(e.target.value)} />
       <div className="pop-actions">
         <button
           className="btn"
@@ -172,7 +173,7 @@ function Drawer() {
             const first: Entry[] = [{ id: String(Date.now()), title: '第一則', text: '' }]
             void save(first).then(() => setEntries(first))
           }}
-        >建立並開啟</button>
+        >{tr('建立並開啟')}</button>
       </div>
       {msg && <div className="hist-hint">{msg}</div>}
     </>

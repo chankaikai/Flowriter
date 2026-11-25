@@ -9,6 +9,7 @@ import { checkImages, healthCheck } from '@/lib/health'
 import { toAbsolutePath } from '@/lib/path'
 import type { HistoryItem } from '../../../shared/types'
 import { fmtTime } from './Panels'
+import { tr } from '@/lib/i18n'
 
 interface Props {
   path: string | null
@@ -51,9 +52,9 @@ export function Dashboard(p: Props) {
       <BadgeCard md={md} docDir={p.docDir} onJumpText={p.onJumpText} />
       <SnapCard path={p.path} md={md} onRestore={p.onRestore} />
       <div className="dash-actions">
-        <button className="btn ghost" onClick={p.onExportImage}>匯出分享長圖</button>
-        <button className="btn ghost" onClick={p.onCopyClean}>複製乾淨 Markdown</button>
-        <button className="btn ghost" onClick={p.onStyleCheck}>文風與語病檢查</button>
+        <button className="btn ghost" onClick={p.onExportImage}>{tr('匯出分享長圖')}</button>
+        <button className="btn ghost" onClick={p.onCopyClean}>{tr('複製乾淨 Markdown')}</button>
+        <button className="btn ghost" onClick={p.onStyleCheck}>{tr('文風與語病檢查')}</button>
       </div>
     </div>
   )
@@ -75,7 +76,7 @@ function WordsCard({ md, data, goal, onGoal, onTarget }: Props & { md: string })
   const days = lastDays(data, 14)
   const max = Math.max(goal, ...days.map((d) => d.words), 1)
   return (
-    <Card title="字數與目標">
+    <Card title={tr('字數與目標')}>
       <div className="dash-top">
         <Ring value={target ? words / target : today / goal} size={104}>
           <b>{words.toLocaleString()}</b>
@@ -88,7 +89,7 @@ function WordsCard({ md, data, goal, onGoal, onTarget }: Props & { md: string })
             ) : (
               <>
                 <input
-                  className="ai-input sm" autoFocus inputMode="numeric" value={edit} placeholder="例如 3000"
+                  className="ai-input sm" autoFocus inputMode="numeric" value={edit} placeholder={tr('例如 3000')}
                   onChange={(e) => setEdit(e.target.value.replace(/\D/g, ''))}
                   onKeyDown={(e) => {
                     if (e.nativeEvent.isComposing) return
@@ -96,7 +97,7 @@ function WordsCard({ md, data, goal, onGoal, onTarget }: Props & { md: string })
                     if (e.key === 'Escape') setEdit(null)
                   }}
                 />
-                <button className="btn sm" onClick={() => { onTarget(edit ? Math.max(1, +edit) : null); setEdit(null) }}>確定</button>
+                <button className="btn sm" onClick={() => { onTarget(edit ? Math.max(1, +edit) : null); setEdit(null) }}>{tr('確定')}</button>
               </>
             )}
           </div>
@@ -104,14 +105,14 @@ function WordsCard({ md, data, goal, onGoal, onTarget }: Props & { md: string })
         </div>
       </div>
       <div className="dash-row">
-        <span>今日新增 <b>{today.toLocaleString()}</b> / {goal.toLocaleString()}</span>
-        <span>連續 <b>{streak(data)}</b> 天</span>
+        <span>{tr('今日新增')} <b>{today.toLocaleString()}</b> / {goal.toLocaleString()}</span>
+        <span>{tr('連續')} <b>{streak(data)}</b> {tr('天')}</span>
         <span className="goal-step">
           <button className="icon-btn sm" onClick={() => onGoal(Math.max(100, goal - 100))}>−</button>
           <button className="icon-btn sm" onClick={() => onGoal(Math.min(20000, goal + 100))}>＋</button>
         </span>
       </div>
-      <div className="bars" aria-label="近 14 天">
+      <div className="bars" aria-label={tr('近 14 天')}>
         {days.map((d) => (
           <div key={d.key} className="bar" title={`${d.key}：${d.words} 字`}>
             <i className={d.words >= goal ? 'hit' : ''} style={{ height: `${Math.max(3, (d.words / max) * 100)}%` }} />
@@ -131,9 +132,9 @@ function ChaptersCard({ md, path, onJumpText, onJumpPos }: { md: string; path: s
   const bm = path ? getBookmark(path) : null
   const pos = latest?.pos ?? bm?.pos ?? 0
   return (
-    <Card title="章節平衡">
+    <Card title={tr('章節平衡')}>
       {ch.length === 0 ? (
-        <p className="pop-empty">還沒有標題，無法分章。</p>
+        <p className="pop-empty">{tr('還沒有標題，無法分章。')}</p>
       ) : (
         <>
           <div className="chap-bar">
@@ -147,7 +148,7 @@ function ChaptersCard({ md, path, onJumpText, onJumpPos }: { md: string; path: s
       {pos > 0 && (
         <button className="dash-bm" onClick={() => onJumpPos(pos)}>
           <Icon name="pin" size={14} />
-          <span><b>上次寫到這裡</b>{latest?.hint ? `：${latest.hint}` : ''}</span>
+          <span><b>{tr('上次寫到這裡')}</b>{latest?.hint ? `：${latest.hint}` : ''}</span>
         </button>
       )}
     </Card>
@@ -158,9 +159,9 @@ function ChaptersCard({ md, path, onJumpText, onJumpPos }: { md: string; path: s
 function TodoCard({ md, onToggleTask, onJumpText }: { md: string; onToggleTask(i: number, c: boolean): void; onJumpText(t: string): void }) {
   const todos = useMemo(() => scanTodos(md), [md])
   const counts = useMemo(() => taskCounts(md), [md])
-  if (!todos.length) return <Card title="未完成事項"><p className="pop-empty">沒有未完成的任務或標記。</p></Card>
+  if (!todos.length) return <Card title={tr('未完成事項')}><p className="pop-empty">{tr('沒有未完成的任務或標記。')}</p></Card>
   return (
-    <Card title="未完成事項" hint={counts.total ? `${counts.done}/${counts.total} 任務完成` : undefined}>
+    <Card title={tr('未完成事項')} hint={counts.total ? `${counts.done}/${counts.total} 任務完成` : undefined}>
       <div className="tm-list">
         {todos.slice(0, 60).map((t, i) =>
           t.kind === 'task' ? (
@@ -196,17 +197,17 @@ function BadgeCard({ md, docDir, onJumpText }: { md: string; docDir: string | nu
   const chips: [string, number][] = [['圖片', b.images], ['表格', b.tables], ['代碼塊', b.code], ['公式', b.math], ['連結', b.links], ['腳註', b.footnotes]]
   const lines = md.split('\n')
   return (
-    <Card title="內容與版面">
-      <div className="badges">{chips.filter(([, n]) => n > 0).map(([k, n]) => <span key={k}>{k} {n}</span>)}{chips.every(([, n]) => !n) && <span>純文字</span>}</div>
+    <Card title={tr('內容與版面')}>
+      <div className="badges">{chips.filter(([, n]) => n > 0).map(([k, n]) => <span key={k}>{k} {n}</span>)}{chips.every(([, n]) => !n) && <span>{tr('純文字')}</span>}</div>
       {lay.length === 0 && missing.length === 0 ? (
-        <div className="hist-hint">版面沒有發現問題。</div>
+        <div className="hist-hint">{tr('版面沒有發現問題。')}</div>
       ) : (
         <div className="tm-list">
           {lay.map((i, k) => (
-            <button key={`l${k}`} className="diag-row lv-warn" onClick={() => onJumpText(i.snippet)}><b>版面</b><span>{i.message}</span></button>
+            <button key={`l${k}`} className="diag-row lv-warn" onClick={() => onJumpText(i.snippet)}><b>{tr('版面')}</b><span>{i.message}</span></button>
           ))}
           {missing.map((m, k) => (
-            <button key={`m${k}`} className="diag-row lv-error" onClick={() => onJumpText((lines[m.line] ?? '').replace(/!\[|\]\([^)]*\)/g, ' ').trim().slice(0, 30))}><b>缺圖</b><span>第 {m.line + 1} 行 · 找不到 {m.src}</span></button>
+            <button key={`m${k}`} className="diag-row lv-error" onClick={() => onJumpText((lines[m.line] ?? '').replace(/!\[|\]\([^)]*\)/g, ' ').trim().slice(0, 30))}><b>{tr('缺圖')}</b><span>第 {m.line + 1} 行 · 找不到 {m.src}</span></button>
           ))}
         </div>
       )}
@@ -226,11 +227,11 @@ function SnapCard({ path, md, onRestore }: { path: string | null; md: string; on
     })
   }, [path])
   useEffect(load, [load])
-  if (!path) return <Card title="時光機"><p className="pop-empty">先儲存檔案，才會開始記錄版本。</p></Card>
-  if (!snaps) return <Card title="時光機"><p className="pop-empty">讀取中…</p></Card>
-  if (!snaps.length) return <Card title="時光機"><p className="pop-empty">還沒有歷史版本。</p></Card>
+  if (!path) return <Card title={tr('時光機')}><p className="pop-empty">{tr('先儲存檔案，才會開始記錄版本。')}</p></Card>
+  if (!snaps) return <Card title={tr('時光機')}><p className="pop-empty">{tr('讀取中…')}</p></Card>
+  if (!snaps.length) return <Card title={tr('時光機')}><p className="pop-empty">{tr('還沒有歷史版本。')}</p></Card>
   return (
-    <Card title="時光機" hint="最近 5 個版本">
+    <Card title={tr('時光機')} hint="最近 5 個版本">
       <div className="tm-list">
         {snaps.map((s) => {
           const hunks = open === s.ts ? diffBlocks(splitBlocks(md), splitBlocks(s.md)).filter((h) => h.kind === 'change') : null
@@ -239,7 +240,7 @@ function SnapCard({ path, md, onRestore }: { path: string | null; md: string; on
             <div key={s.ts} className="snap-row">
               <div className="snap-head">
                 <button onClick={() => setOpen(open === s.ts ? null : s.ts)}>{s.tag ? `★ ${s.tag}` : '快照'} · {fmtTime(s.ts)}</button>
-                <button className="btn ghost sm" onClick={() => onRestore(s.md)}>還原</button>
+                <button className="btn ghost sm" onClick={() => onRestore(s.md)}>{tr('還原')}</button>
               </div>
               {hunks && (
                 <div className="snap-diff">
