@@ -14,6 +14,7 @@ import { listScoreParts } from '@/lib/music/scoreParts'
 import { createGongcheRenderer } from '@/lib/music/gongcheRender'
 import { gongcheEdit } from '@/lib/music/gongcheEdit'
 import { GONGCHE_CHARS } from '@/lib/music/gongche'
+import { createLilypondRenderer } from '@/lib/music/lilypondRenderer'
 import { createTabRenderer } from '@/lib/music/tabRenderer'
 import { tabEdit, type TabTool } from '@/lib/music/tabEdit'
 import type { MusicRenderer } from '@/lib/music/types'
@@ -129,7 +130,7 @@ function create(lang: MusicLang, source: string, key: string, reg: Reg): Block {
   const err = document.createElement('div')
   err.className = 'music-err'
   el.append(bar, mount, err)
-  const b: Block = { lang, el, mount, err, bar, select, playBtn, engine: lang === 'abc' ? createAbcRenderer() : lang === 'tab' ? createTabRenderer() : lang === 'gongche' ? createGongcheRenderer() : lang === 'mei' || lang === 'xml' ? createVerovioRenderer(lang) : createJianpuRenderer(), part: 'all', source, timer: 0, seq: 0, dead: false }
+  const b: Block = { lang, el, mount, err, bar, select, playBtn, engine: lang === 'abc' ? createAbcRenderer() : lang === 'tab' ? createTabRenderer() : lang === 'gongche' ? createGongcheRenderer() : lang === 'lilypond' ? createLilypondRenderer() : lang === 'mei' || lang === 'xml' ? createVerovioRenderer(lang) : createJianpuRenderer(), part: 'all', source, timer: 0, seq: 0, dead: false }
   select.addEventListener('change', () => {
     b.part = select.value
     schedule(b, true)

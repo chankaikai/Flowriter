@@ -254,7 +254,8 @@ body.show-weight .milkdown .ProseMirror p.pw-5 { border-left-color: var(--accent
 .music-err:empty { display: none; }
 html[data-tone='dark'] .music-block[data-lang='abc'] .music-mount svg,
 html[data-tone='dark'] .music-block[data-lang='mei'] .music-mount svg,
-html[data-tone='dark'] .music-block[data-lang='xml'] .music-mount svg { filter: invert(0.88) hue-rotate(180deg); }
+html[data-tone='dark'] .music-block[data-lang='xml'] .music-mount svg,
+html[data-tone='dark'] .music-block[data-lang='lilypond'] .music-mount svg { filter: invert(0.88) hue-rotate(180deg); }
 
 .music-warn { font-size: 12px; color: #b9811b; margin-bottom: 4px; text-align: left; }
 .jianpu-svg { display: block; margin: 0 auto; color: var(--fg); }
@@ -263,3 +264,6 @@ html[data-tone='dark'] .music-block[data-lang='xml'] .music-mount svg { filter: 
 .editor-col .milkdown .music-code-hidden { display: none !important; }
 .music-bar .music-hide { margin-left: auto; }
 .music-block { margin-top: 0; }
+
+.music-status { margin-bottom: 6px; font-size: 12px; color: var(--muted, #888); }
+.music-block[data-lang='lilypond'] .music-err { white-space: pre-wrap; max-height: 14em; overflow: auto; font-family: var(--font-mono, monospace); }

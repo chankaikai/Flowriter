@@ -14,7 +14,7 @@ export const MUSIC_LANGS = ['abc', 'jianpu', 'tab', 'mei', 'xml', 'gongche', 'li
 export type MusicLang = (typeof MUSIC_LANGS)[number]
 
 /** 這個階段已經實作的語言（其餘仍是普通代碼塊） */
-export const ACTIVE_MUSIC_LANGS: readonly MusicLang[] = ['abc', 'jianpu', 'tab', 'mei', 'xml', 'gongche']
+export const ACTIVE_MUSIC_LANGS: readonly MusicLang[] = ['abc', 'jianpu', 'tab', 'mei', 'xml', 'gongche', 'lilypond']
 
 export const isMusicLang = (l: string): l is MusicLang => (ACTIVE_MUSIC_LANGS as readonly string[]).includes(l)
 

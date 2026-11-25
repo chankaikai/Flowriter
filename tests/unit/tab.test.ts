@@ -32,7 +32,6 @@ describe('tab (alphaTex)', () => {
   it('tab is an active fence language', () => {
     expect(isMusicLang('tab')).toBe(true)
     expect(isMusicLang('mei')).toBe(true)
-    expect(isMusicLang('lilypond')).toBe(false)
   })
   it('default tuning is added only to the render copy and only when missing', () => {
     const src = '0.3 2.2 | 3.1'

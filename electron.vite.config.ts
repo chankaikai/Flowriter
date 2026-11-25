@@ -13,6 +13,8 @@ export default defineConfig({
     resolve: { alias: { '@': resolve('src/renderer/src') } },
     // Windows 常把 ::1（IPv6 localhost）的 5173 埠列入系統保留範圍，會出現 EACCES；固定綁 127.0.0.1
     server: { host: '127.0.0.1', port: 38417, strictPort: false },
+    // 預先打包會破壞這個套件的 Worker／wasm 相對路徑，讓 Vite 原樣處理
+    optimizeDeps: { exclude: ['@sightread/lilypond-wasm'] },
     build: { chunkSizeWarningLimit: 4000 }
   }
 })
