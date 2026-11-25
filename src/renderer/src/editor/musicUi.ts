@@ -7,6 +7,9 @@ import { isMusicLang, musicDebounce, type MusicLang } from '@/lib/music/types'
 import { listAbcParts } from '@/lib/music/abc'
 import { abcEdit, type AbcTool } from '@/lib/music/abcEdit'
 import { createAbcRenderer, MusicError } from '@/lib/music/abcRenderer'
+import { createJianpuRenderer } from '@/lib/music/jianpuRender'
+import { jianpuEdit, type JianpuTool } from '@/lib/music/jianpuEdit'
+import type { MusicRenderer } from '@/lib/music/types'
 
 /**
  * 樂譜預覽：語言命中（目前只有 abc）的圍欄代碼塊，下面畫一個唯讀的 widget。
@@ -14,7 +17,7 @@ import { createAbcRenderer, MusicError } from '@/lib/music/abcRenderer'
  * 所有樂譜庫都是動態 import：文件裡沒有對應圍欄就不會載入。
  */
 
-type Engine = ReturnType<typeof createAbcRenderer>
+type Engine = MusicRenderer & { play?(): Promise<void>; stop?(): void; playing?(): boolean }
 
 interface Block {
   lang: MusicLang
@@ -58,6 +61,7 @@ async function draw(b: Block): Promise<void> {
 }
 
 function syncParts(b: Block): void {
+  if (b.lang !== 'abc') return
   const parts = listAbcParts(b.source)
   // 原來的聲部還在就保持選擇，不在了回到總譜
   if (b.part !== 'all' && !parts.some((p) => p.id === b.part)) b.part = 'all'
@@ -72,6 +76,7 @@ function syncParts(b: Block): void {
 function create(lang: MusicLang, source: string): Block {
   const el = document.createElement('div')
   el.className = 'music-block'
+  el.dataset.lang = lang
   el.contentEditable = 'false'
   const bar = document.createElement('div')
   bar.className = 'music-bar'
@@ -81,28 +86,29 @@ function create(lang: MusicLang, source: string): Block {
   const playBtn = document.createElement('button')
   playBtn.className = 'music-play'
   playBtn.textContent = '▶ 播放'
-  bar.append(select, playBtn)
+  // 只有 abc 有聲部與播放；其他譜種這一階段不做播放
+  if (lang === 'abc') bar.append(select, playBtn)
   const mount = document.createElement('div')
   mount.className = 'music-mount'
   const err = document.createElement('div')
   err.className = 'music-err'
-  el.append(bar, mount, err)
-  const b: Block = { lang, el, mount, err, bar, select, playBtn, engine: createAbcRenderer(), part: 'all', source, timer: 0, seq: 0, dead: false }
+  el.append(...(lang === 'abc' ? [bar] : []), mount, err)
+  const b: Block = { lang, el, mount, err, bar, select, playBtn, engine: lang === 'abc' ? createAbcRenderer() : createJianpuRenderer(), part: 'all', source, timer: 0, seq: 0, dead: false }
   select.addEventListener('change', () => {
     b.part = select.value
     schedule(b, true)
   })
   playBtn.addEventListener('mousedown', (e) => e.preventDefault())
   playBtn.addEventListener('click', async () => {
-    if (b.engine.playing()) {
-      b.engine.stop()
+    if (b.engine.playing?.()) {
+      b.engine.stop?.()
       playBtn.textContent = '▶ 播放'
       return
     }
     playBtn.textContent = '載入音源…'
     try {
-      await b.engine.play()
-      playBtn.textContent = b.engine.playing() ? '■ 停止' : '▶ 播放'
+      await b.engine.play?.()
+      playBtn.textContent = b.engine.playing?.() ? '■ 停止' : '▶ 播放'
     } catch (e) {
       playBtn.textContent = '▶ 播放'
       err.textContent = e instanceof MusicError ? e.message : `無法播放：${String((e as Error)?.message ?? e).slice(0, 120)}`
@@ -171,19 +177,31 @@ function build(doc: PMNode): DecorationSet {
 
 /* ------------------------------ 工具列（游標在樂譜圍欄內才出現） ------------------------------ */
 
-interface ToolDef { tool: AbcTool; label: string; title: string }
+interface ToolDef { id: string; label: string; title: string }
 const ABC_TOOLS: ToolDef[] = [
-  { tool: 'treble', label: '高音譜號', title: '插入 V:1 clef=treble name=""' },
-  { tool: 'bass', label: '低音譜號', title: '插入 V:2 clef=bass name=""' },
-  { tool: 'alto', label: '中音譜號', title: '插入 V:3 clef=alto name=""' },
-  { tool: 'key', label: '調號', title: '插入 K:C；游標在 K: 行上則循環常見調' },
-  { tool: 'meter', label: '拍號', title: '插入 M:4/4；游標在 M: 行上則循環' },
-  { tool: 'slur', label: '連音線', title: '選區包上 ( )，沒有選區插入 ( C D E )' },
-  { tool: 'tie', label: '延音線', title: '在選區最後一個音後插入 -' },
-  { tool: 'triplet', label: '三連音', title: '選區變成 (3 …)，沒有選區插入 (3 C D E' },
-  { tool: 'ped', label: '踏板踩下', title: '插入 !ped!' },
-  { tool: 'pedUp', label: '踏板抬起', title: '插入 !ped-up!' }
+  { id: 'treble', label: '高音譜號', title: '插入 V:1 clef=treble name=""' },
+  { id: 'bass', label: '低音譜號', title: '插入 V:2 clef=bass name=""' },
+  { id: 'alto', label: '中音譜號', title: '插入 V:3 clef=alto name=""' },
+  { id: 'key', label: '調號', title: '插入 K:C；游標在 K: 行上則循環常見調' },
+  { id: 'meter', label: '拍號', title: '插入 M:4/4；游標在 M: 行上則循環' },
+  { id: 'slur', label: '連音線', title: '選區包上 ( )，沒有選區插入 ( C D E )' },
+  { id: 'tie', label: '延音線', title: '在選區最後一個音後插入 -' },
+  { id: 'triplet', label: '三連音', title: '選區變成 (3 …)，沒有選區插入 (3 C D E' },
+  { id: 'ped', label: '踏板踩下', title: '插入 !ped!' },
+  { id: 'pedUp', label: '踏板抬起', title: '插入 !ped-up!' }
 ]
+const JIANPU_TOOLS: ToolDef[] = [
+  { id: 'octUp', label: '高八度', title: "選中一個音符就加 '，否則插入 1'" },
+  { id: 'octDown', label: '低八度', title: '選中一個音符就加 ,，否則插入 1,' },
+  { id: 'dot', label: '附點', title: '給選中的音符加 .，否則插入 5.' },
+  { id: 'eighth', label: '八分', title: '給選中的音符加 /，否則插入 1/' },
+  { id: 'sixteenth', label: '十六分', title: '給選中的音符加 //，否則插入 1//' },
+  { id: 'dash', label: '延時線', title: '插入 -' },
+  { id: 'slur', label: '連音線', title: '選區包上 ( )，否則插入 (1 2 3)' },
+  { id: 'tuplet', label: '三連音', title: '插入 (3: 1 2 3)' },
+  { id: 'func', label: '功能標記', title: '在第一行下方插入 func: T（已有就不再插）' }
+]
+const TOOLS: Partial<Record<MusicLang, ToolDef[]>> = { abc: ABC_TOOLS, jianpu: JIANPU_TOOLS }
 
 function musicContext(v: EditorView): { node: PMNode; pos: number; lang: MusicLang } | null {
   const { $from } = v.state.selection
@@ -196,13 +214,16 @@ function musicContext(v: EditorView): { node: PMNode; pos: number; lang: MusicLa
   return null
 }
 
-function runTool(v: EditorView, tool: AbcTool): void {
+function runTool(v: EditorView, id: string): void {
   const ctx = musicContext(v)
-  if (!ctx || ctx.lang !== 'abc') return
+  if (!ctx) return
   const text = ctx.node.textContent
   const base = ctx.pos + 1
   const { from, to } = v.state.selection
-  const e = abcEdit(tool, text, Math.max(0, from - base), Math.max(0, to - base))
+  const a = Math.max(0, from - base)
+  const b = Math.max(0, to - base)
+  const e = ctx.lang === 'abc' ? abcEdit(id as AbcTool, text, a, b) : jianpuEdit(id as JianpuTool, text, a, b)
+  if (!e.insert && e.from === e.to) return // 不需要改（例如已經有 func: 行）
   const tr = v.state.tr
   if (e.insert) tr.insertText(e.insert, base + e.from, base + e.to)
   else tr.delete(base + e.from, base + e.to)
@@ -228,27 +249,30 @@ export const musicPlugin = $prose(
         bar.className = 'tb-bar music-tools'
         bar.style.display = 'none'
         document.body.appendChild(bar)
-        const makeButtons = () => {
+        let barLang: MusicLang | null = null
+        const makeButtons = (lang: MusicLang) => {
+          if (barLang === lang) return
+          barLang = lang
           bar.replaceChildren()
-          for (const t of ABC_TOOLS) {
+          for (const t of TOOLS[lang] ?? []) {
             const b = document.createElement('button')
             b.textContent = t.label
             b.title = t.title
             b.addEventListener('mousedown', (e) => e.preventDefault()) // 不搶走編輯器的焦點與選區
-            b.addEventListener('click', () => runTool(v, t.tool))
+            b.addEventListener('click', () => runTool(v, t.id))
             bar.appendChild(b)
           }
         }
-        makeButtons()
         let raf = 0
         const render = () => {
           raf = 0
           if (v.isDestroyed) return
           const ctx = v.hasFocus() || bar.matches(':hover') ? musicContext(v) : null
-          if (!ctx || ctx.lang !== 'abc') {
+          if (!ctx || !TOOLS[ctx.lang]) {
             if (!bar.matches(':hover')) bar.style.display = 'none'
             return
           }
+          makeButtons(ctx.lang)
           const el = v.nodeDOM(ctx.pos) as HTMLElement | null
           const rect = el?.getBoundingClientRect()
           if (!rect || rect.width === 0) {

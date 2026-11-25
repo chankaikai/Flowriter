@@ -134,6 +134,14 @@ const ABC_LANG = LanguageDescription.of({
   support: new LanguageSupport(StreamLanguage.define({ token: (stream) => (stream.skipToEnd(), null) }))
 })
 
+/** 簡譜圍欄：語言名固定為 jianpu；內文是純文字 */
+const JIANPU_LANG = LanguageDescription.of({
+  name: 'jianpu',
+  alias: ['jianpu'],
+  extensions: ['jianpu'],
+  support: new LanguageSupport(StreamLanguage.define({ token: (stream) => (stream.skipToEnd(), null) }))
+})
+
 export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownEditor(props, ref) {
   const rootRef = useRef<HTMLDivElement>(null)
   const crepeRef = useRef<Crepe | null>(null)
@@ -165,7 +173,7 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       featureConfigs: {
         [Crepe.Feature.Placeholder]: { text: '開始書寫…', mode: 'doc' },
         // 代碼塊的語言清單加入 Mermaid（內建清單沒有它），選了之後即時渲染成圖
-        [Crepe.Feature.CodeMirror]: { languages: [...languages, MERMAID_LANG, ABC_LANG] },
+        [Crepe.Feature.CodeMirror]: { languages: [...languages, MERMAID_LANG, ABC_LANG, JIANPU_LANG] },
         [Crepe.Feature.ImageBlock]: {
           onUpload: (file: File) => propsRef.current.uploadImage(file),
           proxyDomURL: (url: string) => propsRef.current.resolveImageUrl(url)
