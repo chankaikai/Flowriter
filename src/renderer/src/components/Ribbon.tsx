@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import type { Cmd } from '@/lib/commands'
 import { formatKeys } from '@/lib/keys'
 import { RIBBON } from '@/lib/menus'
