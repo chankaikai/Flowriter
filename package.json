@@ -1,6 +1,6 @@
 {
   "name": "flowiter",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Flowiter — 所見即所得的 Markdown 編輯器",
   "main": "./out/main/index.js",
   "license": "MIT",
