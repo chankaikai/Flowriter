@@ -126,6 +126,14 @@ const MERMAID_LANG = LanguageDescription.of({
   support: new LanguageSupport(StreamLanguage.define({ token: (stream) => (stream.skipToEnd(), null) }))
 })
 
+/** 樂譜圍欄：語言名固定為 abc（其餘譜種在後續階段加入）；內文是純文字，不做語法上色 */
+const ABC_LANG = LanguageDescription.of({
+  name: 'abc',
+  alias: ['abc'],
+  extensions: ['abc'],
+  support: new LanguageSupport(StreamLanguage.define({ token: (stream) => (stream.skipToEnd(), null) }))
+})
+
 export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownEditor(props, ref) {
   const rootRef = useRef<HTMLDivElement>(null)
   const crepeRef = useRef<Crepe | null>(null)
@@ -157,7 +165,7 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       featureConfigs: {
         [Crepe.Feature.Placeholder]: { text: '開始書寫…', mode: 'doc' },
         // 代碼塊的語言清單加入 Mermaid（內建清單沒有它），選了之後即時渲染成圖
-        [Crepe.Feature.CodeMirror]: { languages: [...languages, MERMAID_LANG] },
+        [Crepe.Feature.CodeMirror]: { languages: [...languages, MERMAID_LANG, ABC_LANG] },
         [Crepe.Feature.ImageBlock]: {
           onUpload: (file: File) => propsRef.current.uploadImage(file),
           proxyDomURL: (url: string) => propsRef.current.resolveImageUrl(url)

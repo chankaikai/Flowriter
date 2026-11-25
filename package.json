@@ -15,6 +15,7 @@
     "test:e2e": "electron-vite build && playwright test"
   },
   "dependencies": {
+    "abcjs": "^6.4.4",
     "electron-updater": "^6.6.2"
   },
   "devDependencies": {

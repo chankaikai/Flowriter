@@ -20,6 +20,7 @@ import remarkFrontmatter from 'remark-frontmatter'
 import { renderMermaid } from '@/lib/mermaid'
 import { runUiPlugin } from './runUi'
 import { tableUiPlugin } from './tableUi'
+import { musicPlugin } from './musicUi'
 import { normLock, touchesLocked, type Range } from '@/lib/locks'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -1105,6 +1106,7 @@ export const extraPlugins = [
   levelPlugin,
   flashPlugin,
   tableUiPlugin,
+  musicPlugin,
   runUiPlugin,
   calcPlugin,
   footnoteTipPlugin,

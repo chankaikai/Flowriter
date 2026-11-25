@@ -239,3 +239,13 @@ body.show-weight .milkdown .ProseMirror p.pw-5 { border-left-color: var(--accent
 .fm-del:hover { color: #d0463a; border-color: #d0463a; }
 .flash-hit { background: color-mix(in srgb, var(--accent) 38%, transparent); border-radius: 3px; animation: flash-hit 2.5s ease-out forwards; }
 @keyframes flash-hit { 0%, 60% { background: color-mix(in srgb, var(--accent) 45%, transparent); } 100% { background: transparent; } }
+
+/* 樂譜預覽 */
+.music-block { margin: -6px 0 14px; padding: 8px 12px 10px; border: 1px dashed var(--line); border-radius: 10px; background: var(--block-bg); user-select: none; overflow: hidden; }
+.music-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+.music-part, .music-play { font-size: 12px; padding: 2px 8px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--fg); }
+.music-mount { width: 100%; overflow: hidden; }
+.music-mount svg { width: 100% !important; height: auto; max-width: 100%; }
+.music-err { color: #d0463a; font-size: 12.5px; margin-top: 4px; }
+.music-err:empty { display: none; }
+html[data-tone='dark'] .music-mount svg { filter: invert(0.88) hue-rotate(180deg); }
