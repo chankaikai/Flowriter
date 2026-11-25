@@ -17,6 +17,7 @@
   "dependencies": {
     "abcjs": "^6.4.4",
     "@coderline/alphatab": "^1.8.2",
+    "verovio": "^6.4.1",
     "electron-updater": "^6.6.2"
   },
   "devDependencies": {

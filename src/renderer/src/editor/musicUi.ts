@@ -9,6 +9,8 @@ import { abcEdit, type AbcTool } from '@/lib/music/abcEdit'
 import { createAbcRenderer, MusicError } from '@/lib/music/abcRenderer'
 import { createJianpuRenderer } from '@/lib/music/jianpuRender'
 import { jianpuEdit, type JianpuTool } from '@/lib/music/jianpuEdit'
+import { createVerovioRenderer } from '@/lib/music/verovioRenderer'
+import { listScoreParts } from '@/lib/music/scoreParts'
 import { createTabRenderer } from '@/lib/music/tabRenderer'
 import { tabEdit, type TabTool } from '@/lib/music/tabEdit'
 import type { MusicRenderer } from '@/lib/music/types'
@@ -68,9 +70,15 @@ async function draw(b: Block): Promise<void> {
   b.playBtn.textContent = '▶ 播放'
 }
 
+function partsOf(b: Block): { id: string; name: string }[] {
+  if (b.lang === 'abc') return listAbcParts(b.source)
+  if (b.lang === 'mei' || b.lang === 'xml') return listScoreParts(b.lang, b.source)
+  return []
+}
+
 function syncParts(b: Block): void {
-  if (b.lang !== 'abc') return
-  const parts = listAbcParts(b.source)
+  if (b.lang !== 'abc' && b.lang !== 'mei' && b.lang !== 'xml') return
+  const parts = partsOf(b)
   // 原來的聲部還在就保持選擇，不在了回到總譜
   if (b.part !== 'all' && !parts.some((p) => p.id === b.part)) b.part = 'all'
   const show = parts.length >= 2
@@ -110,7 +118,7 @@ function create(lang: MusicLang, source: string, key: string, reg: Reg): Block {
     const v = reg.view
     if (v && !v.isDestroyed) v.dispatch(v.state.tr.setMeta(musicKey, 'rebuild'))
   })
-  if (lang === 'abc') bar.append(select)
+  if (lang === 'abc' || lang === 'mei' || lang === 'xml') bar.append(select)
   if (lang === 'abc' || lang === 'tab') bar.append(playBtn)
   bar.append(hideBtn)
   const mount = document.createElement('div')
@@ -118,7 +126,7 @@ function create(lang: MusicLang, source: string, key: string, reg: Reg): Block {
   const err = document.createElement('div')
   err.className = 'music-err'
   el.append(bar, mount, err)
-  const b: Block = { lang, el, mount, err, bar, select, playBtn, engine: lang === 'abc' ? createAbcRenderer() : lang === 'tab' ? createTabRenderer() : createJianpuRenderer(), part: 'all', source, timer: 0, seq: 0, dead: false }
+  const b: Block = { lang, el, mount, err, bar, select, playBtn, engine: lang === 'abc' ? createAbcRenderer() : lang === 'tab' ? createTabRenderer() : lang === 'mei' || lang === 'xml' ? createVerovioRenderer(lang) : createJianpuRenderer(), part: 'all', source, timer: 0, seq: 0, dead: false }
   select.addEventListener('change', () => {
     b.part = select.value
     schedule(b, true)
@@ -154,6 +162,8 @@ function build(doc: PMNode, reg: Reg): DecorationSet {
     if (node.type.name !== 'code_block') return
     const lang = String(node.attrs.language ?? '').trim().toLowerCase()
     if (!isMusicLang(lang)) return
+    // xml 圍欄很常是普通的 XML 範例；不是 MusicXML 的就維持一般代碼塊，不顯示譜面也不報錯
+    if (lang === 'xml' && !/<score-(partwise|timewise)[\s>]/.test(node.textContent)) return
     const n = (counts[lang] = (counts[lang] ?? -1) + 1)
     const key = keyOf(lang, n)
     alive.add(key)
