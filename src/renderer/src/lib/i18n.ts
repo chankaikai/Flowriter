@@ -1,7 +1,7 @@
 /**
  * 介面語言。語言清單與歡迎畫面的各國「你好」一致。
- * 目前翻譯的範圍是「外框」：選單列、功能區分頁與群組名稱、設定面板的卡片標題；
- * 功能區按鈕、面板內文等尚未翻譯的字串會維持繁體中文。
+ * 翻譯範圍：選單列、功能區（分頁／群組／按鈕）、命令標題與提示、設定卡片標題。
+ * 非中文語言查不到的字串退回英文；簡體中文做逐字轉換。面板內文尚未全部涵蓋。
  * 做法：以繁體中文原文當鍵，查不到就原樣顯示。
  */
 export const LANGS = [
@@ -20,6 +20,8 @@ export const LANGS = [
   { id: 'pt', label: 'Português' }
 ] as const
 export type LangId = (typeof LANGS)[number]['id']
+
+import { EN, toSimplified } from './i18nExtra'
 
 const KEYS = [
   '檔案', '編輯', '插入', '格式', '檢視', '工具', '說明', '常用', '匯出', '復原',
@@ -58,7 +60,12 @@ export function setLang(id: string): void {
 export const getLang = (): string => current
 /** 翻譯一個繁體中文原文；沒有對應就原樣回傳 */
 export function tr(zh: string): string {
-  return TABLES[current]?.get(zh) ?? zh
+  if (current === 'zh-TW') return zh
+  const hit = TABLES[current]?.get(zh)
+  if (hit) return hit
+  if (current === 'zh-CN') return toSimplified(zh)
+  // 其他語言：查不到就退回英文，再不行才顯示原文
+  return EN[zh] ?? zh
 }
 export const I18N_KEYS = KEYS
 export const I18N_TABLES = D

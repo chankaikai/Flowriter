@@ -67,19 +67,23 @@
 .editor-col .milkdown .milkdown-code-block .search-box input { font-size: 12px; padding: 4px 8px; }
 .editor-col .milkdown .milkdown-code-block .language-button { font-size: 12px; }
 
-/* 列表：圓點／數字與第一行文字垂直對齊，項目間距收緊 */
-.editor-col .milkdown .milkdown-list-item-block li { margin: 0; }
-.editor-col .milkdown .milkdown-list-item-block .list-item { align-items: flex-start; gap: 4px; }
+/* 列表：標記（圓點／數字／勾選框）所在的盒子高度 = 一行文字的行高，隨 --fs × --lh 一起縮放 */
+.editor-col .milkdown .milkdown-list-item-block li { margin: 0 !important; padding: 0 !important; }
+.editor-col .milkdown .milkdown-list-item-block .list-item { display: flex !important; align-items: flex-start !important; gap: 4px !important; }
 .editor-col .milkdown .milkdown-list-item-block .list-item > .label-wrapper {
-  display: flex; align-items: center; justify-content: center; flex: none;
-  height: calc(var(--fs) * var(--lh)) !important; min-width: 1.6em; line-height: var(--lh); font-size: var(--fs);
+  display: flex !important; align-items: center !important; justify-content: center !important; flex: none !important;
+  height: calc(var(--fs) * var(--lh)) !important; min-height: 0 !important; min-width: 1.6em !important;
+  margin: 0 !important; padding: 0 !important; box-sizing: border-box !important;
+  line-height: var(--lh) !important; font-size: var(--fs) !important;
 }
-.editor-col .milkdown .milkdown-list-item-block .list-item > .label-wrapper .label { line-height: 1; margin: 0; }
-.editor-col .milkdown .milkdown-list-item-block .list-item > .children > :first-child { margin-top: 0; }
-.editor-col .milkdown .milkdown-list-item-block .list-item > .children > p { margin: 0 !important; padding: 0 !important; line-height: var(--lh); }
-.editor-col .milkdown .milkdown-list-item-block .list-item > .children { padding: 0; margin: 0; }
-.editor-col .milkdown .milkdown-list-item-block > li { padding: 0 !important; }
-.editor-col .milkdown .milkdown-list-item-block .list-item > .label-wrapper { padding: 0 !important; margin: 0 !important; box-sizing: border-box; }
+.editor-col .milkdown .milkdown-list-item-block .list-item > .label-wrapper > *,
+.editor-col .milkdown .milkdown-list-item-block .list-item > .label-wrapper .label {
+  align-self: center !important; margin: 0 !important; position: relative !important; top: auto !important; transform: none !important;
+}
+.editor-col .milkdown .milkdown-list-item-block .list-item > .label-wrapper .label { line-height: 1 !important; font-size: var(--fs) !important; }
+.editor-col .milkdown .milkdown-list-item-block .list-item > .children { padding: 0 !important; margin: 0 !important; flex: 1 1 auto; min-width: 0; }
+.editor-col .milkdown .milkdown-list-item-block .list-item > .children > :first-child { margin-top: 0 !important; }
+.editor-col .milkdown .milkdown-list-item-block .list-item > .children > p { margin: 0 !important; padding: 0 !important; line-height: var(--lh) !important; }
 .editor-col .milkdown ul, .editor-col .milkdown ol { margin: 0.4em 0; }
 .editor-col .milkdown .milkdown-code-block .cm-editor { border-radius: 0 0 12px 12px; }
 .editor-col .milkdown .milkdown-code-block .cm-editor { background: transparent; font-size: 0.86em; }
@@ -252,3 +256,8 @@ html[data-tone='dark'] .music-block[data-lang='abc'] .music-mount svg { filter: 
 
 .music-warn { font-size: 12px; color: #b9811b; margin-bottom: 4px; text-align: left; }
 .jianpu-svg { display: block; margin: 0 auto; color: var(--fg); }
+
+/* 樂譜：只留譜、隱藏代碼 */
+.editor-col .milkdown .music-code-hidden { display: none !important; }
+.music-bar .music-hide { margin-left: auto; }
+.music-block { margin-top: 0; }

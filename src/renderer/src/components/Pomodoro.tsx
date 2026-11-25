@@ -16,6 +16,14 @@ const loadPos = (): Pos => {
   return { x: -1, y: -1, pinned: false }
 }
 
+/** 標題列按鈕：在 pointerdown 就執行，並擋掉冒泡，避免被拖曳處理或重繪吃掉 click */
+const tap = (fn: () => void) => (e: React.PointerEvent) => {
+  if (e.button !== 0) return
+  e.stopPropagation()
+  e.preventDefault()
+  fn()
+}
+
 const NumField = ({ label, value, min, max, unit, onChange }: { label: string; value: number; min: number; max: number; unit?: string; onChange(n: number): void }) => (
   <label className="num-field">
     <span>{label}</span>
@@ -36,13 +44,12 @@ export function Pomodoro({ getWords, openSignal }: { getWords(): number; openSig
   const [live, setLive] = useState(0)
   const box = useRef<HTMLDivElement>(null)
 
-  // 命令／選單觸發：切換展開
-  const first = useRef(true)
+  // 命令／選單觸發：切換展開。用「上次看到的訊號值」比較，不依賴 first-run 旗標
+  // （React 開發模式會把 effect 跑兩次，旗標寫法會讓番茄鐘一開啟程式就自己展開）
+  const lastSignal = useRef(openSignal)
   useEffect(() => {
-    if (first.current) {
-      first.current = false
-      return
-    }
+    if (openSignal === lastSignal.current) return
+    lastSignal.current = openSignal
     setOpen((o) => !o)
   }, [openSignal])
 
@@ -115,13 +122,13 @@ export function Pomodoro({ getWords, openSignal }: { getWords(): number; openSig
         <Icon name="timer" size={15} />
         <b>番茄鐘</b>
         <span className="grow" />
-        <button className="icon-btn sm" title={st.muted ? '已靜音（點一下開啟提示音）' : '提示音開啟（點一下靜音）'} onClick={() => setConfig({ muted: !st.muted })}>
+        <button className="icon-btn sm" title={st.muted ? '已靜音（點一下開啟提示音）' : '提示音開啟（點一下靜音）'} onPointerDown={tap(() => setConfig({ muted: !st.muted }))}>
           <span aria-hidden>{st.muted ? '🔕' : '🔔'}</span>
         </button>
-        <button className={`icon-btn sm${pos.pinned ? ' on' : ''}`} title={pos.pinned ? '已固定位置（點一下可拖曳）' : '固定位置'} onClick={() => savePos({ ...pos, x: pos.x >= 0 ? pos.x : box.current?.getBoundingClientRect().left ?? 0, y: pos.y >= 0 ? pos.y : box.current?.getBoundingClientRect().top ?? 0, pinned: !pos.pinned })}>
+        <button className={`icon-btn sm${pos.pinned ? ' on' : ''}`} title={pos.pinned ? '已固定位置（點一下可拖曳）' : '固定位置'} onPointerDown={tap(() => savePos({ ...pos, x: pos.x >= 0 ? pos.x : box.current?.getBoundingClientRect().left ?? 0, y: pos.y >= 0 ? pos.y : box.current?.getBoundingClientRect().top ?? 0, pinned: !pos.pinned }))}>
           <Icon name="pin" size={13} />
         </button>
-        <button className="icon-btn sm" title="收合" onClick={() => setOpen(false)}>
+        <button className="icon-btn sm" title="關閉番茄鐘" onPointerDown={tap(() => setOpen(false))}>
           <Icon name="close" size={14} />
         </button>
       </div>

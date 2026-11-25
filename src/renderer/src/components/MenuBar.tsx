@@ -23,7 +23,7 @@ function Items({ items, props, close }: { items: MenuItem[]; props: Props; close
           return (
             <div key={i} className="mn-item has-sub" onMouseEnter={() => setSubOpen(it.sub)} onMouseLeave={() => setSubOpen(null)}>
               <span className="mn-check" />
-              <span className="mn-label">{it.sub}</span>
+              <span className="mn-label">{tr(it.sub)}</span>
               <Icon name="chevron" size={13} />
               {subOpen === it.sub && (
                 <div className="mn-panel sub" role="menu">
@@ -51,7 +51,7 @@ function Items({ items, props, close }: { items: MenuItem[]; props: Props; close
             }}
           >
             <span className="mn-check">{on && <Icon name="check" size={13} />}</span>
-            <span className="mn-label">{it.label ?? cmd.title}</span>
+            <span className="mn-label">{tr(it.label ?? cmd.title)}</span>
             <span className="mn-keys">{keys}</span>
           </button>
         )

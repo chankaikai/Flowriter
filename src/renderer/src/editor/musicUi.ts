@@ -35,9 +35,15 @@ interface Block {
   dead: boolean
 }
 
-const blocks = new Map<string, Block>()
-/** 目前文件裡還在的樂譜圍欄 key（每次重建裝飾時更新） */
-let liveKeys = new Set<string>()
+/** 每個編輯器一份登錄表（切換源碼／所見即所得會建新編輯器，舊的銷毀不能動到新的） */
+interface Reg {
+  blocks: Map<string, Block>
+  /** 目前文件裡還在的樂譜圍欄 key（每次重建裝飾時更新） */
+  live: Set<string>
+  view: EditorView | null
+}
+/** 只顯示譜、隱藏代碼的圍欄（跨編輯器重建保留，純 UI 狀態，不寫進 md） */
+const hiddenKeys = new Set<string>()
 const keyOf = (lang: string, ordinal: number) => `music-${lang}-${ordinal}`
 
 function schedule(b: Block, immediate = false): void {
@@ -73,7 +79,7 @@ function syncParts(b: Block): void {
   }
 }
 
-function create(lang: MusicLang, source: string): Block {
+function create(lang: MusicLang, source: string, key: string, reg: Reg): Block {
   const el = document.createElement('div')
   el.className = 'music-block'
   el.dataset.lang = lang
@@ -87,12 +93,28 @@ function create(lang: MusicLang, source: string): Block {
   playBtn.className = 'music-play'
   playBtn.textContent = '▶ 播放'
   // 只有 abc 有聲部與播放；其他譜種這一階段不做播放
+  const hideBtn = document.createElement('button')
+  hideBtn.className = 'music-hide'
+  const paintHide = () => {
+    hideBtn.textContent = hiddenKeys.has(key) ? '顯示代碼' : '隱藏代碼'
+    hideBtn.title = '只留譜、收起代碼（不影響 Markdown 內容）'
+  }
+  paintHide()
+  hideBtn.addEventListener('mousedown', (e) => e.preventDefault())
+  hideBtn.addEventListener('click', () => {
+    if (hiddenKeys.has(key)) hiddenKeys.delete(key)
+    else hiddenKeys.add(key)
+    paintHide()
+    const v = reg.view
+    if (v && !v.isDestroyed) v.dispatch(v.state.tr.setMeta(musicKey, 'rebuild'))
+  })
   if (lang === 'abc') bar.append(select, playBtn)
+  bar.append(hideBtn)
   const mount = document.createElement('div')
   mount.className = 'music-mount'
   const err = document.createElement('div')
   err.className = 'music-err'
-  el.append(...(lang === 'abc' ? [bar] : []), mount, err)
+  el.append(bar, mount, err)
   const b: Block = { lang, el, mount, err, bar, select, playBtn, engine: lang === 'abc' ? createAbcRenderer() : createJianpuRenderer(), part: 'all', source, timer: 0, seq: 0, dead: false }
   select.addEventListener('change', () => {
     b.part = select.value
@@ -121,7 +143,7 @@ function create(lang: MusicLang, source: string): Block {
 
 const musicKey = new PluginKey<DecorationSet>('inkwell-music')
 
-function build(doc: PMNode): DecorationSet {
+function build(doc: PMNode, reg: Reg): DecorationSet {
   const decos: Decoration[] = []
   const counts: Record<string, number> = {}
   const alive = new Set<string>()
@@ -133,20 +155,21 @@ function build(doc: PMNode): DecorationSet {
     const key = keyOf(lang, n)
     alive.add(key)
     const code = node.textContent
-    const existing = blocks.get(key)
+    const existing = reg.blocks.get(key)
     if (existing && existing.source !== code) {
       existing.source = code
       syncParts(existing)
       schedule(existing)
     }
+    if (hiddenKeys.has(key)) decos.push(Decoration.node(pos, pos + node.nodeSize, { class: 'music-code-hidden' }))
     decos.push(
       Decoration.widget(
         pos + node.nodeSize,
         () => {
-          let b = blocks.get(key)
+          let b = reg.blocks.get(key)
           if (!b || b.dead) {
-            b = create(lang, code)
-            blocks.set(key, b)
+            b = create(lang, code, key, reg)
+            reg.blocks.set(key, b)
           }
           return b.el
         },
@@ -156,22 +179,22 @@ function build(doc: PMNode): DecorationSet {
           ignoreSelection: true,
           stopEvent: () => true,
           destroy: () => {
-            const b = blocks.get(key)
+            const b = reg.blocks.get(key)
             if (!b) return
             // 同一輪重建時 PM 可能先銷毀舊 widget 再建新的；等一拍，確認這塊真的不在文件裡才清掉
             window.setTimeout(() => {
-              if (liveKeys.has(key) || blocks.get(key) !== b) return
+              if (reg.live.has(key) || reg.blocks.get(key) !== b) return
               b.dead = true
               window.clearTimeout(b.timer)
               b.engine.destroy()
-              blocks.delete(key)
+              reg.blocks.delete(key)
             }, 0)
           }
         } as any
       )
     )
   })
-  liveKeys = alive
+  reg.live = alive
   return DecorationSet.create(doc, decos)
 }
 
@@ -233,18 +256,19 @@ function runTool(v: EditorView, id: string): void {
   v.focus()
 }
 
-export const musicPlugin = $prose(
-  () =>
-    new Plugin({
+export const musicPlugin = $prose(() => {
+  const reg: Reg = { blocks: new Map(), live: new Set(), view: null }
+  return new Plugin({
       key: musicKey,
       state: {
-        init: (_c, st) => build(st.doc),
-        apply: (tr, old) => (tr.docChanged ? build(tr.doc) : old)
+        init: (_c, st) => build(st.doc, reg),
+        apply: (tr, old) => (tr.docChanged || tr.getMeta(musicKey) === 'rebuild' ? build(tr.doc, reg) : old)
       },
       props: {
         decorations: (st) => musicKey.getState(st)
       },
       view(v) {
+        reg.view = v
         const bar = document.createElement('div')
         bar.className = 'tb-bar music-tools'
         bar.style.display = 'none'
@@ -299,14 +323,15 @@ export const musicPlugin = $prose(
             window.removeEventListener('resize', sched)
             cancelAnimationFrame(raf)
             bar.remove()
-            for (const [k, b] of blocks) {
+            reg.view = null
+            for (const [k, b] of reg.blocks) {
               b.dead = true
               window.clearTimeout(b.timer)
               b.engine.destroy()
-              blocks.delete(k)
+              reg.blocks.delete(k)
             }
           }
         }
       }
-    })
-)
+  })
+})

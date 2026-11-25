@@ -20,6 +20,18 @@ describe('i18n', () => {
   })
 })
 
+describe('i18n fallback', () => {
+  it('non-Chinese languages fall back to English, zh-CN converts', () => {
+    setLang('fr')
+    expect(tr('粗體')).toBe('Bold')
+    setLang('zh-CN')
+    expect(tr('開啟檔案…')).toBe('开启文件…')
+    expect(tr('儲存')).toBe('保存')
+    setLang('zh-TW')
+    expect(tr('粗體')).toBe('粗體')
+  })
+})
+
 describe('theme import', () => {
   it('rewrites Typora and Obsidian selectors and strips external loads', () => {
     const r = importThemeCss('@import url(https://x.com/a.css);\n#write h1 { color: red; background: url(http://a/b.png) }\n.theme-dark .markdown-preview-view p { color: #eee }', 'my theme')

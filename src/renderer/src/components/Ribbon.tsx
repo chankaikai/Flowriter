@@ -36,7 +36,7 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse,
   return (
     <div className={`ribbon${collapsed ? ' collapsed' : ''}`}>
       <div className="rb-tabs" role="tablist">
-        <button className="rb-fold" title={collapsed ? '展開功能區' : '摺疊功能區（雙擊分頁也可以）'} aria-label={collapsed ? '展開功能區' : '摺疊功能區'} onClick={() => onCollapse(!collapsed)}>
+        <button className="rb-fold" title={collapsed ? tr('展開功能區') : tr('摺疊功能區（雙擊分頁也可以）')} aria-label={collapsed ? tr('展開功能區') : tr('摺疊功能區')} onClick={() => onCollapse(!collapsed)}>
           <Icon name={collapsed ? 'down' : 'up'} size={15} />
         </button>
         {RIBBON.map((t) => (
@@ -66,7 +66,7 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse,
                   const disabled = !!cmd.editorOnly && !editorEnabled
                   const on = it.check ? checks[it.check] : false
                   const ov = overrides?.[it.cmd]
-                  const label = ov?.label ?? it.label
+                  const label = it.label || ov?.label ? tr((ov?.label ?? it.label) as string) : undefined
                   const icon = ov?.icon ?? it.icon
                   const k = cmd.keys?.[0] ? ` (${formatKeys(cmd.keys[0]).join(' ')})` : ''
                   if (it.grid) {
@@ -75,7 +75,7 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse,
                         <button
                           className={`rb-btn lg${subOpen === it.cmd ? ' on' : ''}`}
                           disabled={disabled}
-                          title="表格：滑過格子選擇行列數"
+                          title={tr('表格：滑過格子選擇行列數')}
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => setSubOpen(subOpen === it.cmd ? null : it.cmd)}
                         >
@@ -101,7 +101,7 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse,
                         <button
                           className={`rb-btn lg${subOpen === it.cmd ? ' on' : ''}`}
                           disabled={disabled}
-                          title={`${label ?? cmd.title}（點擊選擇類型）`}
+                          title={`${label ?? tr(cmd.title)} (${tr('點擊選擇類型')})`}
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => setSubOpen(subOpen === it.cmd ? null : it.cmd)}
                         >
@@ -120,7 +120,7 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse,
                                   window.setTimeout(() => commands.find((c) => c.id === sc.cmd)?.run(), 0)
                                 }}
                               >
-                                {sc.label}
+                                {tr(sc.label)}
                               </button>
                             ))}
                           </div>
@@ -133,7 +133,7 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse,
                       key={it.cmd}
                       className={`rb-btn lg${on ? ' on' : ''}`}
                       disabled={disabled}
-                      title={`${label ?? cmd.title}${k}`}
+                      title={`${label ?? tr(cmd.title)}${k}`}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => cmd.run()}
                     >
