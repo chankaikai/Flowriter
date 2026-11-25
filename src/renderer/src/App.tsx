@@ -35,6 +35,7 @@ import { TextPrompt, type PromptRequest } from '@/components/TextPrompt'
 import { addResume, getBookmark, getResumes, removeResume, saveCaret, type Resume } from '@/lib/bookmarks'
 import { ResumePanel } from '@/components/ResumePanel'
 import { Dashboard } from '@/components/Dashboard'
+import { CompareView, type CompareSource } from '@/components/CompareView'
 import { cleanMarkdown, withTarget } from '@/lib/dashboard'
 import { htmlToMarkdown, shouldConvertHtml } from '@/lib/htmlToMarkdown'
 import { loadRecent, loadSession, pushRecent, saveSession } from '@/lib/session'
@@ -150,6 +151,8 @@ export default function App() {
   const [reading, setReading] = useState(false)
   const lastSnap = useRef<Record<string, number>>({})
   const [sticky, setSticky] = useState(false)
+  /** 由分頁拖出建立的視窗：不讀寫「上次分頁」的工作階段，避免蓋掉主視窗的 */
+  const secondary = useRef(false)
   const sidebarBeforeSticky = useRef(true)
   const [promptReq, setPromptReq] = useState<PromptRequest | null>(null)
   const [resume, setResume] = useState<{ hint: string | null; rect: { left: number; top: number; bottom: number } } | null>(null)
@@ -217,6 +220,7 @@ export default function App() {
         }
       })
       .filter((t) => t.path || (t.md && t.md.trim() && t.md !== WELCOME))
+    if (secondary.current) return
     saveSession({
       tabs: kept.map(({ id: _id, ...rest }) => rest),
       active: Math.max(0, kept.findIndex((t) => t.id === act))
@@ -499,6 +503,63 @@ export default function App() {
       else publishTabs()
     },
     [activate, publishTabs, save, syncFromEditor]
+  )
+
+  /** 把分頁拖出成新視窗：內容（含未儲存的更改）交給新視窗，這邊的分頁直接移除。 */
+  const detachTab = useCallback(
+    async (id: number, at: { x: number; y: number }) => {
+      if (tabsRef.current.length < 2) return
+      const isActive = id === activeIdRef.current
+      if (isActive) syncFromEditor()
+      const t = tabsRef.current.find((x) => x.id === id)
+      if (!t) return
+      const md = isActive ? mdRef.current : t.md
+      const saved = isActive ? savedRef.current : t.saved
+      const name = isActive ? docRef.current.name : t.name
+      const path = isActive ? docRef.current.path : t.path
+      if (path && md === saved) saveCaretNow()
+      const ok = await window.api.detachTab({ path, name, md, saved }, at)
+      if (!ok) return showToast('無法開啟新視窗')
+      const idx = tabsRef.current.findIndex((x) => x.id === id)
+      const rest = tabsRef.current.filter((x) => x.id !== id)
+      tabsRef.current = rest
+      setPool((prev) => prev.filter((p) => p.tabId !== id))
+      if (isActive) activate(rest[Math.min(idx, rest.length - 1)])
+      else publishTabs()
+    },
+    [activate, publishTabs, saveCaretNow, showToast, syncFromEditor]
+  )
+
+  /** 拖曳分頁：拖到分頁列外面（下方或視窗外）放開，就變成新視窗。 */
+  const startTabDrag = useCallback(
+    (e: React.MouseEvent, id: number) => {
+      if (tabsRef.current.length < 2) return
+      const sx = e.clientX
+      const sy = e.clientY
+      let dragging = false
+      const bar = (e.currentTarget as HTMLElement).closest('.tabsbar') as HTMLElement | null
+      const outside = (x: number, y: number) => {
+        const r = bar?.getBoundingClientRect()
+        if (!r) return false
+        return y > r.bottom + 36 || y < r.top - 36 || x < -4 || x > window.innerWidth + 4
+      }
+      const move = (ev: MouseEvent) => {
+        if (!dragging && Math.hypot(ev.clientX - sx, ev.clientY - sy) > 8) {
+          dragging = true
+          document.body.classList.add('tab-dragging')
+        }
+        if (dragging) document.body.classList.toggle('tab-out', outside(ev.clientX, ev.clientY))
+      }
+      const up = (ev: MouseEvent) => {
+        window.removeEventListener('mousemove', move)
+        window.removeEventListener('mouseup', up)
+        document.body.classList.remove('tab-dragging', 'tab-out')
+        if (dragging && outside(ev.clientX, ev.clientY)) void detachTab(id, { x: ev.screenX, y: ev.screenY })
+      }
+      window.addEventListener('mousemove', move)
+      window.addEventListener('mouseup', up)
+    },
+    [detachTab]
   )
 
   const openPath = useCallback(
@@ -910,6 +971,15 @@ export default function App() {
     newDoc,
     openFile,
     openFolder,
+    compareDocs: () => {
+      syncFromEditor()
+      const act = activeIdRef.current
+      setCmp({
+        current: { label: docRef.current.name, md: mdRef.current },
+        others: tabsRef.current.filter((t) => t.id !== act).map((t) => ({ label: t.name, md: t.md }))
+      })
+    },
+    newWindow: () => window.api.newWindow(),
     closeFolder,
     showTree,
     save: () => void save(),
@@ -1029,6 +1099,16 @@ export default function App() {
 
   useEffect(() => {
     void (async () => {
+      const init = await window.api.getInitialDoc()
+      if (init) {
+        secondary.current = true
+        const mt = init.path ? ((await window.api.statFile(init.path)) ?? 0) : 0
+        const t: Tab = { id: nextTabId.current++, path: init.path, name: init.name, md: init.md, saved: init.saved, scroll: 0, mtime: mt }
+        tabsRef.current = [t]
+        activate(t)
+        restored.current = true
+        return
+      }
       const launch = await window.api.getLaunchFile()
       if (!launch) await restoreSession()
       restored.current = true
@@ -1203,6 +1283,7 @@ export default function App() {
     else actionsRef.current.showSidebarTab(tab)
   }
   const [pomoSignal, setPomoSignal] = useState(0)
+  const [cmp, setCmp] = useState<{ current: CompareSource; others: CompareSource[] } | null>(null)
   const wordsRef = useRef(0)
   useEffect(() => () => setAmbient('off', 0), [])
 
@@ -1571,7 +1652,10 @@ export default function App() {
                   if (e.button === 1) {
                     e.preventDefault()
                     void closeTab(t.id)
-                  } else if (e.button === 0) void switchTab(t.id)
+                  } else if (e.button === 0) {
+                    void switchTab(t.id)
+                    startTabDrag(e, t.id)
+                  }
                 }}
               >
                 <span className="tab-name">{t.name}</span>
@@ -1699,6 +1783,18 @@ export default function App() {
             ).map(([id, label, icon]) => ({ id, label, icon, run: () => cmdRun(id) }))}
           />
           <TextPrompt req={promptReq} />
+          {cmp && (
+            <CompareView
+              current={cmp.current}
+              others={cmp.others}
+              onPickFile={async () => {
+                const r = await window.api.openFile()
+                return r ? { label: basename(r.path), md: r.content } : null
+              }}
+              onApply={(m) => { replaceContent(m); setCmp(null); showToast('已套用，原本的內容留在時光機裡') }}
+              onClose={() => setCmp(null)}
+            />
+          )}
           <ResumeBubble hint={resume?.hint ?? null} rect={resume?.rect ?? null} onDone={() => setResume(null)} />
           {sticky && (
             <button className="sticky-chip" onClick={toggleSticky} title="退出迷你模式，還原視窗（不會關閉程式）">

@@ -83,6 +83,11 @@ export interface InkwellApi {
   }): Promise<string | null>
   exportPdf(opts: { name: string; html: string }): Promise<string | null>
   getLaunchFile(): Promise<string | null>
+  /** 這個視窗是由「分頁拖出」建立的：領取要帶過來的文件（只會領到一次） */
+  getInitialDoc(): Promise<{ path: string | null; name: string; md: string; saved: string } | null>
+  /** 把分頁內容交給新視窗；回傳是否成功 */
+  detachTab(doc: { path: string | null; name: string; md: string; saved: string }, pos?: { x: number; y: number }): Promise<boolean>
+  newWindow(): void
   pathForFile(file: File): string
   setDirty(dirty: boolean): void
   /** 在本機以編譯器／直譯器執行原生語言代碼塊（暫存資料夾、逾時、輸出上限；無沙盒） */

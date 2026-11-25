@@ -43,19 +43,24 @@ const IMG_MIME: Record<string, string> = {
 const winBuild = process.platform === 'win32' ? Number(release().split('.')[2] ?? 0) : 0
 const MATERIAL: MaterialSupport = isMac ? 'vibrancy' : winBuild >= 22621 ? 'win' : 'none'
 
-let dirty = false
-let forceClose = false
-let closing = false
+/** 每個視窗各自的狀態：是否有未儲存內容、是否略過關閉詢問、是否正在顯示關閉詢問 */
+interface WinState { dirty: boolean; forceClose: boolean; closing: boolean }
+const wstates = new Map<BrowserWindow, WinState>()
+/** 分頁拖出時帶給新視窗的內容，新視窗啟動後用 app:initialDoc 領走（只領一次） */
+export interface InitialDoc { path: string | null; name: string; md: string; saved: string }
+const pendingInitial = new Map<number, InitialDoc>()
+const anyDirty = () => [...wstates.values()].some((s) => s.dirty)
 let lastChrome: { color: string; symbolColor: string } | null = null
 
 function stripBom(s: string): string {
   return s.charCodeAt(0) === 0xfeff ? s.slice(1) : s
 }
 
-function createWindow(): BrowserWindow {
+function createWindow(opts: { initial?: InitialDoc; at?: { x: number; y: number } } = {}): BrowserWindow {
   const win = new BrowserWindow({
     width: 1180,
     height: 800,
+    ...(opts.at ? { x: Math.round(opts.at.x), y: Math.round(opts.at.y) } : {}),
     minWidth: 860,
     minHeight: 420,
     show: false,
@@ -86,24 +91,39 @@ function createWindow(): BrowserWindow {
     }
   })
 
+  const st: WinState = { dirty: false, forceClose: false, closing: false }
+  wstates.set(win, st)
+  const wid = win.webContents.id
+  if (opts.initial) pendingInitial.set(wid, opts.initial)
+  win.on('closed', () => {
+    wstates.delete(win)
+    pendingInitial.delete(wid)
+  })
   win.once('ready-to-show', () => win.show())
 
   win.on('close', (e) => {
-    if (forceClose) return
+    if (st.forceClose) return
     e.preventDefault()
-    if (closing) return
-    closing = true
+    if (st.closing) return
+    st.closing = true
     const done = () => {
-      closing = false
+      st.closing = false
     }
-    if (!dirty) {
+    if (!st.dirty && wstates.size > 1) {
+      // 還有其他視窗：直接關這一個，不必問是否退出
+      done()
+      st.forceClose = true
+      win.close()
+      return
+    }
+    if (!st.dirty) {
       // 沒有未儲存內容：只確認是否退出
       dialog
         .showMessageBox(win, { type: 'question', buttons: ['退出', '取消'], defaultId: 0, cancelId: 1, message: '要退出 Flowiter 嗎？' })
         .then((r) => {
           done()
           if (r.response === 0) {
-            forceClose = true
+            st.forceClose = true
             win.close()
           }
         })
@@ -122,7 +142,7 @@ function createWindow(): BrowserWindow {
         done()
         if (r.response === 0) win.webContents.send('menu', 'app.saveAllAndQuit')
         else if (r.response === 1) {
-          forceClose = true
+          st.forceClose = true
           win.close()
         }
       })
@@ -868,8 +888,29 @@ function registerIpc(): void {
     return null
   })
 
-  ipcMain.on('doc:dirty', (_e, d: boolean) => {
-    dirty = !!d
+  ipcMain.on('doc:dirty', (e, d: boolean) => {
+    const w = BrowserWindow.fromWebContents(e.sender)
+    const st = w && wstates.get(w)
+    if (st) st.dirty = !!d
+  })
+
+  // 分頁拖出成新視窗（像 WPS）：內容經主程序轉交，新視窗啟動時領取
+  ipcMain.handle('win:detach', (e, doc: InitialDoc, pos?: { x: number; y: number }) => {
+    if (!doc || typeof doc.md !== 'string' || typeof doc.name !== 'string') return false
+    const init: InitialDoc = { path: typeof doc.path === 'string' ? doc.path : null, name: doc.name.slice(0, 260), md: doc.md, saved: typeof doc.saved === 'string' ? doc.saved : doc.md }
+    const from = BrowserWindow.fromWebContents(e.sender)
+    const b = from?.getBounds()
+    const at = pos && Number.isFinite(pos.x) && Number.isFinite(pos.y) ? { x: pos.x - 120, y: pos.y - 18 } : b ? { x: b.x + 40, y: b.y + 40 } : undefined
+    createWindow({ initial: init, at })
+    return true
+  })
+  ipcMain.handle('app:initialDoc', (e) => {
+    const d = pendingInitial.get(e.sender.id) ?? null
+    pendingInitial.delete(e.sender.id)
+    return d
+  })
+  ipcMain.on('win:new', () => {
+    createWindow()
   })
 
   let stickyPrev: { bounds: Electron.Rectangle; min: number[]; max: boolean } | null = null
@@ -1026,8 +1067,10 @@ function registerIpc(): void {
     }
   })
   ipcMain.on('win:forceClose', (e) => {
-    forceClose = true
-    BrowserWindow.fromWebContents(e.sender)?.close()
+    const w = BrowserWindow.fromWebContents(e.sender)
+    const st = w && wstates.get(w)
+    if (st) st.forceClose = true
+    w?.close()
   })
   ipcMain.on('shell:external', (_e, url: string) => openExternalSafe(url))
   ipcMain.on('shell:reveal', (_e, p: string) => shell.showItemInFolder(p))
@@ -1038,12 +1081,12 @@ app.whenReady().then(() => {
   setupAmbient()
   setupUpdater(() => {
     // 有未儲存內容時先確認，避免重啟更新把更改丟掉
-    if (dirty) {
+    if (anyDirty()) {
       const w = BrowserWindow.getAllWindows()[0]
       const r = dialog.showMessageBoxSync(w, { type: 'warning', buttons: ['取消（我先儲存）', '不儲存並更新'], defaultId: 0, cancelId: 0, message: '有尚未儲存的更改', detail: '重啟更新會捨棄這些更改。' })
       if (r !== 1) return false
     }
-    forceClose = true // 略過關閉視窗時的詢問，交給安裝程式收尾
+    for (const st of wstates.values()) st.forceClose = true // 略過關閉視窗時的詢問，交給安裝程式收尾
     return true
   })
   protocol.handle('inkwell', (req) => {

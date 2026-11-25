@@ -475,3 +475,28 @@ body.mode-sticky .editor-col { --maxw: 100%; padding-left: 10px; padding-right: 
 .pomo-words { position: relative; width: 100%; text-align: center; font-size: 12.5px; color: var(--fg-muted); padding-bottom: 6px; }
 .pomo-words b { color: var(--fg); }
 .pomo-words i { position: absolute; left: 0; bottom: 0; height: 3px; border-radius: 3px; background: var(--accent); transition: width 0.4s; }
+
+/* 拖曳分頁到分頁列外 → 新視窗 */
+body.tab-dragging { cursor: grabbing; user-select: none; }
+body.tab-dragging .tab.on { opacity: 0.6; }
+body.tab-out .tabsbar::after { content: '放開即可在新視窗中開啟'; position: absolute; left: 50%; top: 100%; transform: translateX(-50%); margin-top: 6px; padding: 4px 12px; border-radius: 12px; font-size: 12px; background: var(--glass-bg); border: 1px solid var(--glass-edge); backdrop-filter: var(--glass-blur); pointer-events: none; z-index: 40; white-space: nowrap; }
+.tabsbar { position: relative; }
+
+/* 文件比對 */
+.cmp-box { width: min(1100px, 94vw); height: min(760px, 88vh); display: flex; flex-direction: column; gap: 8px; padding: 12px 16px 14px; border-radius: 18px; background: color-mix(in srgb, var(--bg) 78%, transparent); border: 1px solid var(--line-strong); backdrop-filter: blur(26px) saturate(1.5); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); }
+.cmp-head { display: flex; align-items: center; gap: 8px; } .cmp-head h3 { margin: 0; font-size: 14px; }
+.cmp-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; }
+.cmp-vs { color: var(--fg-muted); }
+.cmp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-left: 26px; font-size: 12px; color: var(--fg-muted); }
+.cmp-body { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 6px; }
+.cmp-fold { text-align: center; font-size: 12px; color: var(--fg-muted); padding: 2px 0; }
+.cmp-row { display: flex; gap: 6px; align-items: stretch; border-radius: 10px; padding: 4px; }
+.cmp-row.same { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-left: 30px; opacity: 0.7; }
+.cmp-row.change { background: var(--hover); } .cmp-row.change.cur { outline: 2px solid var(--accent); }
+.cmp-pick { display: flex; align-items: flex-start; padding-top: 6px; width: 20px; }
+.cmp-pair { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.cmp-line { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cmp-box pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: inherit; font-size: 13px; line-height: 1.7; }
+.cmp-box pre.empty { color: var(--fg-muted); font-style: italic; }
+.cmp-del { background: color-mix(in srgb, #d6455d 24%, transparent); color: inherit; border-radius: 3px; text-decoration: line-through; }
+.cmp-add { background: color-mix(in srgb, #2fa96b 26%, transparent); color: inherit; border-radius: 3px; }

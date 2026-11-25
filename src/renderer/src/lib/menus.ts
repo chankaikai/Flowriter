@@ -22,6 +22,7 @@ export const MENUS: MenuDef[] = [
     label: '檔案',
     items: [
       c('file.new'),
+      c('file.newWindow'),
       c('file.open'),
       c('file.openFolder'),
       c('nav.recent'),
@@ -151,6 +152,7 @@ export const MENUS: MenuDef[] = [
       c('panel.ambient'),
       c('panel.dashboard'),
       SEP,
+      c('doc.compare'),
       { sub: '接續提示', items: [c('doc.resumeHint', '添加接續提示'), c('panel.resumes', '接續列表')] },
       SEP,
       c('app.settings')
@@ -345,7 +347,8 @@ export const RIBBON: RibbonTab[] = [
           r('panel.tasks', '任務', { icon: 'tasks', lg: true }),
           r('panel.notes', '頁邊便條', { icon: 'pen', lg: true }),
           r('panel.refs', '參考抽屜', { icon: 'book', lg: true }),
-          r('doc.milestone', '里程碑', { icon: 'flag', lg: true })
+          r('doc.milestone', '里程碑', { icon: 'flag', lg: true }),
+          r('doc.compare', '文件比對', { icon: 'diag', lg: true })
         ]
       },
       {

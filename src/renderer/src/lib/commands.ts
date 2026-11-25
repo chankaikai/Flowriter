@@ -9,6 +9,8 @@ export interface Actions {
   newDoc(): void
   openFile(): void
   openFolder(): void
+  compareDocs(): void
+  newWindow(): void
   closeFolder(): void
   showTree(): void
   save(): void
@@ -62,6 +64,8 @@ export function buildCommands(a: Actions): Cmd[] {
     // 檔案
     { id: 'file.new', title: '新建文件', group: '檔案', keys: ['Mod+N'], run: a.newDoc },
     { id: 'file.open', title: '開啟檔案…', group: '檔案', keys: ['Mod+O'], run: a.openFile },
+    { id: 'doc.compare', title: '文件比對…', group: '文件', run: a.compareDocs },
+    { id: 'file.newWindow', title: '新視窗', group: '檔案', keys: ['Mod+Shift+N'], run: a.newWindow },
     { id: 'tree.open', title: '開啟文件樹', group: '檢視', run: a.showTree },
     { id: 'tree.close', title: '關閉文件樹（不關閉已開啟的文件）', group: '檢視', run: a.closeFolder },
     { id: 'tree.change', title: '更換文件樹資料夾…', group: '檢視', run: a.openFolder },
