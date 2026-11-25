@@ -149,7 +149,7 @@ export const MENUS: MenuDef[] = [
       c('panel.focus'),
       c('panel.dashboard'),
       SEP,
-      c('doc.resumeHint'),
+      { sub: '接續提示', items: [c('doc.resumeHint', '添加接續提示'), c('panel.resumes', '接續列表')] },
       SEP,
       c('app.settings')
     ]
@@ -346,7 +346,14 @@ export const RIBBON: RibbonTab[] = [
         items: [
           r('panel.focus', '番茄鐘', { icon: 'timer', lg: true }),
           r('panel.dashboard', '儀表板', { icon: 'chart', lg: true }),
-          r('doc.resumeHint', '接續提示', { icon: 'pin', lg: true })
+          r('doc.resumeHint', '接續提示', {
+            icon: 'pin',
+            lg: true,
+            sub: [
+              { cmd: 'doc.resumeHint', label: '添加接續提示' },
+              { cmd: 'panel.resumes', label: '接續列表' }
+            ]
+          })
         ]
       }
     ]

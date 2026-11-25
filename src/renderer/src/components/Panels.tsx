@@ -3,7 +3,7 @@ import { extractLinks, sharedTargets, twoHopOut, type RelatedNote } from '@/lib/
 import { Icon, type IconName } from './Icon'
 import { AMBIENT_LIST, setAmbient, setAmbientVolume, type AmbientKind } from '@/lib/ambient'
 import { fmtClock, PRESETS, type PomoConfig, type PomoState } from '@/lib/pomodoro'
-import { lastDays, streak, type WritingData, dayKey } from '@/lib/writing'
+import { dayKey } from '@/lib/writing'
 import type { HistoryItem, SearchHit } from '../../../shared/types'
 import { basename, stripExt } from '@/lib/path'
 import { AiSetup } from './AiSetup'
@@ -45,7 +45,7 @@ export function Popover({
   )
 }
 
-const Ring = ({ value, size = 120, children }: { value: number; size?: number; children?: ReactNode }) => {
+export const Ring = ({ value, size = 120, children }: { value: number; size?: number; children?: ReactNode }) => {
   const r = size / 2 - 7
   const c = 2 * Math.PI * r
   return (
@@ -152,44 +152,6 @@ export function HistoryPanel({
           標記目前為里程碑
         </button>
       </div>
-    </>
-  )
-}
-
-/* ------------------------------ 寫作儀表板 ------------------------------ */
-
-export function DashboardPanel({
-  data, goal, onGoal
-}: { data: WritingData; goal: number; onGoal(n: number): void }) {
-  const today = data.days[dayKey()] || 0
-  const days = lastDays(data, 14)
-  const max = Math.max(goal, ...days.map((d) => d.words), 1)
-  const total = Object.values(data.days).reduce((a, b) => a + b, 0)
-  return (
-    <>
-      <div className="dash-top">
-        <Ring value={today / goal} size={116}>
-          <b>{today.toLocaleString()}</b>
-          <small>/ {goal.toLocaleString()} 字</small>
-        </Ring>
-        <div className="dash-stats">
-          <div><b>{streak(data)}</b><span>連續寫作天數</span></div>
-          <div><b>{total.toLocaleString()}</b><span>累計新增字數</span></div>
-          <div className="goal-step">
-            <button className="icon-btn sm" onClick={() => onGoal(Math.max(100, goal - 100))}>−</button>
-            <span>每日目標 {goal}</span>
-            <button className="icon-btn sm" onClick={() => onGoal(Math.min(20000, goal + 100))}>＋</button>
-          </div>
-        </div>
-      </div>
-      <div className="bars" aria-label="近 14 天">
-        {days.map((d) => (
-          <div key={d.key} className="bar" title={`${d.key}：${d.words} 字`}>
-            <i className={d.words >= goal ? 'hit' : ''} style={{ height: `${Math.max(3, (d.words / max) * 100)}%` }} />
-          </div>
-        ))}
-      </div>
-      <div className="hist-hint">只統計你實際輸入的新增字數，刪減與貼上的大段內容不計入。</div>
     </>
   )
 }

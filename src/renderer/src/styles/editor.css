@@ -237,3 +237,5 @@ body.show-weight .milkdown .ProseMirror p.pw-5 { border-left-color: var(--accent
 .callout-summary { --co: #5b7fd6; }
 .fm-del { margin-left: 6px; padding: 1px 8px; border-radius: 999px; font: 12px var(--font-ui, system-ui); color: var(--fg-muted); border: 1px solid var(--line); background: transparent; cursor: pointer; }
 .fm-del:hover { color: #d0463a; border-color: #d0463a; }
+.flash-hit { background: color-mix(in srgb, var(--accent) 38%, transparent); border-radius: 3px; animation: flash-hit 2.5s ease-out forwards; }
+@keyframes flash-hit { 0%, 60% { background: color-mix(in srgb, var(--accent) 45%, transparent); } 100% { background: transparent; } }

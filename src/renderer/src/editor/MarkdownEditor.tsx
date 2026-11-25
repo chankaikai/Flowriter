@@ -42,7 +42,7 @@ import { TextSelection } from '@milkdown/kit/prose/state'
 import { runBlockAtCaret } from './runUi'
 import { languages } from '@codemirror/language-data'
 import { LanguageDescription, LanguageSupport, StreamLanguage } from '@codemirror/language'
-import { insertCallout, removeFrontMatter, isLockedAtCaret, setLockTexts, toggleLockAtCaret, gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
+import { gotoBlockOffset, setTaskChecked, insertCallout, removeFrontMatter, isLockedAtCaret, setLockTexts, toggleLockAtCaret, gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
 import { LARGE_DOC } from '@/lib/markdown'
 
 export type FormatName =
@@ -72,6 +72,10 @@ export interface EditorHandle {
   setCaret(pos: number): boolean
   /** 跳到文字相符的任務項目 */
   gotoTask(text: string): boolean
+  /** 跳到第 n 個文字區塊的指定偏移並高亮（儀表板／排版檢查用） */
+  gotoBlock(blockIndex: number, offset?: number, len?: number): boolean
+  /** 勾選／取消第 index 個任務（儀表盤雙向同步用） */
+  setTask(index: number, checked: boolean): boolean
   /** 找到並選取第一處包含該文字的位置 */
   gotoText(text: string): boolean
   /** 從游標所在段落到文末的純文字 */
@@ -416,6 +420,14 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
     runAtCaret() {
       const v = view()
       return v ? runBlockAtCaret(v) : false
+    },
+    setTask(index, checked) {
+      const v = view()
+      return v ? setTaskChecked(v, index, checked) : false
+    },
+    gotoBlock(i, offset = 0, len = 0) {
+      const v = view()
+      return v ? gotoBlockOffset(v, i, offset, len) : false
     },
     gotoText(text) {
       const v = view()

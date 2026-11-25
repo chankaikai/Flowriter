@@ -43,7 +43,13 @@ export function NotesPanel({ saved, notes, md, selection, onAdd, onToggle, onRem
           {notes.map((n) => {
             const orphan = isOrphan(md, n.quote)
             return (
-              <li key={n.id} className={`note${n.done ? ' done' : ''}${orphan ? ' orphan' : ''}`}>
+              <li
+                key={n.id}
+                className={`note${n.done ? ' done' : ''}${orphan ? ' orphan' : ''}${n.quote && !orphan ? ' jumpable' : ''}`}
+                onClick={(e) => {
+                  if (n.quote && !orphan && !(e.target as HTMLElement).closest('button')) onJump(n.quote)
+                }}
+              >
                 {n.quote && (
                   <button className="note-quote" disabled={orphan} onClick={() => onJump(n.quote)} title={orphan ? '原文已被改動，找不到位置' : '跳到原文'}>
                     「{n.quote.slice(0, 50)}」{orphan && ' · 失聯'}

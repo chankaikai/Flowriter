@@ -17,7 +17,7 @@ import { MenuBar } from '@/components/MenuBar'
 import { Ribbon } from '@/components/Ribbon'
 import logo from './assets/logo.png'
 import { usePill } from '@/lib/pill'
-import { AiPanel, DashboardPanel, FocusPanel, LinksPanel, Popover, TasksPanel } from '@/components/Panels'
+import { AiPanel, FocusPanel, LinksPanel, Popover, TasksPanel } from '@/components/Panels'
 import { ClipPanel, DiagnosticsPanel, RadarPanel, useClipStack } from '@/components/FlowPanels'
 import { checkImages, healthCheck } from '@/lib/health'
 import { speak, splitSentences, ttsAvailable, type SpeakHandle } from '@/lib/tts'
@@ -32,7 +32,10 @@ import { Ruler } from '@/components/Ruler'
 import { SelectionBubble } from '@/components/SelectionBubble'
 import { ResumeBubble } from '@/components/ResumeBubble'
 import { TextPrompt, type PromptRequest } from '@/components/TextPrompt'
-import { getBookmark, saveCaret, setHint } from '@/lib/bookmarks'
+import { addResume, getBookmark, getResumes, removeResume, saveCaret, type Resume } from '@/lib/bookmarks'
+import { ResumePanel } from '@/components/ResumePanel'
+import { Dashboard } from '@/components/Dashboard'
+import { cleanMarkdown, withTarget } from '@/lib/dashboard'
 import { htmlToMarkdown, shouldConvertHtml } from '@/lib/htmlToMarkdown'
 import { loadRecent, loadSession, pushRecent, saveSession } from '@/lib/session'
 import { buildCommands, type Actions, type ExportKind, type PanelName } from '@/lib/commands'
@@ -799,15 +802,17 @@ export default function App() {
     void window.api.setSticky(next)
   }, [sticky, update])
 
+  const [resumeTick, setResumeTick] = useState(0)
   const setResumeHintCmd = useCallback(async () => {
     const p = docRef.current.path
-    if (!p) return showToast('先儲存檔案，才能設定接續提示')
-    const cur = getBookmark(p)?.hint ?? ''
-    const v = await askText('接續提示：寫給下次打開時的自己', { initial: cur, placeholder: '例如：先把第三章的數據補上', okLabel: '儲存' })
+    if (!p) return showToast('先儲存檔案，才能添加接續提示')
+    const pos = editorRef.current?.getCaret() ?? getBookmark(p)?.pos ?? 0
+    const v = await askText('接續提示：寫給下次打開時的自己', { placeholder: '例如：先把第三章的數據補上（可留空，只記位置）', okLabel: '添加' })
     if (v == null) return
     saveCaretNow()
-    setHint(p, v)
-    showToast(v.trim() ? '已儲存接續提示' : '已清除接續提示')
+    addResume(p, pos, v)
+    setResumeTick((n) => n + 1)
+    showToast('已添加接續提示')
   }, [askText, saveCaretNow, showToast])
 
   const clipStack = useClipStack()
@@ -1127,11 +1132,14 @@ export default function App() {
     const path = docRef.current.path
     if (path && resumeTab.current === activeIdRef.current && editorRef.current) {
       resumeTab.current = null
+      // 有接續提示就回到「最新」的那一筆；否則回到自動記住的落筆處
+      const latest = getResumes(path)[0]
       const bm = getBookmark(path)
-      if (bm && bm.pos > 20 && editorRef.current.setCaret(bm.pos)) {
+      const pos = latest ? latest.pos : bm && bm.pos > 20 ? bm.pos : 0
+      if (pos > 0 && editorRef.current.setCaret(pos)) {
         requestAnimationFrame(() => {
           const rect = editorRef.current?.caretRect()
-          if (rect) setResume({ hint: bm.hint ?? null, rect })
+          if (rect) setResume({ hint: latest?.hint || null, rect })
         })
       }
     }
@@ -1757,6 +1765,18 @@ export default function App() {
           <Popover open={panel === 'about'} icon="sparkle" title="關於 Flowiter" onClose={() => setPanel(null)}>
             {panel === 'about' && <AboutPanel version={appVersion} status={upd} />}
           </Popover>
+          <Popover open={panel === 'resumes'} icon="pin" title="接續列表" onClose={() => setPanel(null)}>
+            {panel === 'resumes' && (
+              <ResumePanel
+                key={resumeTick}
+                saved={!!doc.path}
+                items={doc.path ? getResumes(doc.path) : []}
+                onAdd={() => void setResumeHintCmd()}
+                onJump={(r: Resume) => { if (!editorRef.current?.setCaret(r.pos)) showToast('只能在所見即所得模式跳轉') }}
+                onRemove={(id) => { if (doc.path) { removeResume(doc.path, id); setResumeTick((n) => n + 1) } }}
+              />
+            )}
+          </Popover>
           <Popover open={panel === 'notes'} icon="pen" title="頁邊便條" onClose={() => setPanel(null)}>
             {panel === 'notes' && (
               <NotesPanel
@@ -1813,7 +1833,24 @@ export default function App() {
             )}
           </Popover>
           <Popover open={panel === 'dashboard'} icon="chart" title="寫作儀表板" onClose={() => setPanel(null)}>
-            <DashboardPanel data={writing} goal={settings.dailyGoal} onGoal={(n) => update({ dailyGoal: n })} />
+            {panel === 'dashboard' && (
+              <Dashboard
+                path={doc.path}
+                docDir={doc.path ? dirname(doc.path) : null}
+                getMd={() => { syncFromEditor(); return mdRef.current }}
+                data={writing}
+                goal={settings.dailyGoal}
+                onGoal={(n) => update({ dailyGoal: n })}
+                onTarget={(n) => { replaceContent(withTarget(mdRef.current, n)); showToast(n ? '已寫入目標字數' : '已移除目標字數') }}
+                onToggleTask={(i, c) => { if (!editorRef.current?.setTask(i, c)) showToast('請在所見即所得模式勾選任務') }}
+                onJumpText={(t) => { if (!editorRef.current?.gotoText(t)) showToast('找不到對應位置（可能在源碼模式，或內含格式符號）') }}
+                onJumpPos={(pos) => { if (!editorRef.current?.setCaret(pos)) showToast('只能在所見即所得模式跳轉') }}
+                onRestore={(c) => { replaceContent(c); showToast('已還原，原本的內容也留在時光機裡') }}
+                onExportImage={() => void exportAs('png')}
+                onCopyClean={() => { syncFromEditor(); void navigator.clipboard.writeText(cleanMarkdown(mdRef.current)).then(() => showToast('已複製乾淨的 Markdown'), () => showToast('複製失敗')) }}
+                onStyleCheck={() => setPanel('diag')}
+              />
+            )}
           </Popover>
           <Popover open={panel === 'focus'} icon="timer" title="專注" onClose={() => setPanel(null)}>
             <FocusPanel {...pomo} ambient={ambient} setAmbientKind={setAmbientKind} />

@@ -664,6 +664,87 @@ export function gotoText(view: EditorView, text: string, from = 0): boolean {
   const TS = (view.state.selection.constructor as any)
   const sel = (TS as any).create ? TS.create(view.state.doc, h.from, h.to) : TS.near(view.state.doc.resolve(h.from))
   view.dispatch(view.state.tr.setSelection(sel).scrollIntoView())
+  flashRange(view, h.from, h.to)
+  return true
+}
+
+/** 把第 index 個任務（文件順序，與 scanTodos 的 index 一致）設為已完成／未完成；用交易修改，可復原。 */
+export function setTaskChecked(view: EditorView, index: number, checked: boolean): boolean {
+  let i = 0
+  let at = -1
+  view.state.doc.descendants((node: any, pos: number) => {
+    if (at >= 0) return false
+    if (node.type.name === 'list_item' && node.attrs.checked != null) {
+      if (i++ === index) at = pos
+    }
+    return true
+  })
+  if (at < 0) return false
+  const node = view.state.doc.nodeAt(at)!
+  view.dispatch(view.state.tr.setNodeMarkup(at, undefined, { ...node.attrs, checked }))
+  return true
+}
+
+/* ------------------------- 跳轉後的短暫高亮 ------------------------- */
+
+const flashKey = new PluginKey<{ from: number; to: number } | null>('inkwell-flash')
+export const flashPlugin = $prose(
+  () =>
+    new Plugin({
+      key: flashKey,
+      state: {
+        init: () => null,
+        apply(tr, old) {
+          const m = tr.getMeta(flashKey)
+          if (m !== undefined) return m
+          return old && tr.docChanged ? { from: tr.mapping.map(old.from), to: tr.mapping.map(old.to) } : old
+        }
+      },
+      props: {
+        decorations(st) {
+          const f = flashKey.getState(st)
+          if (!f || f.to <= f.from || f.to > st.doc.content.size) return null
+          return DecorationSet.create(st.doc, [Decoration.inline(f.from, f.to, { class: 'flash-hit' })])
+        }
+      }
+    })
+)
+
+let flashTimer = 0
+/** 高亮一段範圍約 2.5 秒；範圍落在區塊（如代碼塊）時也一樣用行內高亮。 */
+export function flashRange(view: EditorView, from: number, to: number): void {
+  const size = view.state.doc.content.size
+  from = Math.max(0, Math.min(from, size))
+  to = Math.max(from, Math.min(to, size))
+  if (to === from) to = Math.min(size, from + 1)
+  view.dispatch(view.state.tr.setMeta(flashKey, { from, to }))
+  window.clearTimeout(flashTimer)
+  flashTimer = window.setTimeout(() => {
+    try {
+      if (!(view as any).isDestroyed) view.dispatch(view.state.tr.setMeta(flashKey, null))
+    } catch {
+      /* 編輯器已關閉 */
+    }
+  }, 2500)
+}
+
+/** 跳到第 n 個文字區塊（從 0 起算）內的指定字元偏移並高亮，找不到回傳 false。 */
+export function gotoBlockOffset(view: EditorView, blockIndex: number, offset = 0, len = 0): boolean {
+  let i = 0
+  let found: { pos: number; size: number } | null = null
+  view.state.doc.descendants((node: any, pos: number) => {
+    if (found) return false
+    if (!node.isTextblock) return true
+    if (i++ === blockIndex) found = { pos, size: node.content.size }
+    return false
+  })
+  if (!found) return false
+  const f = found as { pos: number; size: number }
+  const a = f.pos + 1 + Math.min(offset, f.size)
+  const b = len > 0 ? Math.min(f.pos + 1 + f.size, a + len) : f.pos + 1 + f.size
+  view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(a))).scrollIntoView())
+  flashRange(view, a, b)
+  view.focus()
   return true
 }
 
@@ -1022,6 +1103,7 @@ export const extraPlugins = [
   mermaidPlugin,
   lockPlugin,
   levelPlugin,
+  flashPlugin,
   tableUiPlugin,
   runUiPlugin,
   calcPlugin,

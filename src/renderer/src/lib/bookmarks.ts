@@ -43,3 +43,53 @@ export function setHint(path: string, hint: string): void {
   all[path] = { pos: all[path]?.pos ?? 0, ...all[path], hint: hint.trim() || undefined, ts: Date.now() }
   writeAll(all)
 }
+
+/** 接續提示：每個檔案可以有多筆，依時間由新到舊；重新打開時用最新的一筆。 */
+const RKEY = 'inkwell.resumes.v1'
+const RMAX_PER_FILE = 30
+
+export interface Resume {
+  id: string
+  pos: number
+  hint: string
+  ts: number
+}
+
+function loadResumes(): Record<string, Resume[]> {
+  try {
+    const j = JSON.parse(localStorage.getItem(RKEY) || '{}')
+    return j && typeof j === 'object' && !Array.isArray(j) ? j : {}
+  } catch {
+    return {}
+  }
+}
+
+function saveResumes(all: Record<string, Resume[]>): void {
+  try {
+    localStorage.setItem(RKEY, JSON.stringify(all))
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 由新到舊 */
+export function getResumes(path: string): Resume[] {
+  const list = loadResumes()[path]
+  return Array.isArray(list) ? [...list].sort((a, b) => b.ts - a.ts) : []
+}
+
+export function addResume(path: string, pos: number, hint: string, now = Date.now()): Resume {
+  const all = loadResumes()
+  const r: Resume = { id: `${now.toString(36)}${Math.random().toString(36).slice(2, 6)}`, pos, hint: hint.trim(), ts: now }
+  all[path] = [r, ...(all[path] ?? [])].sort((a, b) => b.ts - a.ts).slice(0, RMAX_PER_FILE)
+  saveResumes(all)
+  return r
+}
+
+export function removeResume(path: string, id: string): void {
+  const all = loadResumes()
+  const left = (all[path] ?? []).filter((r) => r.id !== id)
+  if (left.length) all[path] = left
+  else delete all[path]
+  saveResumes(all)
+}

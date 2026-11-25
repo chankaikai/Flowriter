@@ -3,7 +3,7 @@ import type { SidebarTab, ThemeName } from './settings'
 import { THEMES } from './themes'
 
 export type ExportKind = 'html' | 'pdf' | 'docx' | 'md' | 'png'
-export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks' | 'vault' | 'diag' | 'clips' | 'notes' | 'radar' | 'refs' | 'about'
+export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks' | 'vault' | 'diag' | 'clips' | 'notes' | 'radar' | 'refs' | 'about' | 'resumes'
 
 export interface Actions {
   newDoc(): void
@@ -93,7 +93,7 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'theme.system', title: '主題：跟隨系統', group: '主題', run: () => a.setTheme('system') },
     { id: 'view.reading', title: '閱讀模式', group: '檢視', keys: ['Mod+Alt+R'], run: a.toggleReading },
     { id: 'view.sticky', title: '迷你置頂便籤模式', group: '檢視', keys: ['Mod+Alt+M'], run: a.toggleSticky },
-    { id: 'doc.resumeHint', title: '設定接續提示（下次打開時顯示）', group: '文件', run: a.setResumeHint },
+    { id: 'doc.resumeHint', title: '添加接續提示（記住目前位置，下次打開時回到這裡）', group: '文件', run: a.setResumeHint },
     { id: 'panel.history', title: '版本時光機', group: '面板', keys: ['Mod+Alt+H'], run: () => a.openPanel('history') },
     { id: 'panel.ai', title: 'AI 改寫選取文字', group: '面板', keys: ['Mod+Alt+I'], run: () => a.openPanel('ai') },
     { id: 'panel.focus', title: '專注：番茄鐘與氛圍音', group: '面板', keys: ['Mod+Alt+P'], run: () => a.openPanel('focus') },
@@ -101,6 +101,7 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'panel.radar', title: '本地知識雷達', group: '面板', keys: ['Mod+Alt+G'], run: () => a.openPanel('radar') },
     { id: 'panel.refs', title: '參考資料抽屜', group: '面板', keys: ['Mod+Alt+U'], run: () => a.openPanel('refs') },
     { id: 'panel.runner', title: '執行游標所在的代碼塊（JavaScript／Python）', group: '面板', keys: ['Mod+Alt+E'], editorOnly: true, run: a.runCode },
+    { id: 'panel.resumes', title: '接續列表', group: '面板', run: () => a.openPanel('resumes') },
     { id: 'panel.notes', title: '頁邊便條', group: '面板', keys: ['Mod+Alt+N'], run: () => a.openPanel('notes') },
     { id: 'panel.tasks', title: '任務收集', group: '面板', keys: ['Mod+Alt+J'], run: () => a.openPanel('tasks') },
     { id: 'panel.vault', title: '時間膠囊與加密抽屜', group: '面板', keys: ['Mod+Alt+V'], run: () => a.openPanel('vault') },
