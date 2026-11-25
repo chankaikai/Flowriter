@@ -101,6 +101,7 @@ export const MENUS: MenuDef[] = [
     label: '檢視',
     items: [
       c('view.sidebar', undefined, 'sidebar'),
+      { sub: '文件樹', items: [c('tree.open', '開啟'), c('tree.close', '關閉'), c('tree.change', '更換資料夾')] },
       c('nav.files'),
       c('nav.outline'),
       SEP,
@@ -147,6 +148,7 @@ export const MENUS: MenuDef[] = [
       c('panel.vault'),
       SEP,
       c('panel.focus'),
+      c('panel.ambient'),
       c('panel.dashboard'),
       SEP,
       { sub: '接續提示', items: [c('doc.resumeHint', '添加接續提示'), c('panel.resumes', '接續列表')] },
@@ -298,6 +300,15 @@ export const RIBBON: RibbonTab[] = [
         label: '顯示',
         items: [
           r('view.sidebar', '側邊欄', { icon: 'sidebar', check: 'sidebar', lg: true }),
+          r('tree.open', '文件樹', {
+            icon: 'folderOpen',
+            lg: true,
+            sub: [
+              { cmd: 'tree.open', label: '開啟' },
+              { cmd: 'tree.close', label: '關閉' },
+              { cmd: 'tree.change', label: '更換資料夾' }
+            ]
+          }),
           r('view.weight', '段落權重', { icon: 'chart', check: 'weight', lg: true }),
           r('view.fullscreen', '全螢幕', { icon: 'expand', check: 'fullscreen', lg: true })
         ]
@@ -345,6 +356,7 @@ export const RIBBON: RibbonTab[] = [
         label: '專注',
         items: [
           r('panel.focus', '番茄鐘', { icon: 'timer', lg: true }),
+          r('panel.ambient', '氛圍音', { glyph: '♪', lg: true }),
           r('panel.dashboard', '儀表板', { icon: 'chart', lg: true }),
           r('doc.resumeHint', '接續提示', {
             icon: 'pin',

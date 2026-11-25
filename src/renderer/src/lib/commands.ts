@@ -3,12 +3,14 @@ import type { SidebarTab, ThemeName } from './settings'
 import { THEMES } from './themes'
 
 export type ExportKind = 'html' | 'pdf' | 'docx' | 'md' | 'png'
-export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks' | 'vault' | 'diag' | 'clips' | 'notes' | 'radar' | 'refs' | 'about' | 'resumes'
+export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks' | 'vault' | 'diag' | 'clips' | 'notes' | 'radar' | 'refs' | 'about' | 'resumes' | 'ambient'
 
 export interface Actions {
   newDoc(): void
   openFile(): void
   openFolder(): void
+  closeFolder(): void
+  showTree(): void
   save(): void
   saveAs(): void
   exportAs(kind: ExportKind): void
@@ -60,6 +62,9 @@ export function buildCommands(a: Actions): Cmd[] {
     // 檔案
     { id: 'file.new', title: '新建文件', group: '檔案', keys: ['Mod+N'], run: a.newDoc },
     { id: 'file.open', title: '開啟檔案…', group: '檔案', keys: ['Mod+O'], run: a.openFile },
+    { id: 'tree.open', title: '開啟文件樹', group: '檢視', run: a.showTree },
+    { id: 'tree.close', title: '關閉文件樹（不關閉已開啟的文件）', group: '檢視', run: a.closeFolder },
+    { id: 'tree.change', title: '更換文件樹資料夾…', group: '檢視', run: a.openFolder },
     { id: 'file.openFolder', title: '開啟資料夾…', group: '檔案', keys: ['Mod+Shift+O'], run: a.openFolder },
     { id: 'tab.close', title: '關閉分頁', group: '檔案', keys: ['Mod+W'], run: a.closeTab },
     { id: 'tab.next', title: '下一個分頁', group: '導航', keys: ['Mod+Alt+ArrowRight'], run: () => a.cycleTab(1) },
@@ -96,7 +101,8 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'doc.resumeHint', title: '添加接續提示（記住目前位置，下次打開時回到這裡）', group: '文件', run: a.setResumeHint },
     { id: 'panel.history', title: '版本時光機', group: '面板', keys: ['Mod+Alt+H'], run: () => a.openPanel('history') },
     { id: 'panel.ai', title: 'AI 改寫選取文字', group: '面板', keys: ['Mod+Alt+I'], run: () => a.openPanel('ai') },
-    { id: 'panel.focus', title: '專注：番茄鐘與氛圍音', group: '面板', keys: ['Mod+Alt+P'], run: () => a.openPanel('focus') },
+    { id: 'panel.focus', title: '番茄鐘', group: '面板', keys: ['Mod+Alt+P'], run: () => a.openPanel('focus') },
+    { id: 'panel.ambient', title: '氛圍音', group: '面板', run: () => a.openPanel('ambient') },
     { id: 'panel.dashboard', title: '寫作儀表板', group: '面板', keys: ['Mod+Alt+D'], run: () => a.openPanel('dashboard') },
     { id: 'panel.radar', title: '本地知識雷達', group: '面板', keys: ['Mod+Alt+G'], run: () => a.openPanel('radar') },
     { id: 'panel.refs', title: '參考資料抽屜', group: '面板', keys: ['Mod+Alt+U'], run: () => a.openPanel('refs') },

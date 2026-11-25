@@ -17,13 +17,13 @@ import { MenuBar } from '@/components/MenuBar'
 import { Ribbon } from '@/components/Ribbon'
 import logo from './assets/logo.png'
 import { usePill } from '@/lib/pill'
-import { AiPanel, FocusPanel, LinksPanel, Popover, TasksPanel } from '@/components/Panels'
+import { AiPanel, AmbientPanel, LinksPanel, Popover, TasksPanel } from '@/components/Panels'
 import { ClipPanel, DiagnosticsPanel, RadarPanel, useClipStack } from '@/components/FlowPanels'
 import { checkImages, healthCheck } from '@/lib/health'
 import { speak, splitSentences, ttsAvailable, type SpeakHandle } from '@/lib/tts'
 import { TimeMachine } from '@/components/TimeMachine'
 import { VaultPanel } from '@/components/VaultPanel'
-import { usePomodoro } from '@/lib/pomodoro'
+import { Pomodoro } from '@/components/Pomodoro'
 import { type AmbientKind, setAmbient } from '@/lib/ambient'
 import { addWords, loadWriting } from '@/lib/writing'
 import { moveSection } from '@/lib/markdown'
@@ -633,6 +633,19 @@ export default function App() {
     update({ lastFolder: p, sidebarOpen: true, sidebarTab: 'files' })
   }, [update])
 
+  /** 開啟文件樹：已有資料夾就直接顯示，否則請使用者選一個 */
+  const showTree = useCallback(() => {
+    if (folder) update({ sidebarOpen: true, sidebarTab: 'files' })
+    else void openFolder()
+  }, [folder, update, openFolder])
+
+  /** 關閉文件樹：只是不再顯示資料夾，已開啟的文件與分頁都不受影響 */
+  const closeFolder = useCallback(() => {
+    setFolder(null)
+    update({ lastFolder: null })
+    showToast('已關閉文件樹')
+  }, [update, showToast])
+
   /* ------------------------------ 圖片 ------------------------------ */
 
   const uploadImage = useCallback(async (file: File): Promise<string> => {
@@ -861,6 +874,10 @@ export default function App() {
 
   const openPanel = useCallback(
     (p: PanelName) => {
+      if (p === 'focus') {
+        setPomoSignal((n) => n + 1) // 番茄鐘是獨立的浮動模組，自己管理展開／收合
+        return
+      }
       syncFromEditor()
       if (p === 'ai' || p === 'vault' || p === 'notes' || p === 'refs') {
         setAiSel(editorRef.current?.selectionText() ?? '')
@@ -893,6 +910,8 @@ export default function App() {
     newDoc,
     openFile,
     openFolder,
+    closeFolder,
+    showTree,
     save: () => void save(),
     saveAs: () => void saveAs(),
     exportAs: (k) => void exportAs(k),
@@ -1183,11 +1202,8 @@ export default function App() {
     if (settings.sidebarOpen && settings.sidebarTab === tab) update({ sidebarOpen: false })
     else actionsRef.current.showSidebarTab(tab)
   }
-  const pomo = usePomodoro((phase, nextLong) =>
-    showToast(
-      phase === 'work' ? (nextLong ? '專注完成，該好好休息一下了（長休息）' : '專注完成，休息一下吧') : '休息結束，繼續書寫'
-    )
-  )
+  const [pomoSignal, setPomoSignal] = useState(0)
+  const wordsRef = useRef(0)
   useEffect(() => () => setAmbient('off', 0), [])
 
   // 游標所在段落是否已上鎖（功能區的按鈕會變成「段落解鎖」）；選取變動時節流檢查
@@ -1427,6 +1443,7 @@ export default function App() {
   }, [activeTabKey])
 
   const cmdRun = (id: string) => commands.find((c) => c.id === id)?.run()
+  wordsRef.current = stats.words
   const minutes = stats.minutes < 1 ? '不到 1 分鐘' : `約 ${Math.round(stats.minutes)} 分鐘`
 
   return (
@@ -1684,8 +1701,8 @@ export default function App() {
           <TextPrompt req={promptReq} />
           <ResumeBubble hint={resume?.hint ?? null} rect={resume?.rect ?? null} onDone={() => setResume(null)} />
           {sticky && (
-            <button className="sticky-chip" onClick={toggleSticky} title="還原視窗">
-              取消置頂
+            <button className="sticky-chip" onClick={toggleSticky} title="退出迷你模式，還原視窗（不會關閉程式）">
+              ↩ 退出迷你模式
             </button>
           )}
           {reading && <div className="reading-prog" />}
@@ -1703,6 +1720,7 @@ export default function App() {
                 path={doc.path}
                 current={() => mdRef.current}
                 onMilestone={milestoneCmd}
+                onJump={(t) => { if (!editorRef.current?.gotoText(t)) showToast('找不到對應位置（可能內含格式符號）') }}
                 onInsert={(t) => {
                   editorRef.current?.insert(t)
                   showToast('已插回游標處')
@@ -1852,13 +1870,14 @@ export default function App() {
               />
             )}
           </Popover>
-          <Popover open={panel === 'focus'} icon="timer" title="專注" onClose={() => setPanel(null)}>
-            <FocusPanel {...pomo} ambient={ambient} setAmbientKind={setAmbientKind} />
+          <Popover open={panel === 'ambient'} icon="timer" title="氛圍音" onClose={() => setPanel(null)}>
+            <AmbientPanel ambient={ambient} setAmbientKind={setAmbientKind} />
           </Popover>
         </div>
 
       </div>
       </div>
+      <Pomodoro getWords={() => wordsRef.current} openSignal={pomoSignal} />
       <footer className="statusbar">
         <button className="sb-btn gear" onClick={() => setSettingsOpen(true)} title={`偏好設定 (${hint('app.settings') ?? ''})`}>
           <Icon name="gear" size={15} />
@@ -1869,7 +1888,6 @@ export default function App() {
         </button>
         <span className="sb-text">{stats.words.toLocaleString()} 字</span>
         <span className="sb-text">閱讀 {minutes}</span>
-        {pomo.st.running && <span className="sb-text accent">專注 {Math.ceil(pomo.st.left / 60000)} 分</span>}
         <span className="grow" />
         <span className={`save-state${dirty ? ' unsaved' : ''}`}>
           {doc.path ? (dirty ? (settings.autosave ? '自動儲存中…' : '未儲存') : '已儲存') : dirty ? '未儲存' : ''}

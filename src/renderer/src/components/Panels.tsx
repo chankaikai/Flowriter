@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { extractLinks, sharedTargets, twoHopOut, type RelatedNote } from '@/lib/graph'
 import { Icon, type IconName } from './Icon'
-import { AMBIENT_LIST, setAmbient, setAmbientVolume, type AmbientKind } from '@/lib/ambient'
-import { fmtClock, PRESETS, type PomoConfig, type PomoState } from '@/lib/pomodoro'
+import { AMBIENT_LIST, ambientFiles, refreshAmbientFiles, setAmbient, setAmbientVolume, type AmbientKind } from '@/lib/ambient'
 import { dayKey } from '@/lib/writing'
 import type { HistoryItem, SearchHit } from '../../../shared/types'
 import { basename, stripExt } from '@/lib/path'
@@ -158,88 +157,29 @@ export function HistoryPanel({
 
 /* ------------------------------ 專注：番茄鐘 + 氛圍音 ------------------------------ */
 
-const NumField = ({
-  label, value, min, max, onChange, unit
-}: { label: string; value: number; min: number; max: number; unit?: string; onChange(n: number): void }) => (
-  <label className="num-field">
-    <span>{label}</span>
-    <input
-      type="number" min={min} max={max} value={value}
-      onChange={(e) => e.target.value !== '' && onChange(+e.target.value)}
-    />
-    {unit && <em>{unit}</em>}
-  </label>
-)
-
-export function FocusPanel({
-  st, toggle, reset, skip, setConfig, ambient, setAmbientKind
-}: {
-  st: PomoState
-  toggle(): void
-  reset(): void
-  skip(): void
-  setConfig(p: Partial<PomoConfig>): void
-  ambient: AmbientKind
-  setAmbientKind(k: AmbientKind): void
-}) {
+export function AmbientPanel({ ambient, setAmbientKind }: { ambient: AmbientKind; setAmbientKind(k: AmbientKind): void }) {
   const [vol, setVol] = useState(0.35)
-  const [custom, setCustom] = useState(false)
+  const [files, setFiles] = useState<Record<string, 'user' | 'bundled'>>(ambientFiles)
+  const [real, setReal] = useState<boolean | null>(false)
   const volRef = useRef(vol)
   volRef.current = vol
   useEffect(() => {
-    setAmbient(ambient, volRef.current)
-  }, [ambient])
-  const isPreset = PRESETS.some((p) => p.work === st.workMin && p.rest === st.restMin)
-  const phaseLabel = st.phase === 'work' ? '專注' : st.long ? '長休息' : '休息'
+    let live = true
+    void refreshAmbientFiles().then((f) => live && setFiles(f))
+    return () => { live = false }
+  }, [])
+  useEffect(() => {
+    let live = true
+    void setAmbient(ambient, volRef.current).then((r) => live && setReal(r))
+    return () => { live = false }
+  }, [ambient, files])
+  const has = ambient in files
   return (
     <>
-      <div className="pomo">
-        <Ring value={1 - st.left / st.total} size={132}>
-          <b className="clock">{fmtClock(st.left)}</b>
-          <small>{phaseLabel} · 今日 {st.rounds} 輪</small>
-        </Ring>
-        <div className="pomo-ctl">
-          <button className="btn" onClick={toggle}>{st.running ? '暫停' : '開始'}</button>
-          <button className="btn ghost" onClick={reset}>重設</button>
-          <button className="btn ghost" onClick={skip}>跳過</button>
-        </div>
-        <div className="chips center">
-          {PRESETS.map((p) => (
-            <button
-              key={p.label}
-              className={`chip${!custom && st.workMin === p.work && st.restMin === p.rest ? ' on' : ''}`}
-              onClick={() => {
-                setCustom(false)
-                setConfig({ workMin: p.work, restMin: p.rest })
-              }}
-            >
-              {p.label}
-            </button>
-          ))}
-          <button className={`chip${custom || !isPreset ? ' on' : ''}`} onClick={() => setCustom(!custom)}>
-            自訂
-          </button>
-        </div>
-        {(custom || !isPreset) && (
-          <div className="pomo-cfg">
-            <NumField label="專注" unit="分" value={st.workMin} min={1} max={180} onChange={(n) => setConfig({ workMin: n })} />
-            <NumField label="休息" unit="分" value={st.restMin} min={1} max={60} onChange={(n) => setConfig({ restMin: n })} />
-            <NumField label="每" unit="輪" value={st.longEvery} min={0} max={12} onChange={(n) => setConfig({ longEvery: n })} />
-            <NumField label="長休息" unit="分" value={st.longMin} min={1} max={90} onChange={(n) => setConfig({ longMin: n })} />
-          </div>
-        )}
-        <label className="check-row">
-          <input type="checkbox" checked={st.auto} onChange={(e) => setConfig({ auto: e.target.checked })} />
-          階段結束後自動開始下一階段
-        </label>
-        {st.longEvery === 0 && <div className="hist-hint">「每 0 輪」表示不使用長休息。</div>}
-      </div>
-      <div className="set-sep" />
-      <div className="hist-hint">氛圍音（即時合成，無需網路）</div>
       <div className="chips">
         {AMBIENT_LIST.map((a) => (
           <button key={a.k} className={`chip${ambient === a.k ? ' on' : ''}`} onClick={() => setAmbientKind(a.k)}>
-            {a.label}
+            {a.label}{a.k in files ? ' ●' : ''}
           </button>
         ))}
       </div>
@@ -250,6 +190,17 @@ export function FocusPanel({
           setAmbientVolume(+e.target.value)
         }}
       />
+      <div className="hist-hint">● 表示有真實錄音。沒有錄音的種類是軟體合成的，聽起來比較單調。</div>
+      {ambient !== 'off' && real === null && <div className="hist-hint">「{AMBIENT_LIST.find((a) => a.k === ambient)?.label}」沒有錄音檔就不會有聲音，請按下面的「匯入錄音」。</div>}
+      {ambient !== 'off' && (
+        <div className="pop-actions">
+          <button className="btn ghost" onClick={async () => { if (await window.api.ambientImport(ambient)) setFiles(await refreshAmbientFiles()) }}>匯入錄音</button>
+          {files[ambient] === 'user' && (
+            <button className="btn ghost" onClick={async () => { await window.api.ambientRemove(ambient); setFiles(await refreshAmbientFiles()) }}>移除我匯入的錄音</button>
+          )}
+        </div>
+      )}
+      {ambient !== 'off' && has && <div className="hist-hint">目前播放：{files[ambient] === 'user' ? '你匯入的錄音' : '內建錄音'}（循環）</div>}
     </>
   )
 }

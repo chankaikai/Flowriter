@@ -72,6 +72,16 @@
       "out/**",
       "build/icon.png"
     ],
+    "extraResources": [
+      {
+        "from": "resources/ambient",
+        "to": "ambient",
+        "filter": [
+          "**/*",
+          "!README.md"
+        ]
+      }
+    ],
     "fileAssociations": [
       {
         "ext": [

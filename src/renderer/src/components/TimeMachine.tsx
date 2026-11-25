@@ -13,6 +13,8 @@ interface Props {
   onRestore(md: string): void
   onInsert(md: string): void
   onMilestone(): Promise<void>
+  /** 跳到文中某段文字並高亮 */
+  onJump?(text: string): void
 }
 
 export function TimeMachine(p: Props) {
@@ -51,7 +53,7 @@ function useSnaps(path: string | null, limit = 60) {
 }
 
 /* ---- 段落級還原：只把勾選的段落換回舊版 ---- */
-function BlocksTab({ path, current, onRestore }: Props) {
+function BlocksTab({ path, current, onRestore, onJump }: Props) {
   const snaps = useSnaps(path)
   const [ts, setTs] = useState<number | null>(null)
   const [pick, setPick] = useState<Set<number>>(new Set())
@@ -74,6 +76,12 @@ function BlocksTab({ path, current, onRestore }: Props) {
           <label key={i} className="tm-hunk">
             <input type="checkbox" checked={pick.has(i)} onChange={() => setPick((s) => { const n = new Set(s); n.has(i) ? n.delete(i) : n.add(i); return n })} />
             <span>
+              {h.cur.length > 0 && onJump && (
+                <button
+                  type="button" className="btn ghost sm"
+                  onClick={(e) => { e.preventDefault(); onJump(h.cur[0].replace(/^\s*(#{1,6}\s+|>\s*|[-*+]\s+)/, '').replace(/[*_`~[\]]/g, '').slice(0, 30)) }}
+                >跳到目前位置</button>
+              )}
               {h.cur.length > 0 && <pre className="tm-del">{h.cur.join('\n\n')}</pre>}
               {h.old.length > 0 && <pre className="tm-add">{h.old.join('\n\n')}</pre>}
             </span>

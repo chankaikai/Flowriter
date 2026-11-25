@@ -391,7 +391,7 @@ body.reading .ruler, body.mode-sticky .ruler { display: none; }
 body.mode-sticky .statusbar, body.mode-sticky .topbar, body.mode-sticky .ribbon, body.mode-sticky .tabsbar, body.mode-sticky .sidebar { display: none; }
 body.mode-sticky .editor-col { --maxw: 100%; padding-left: 10px; padding-right: 10px; }
 .sticky-chip {
-  position: absolute; top: 8px; right: 12px; z-index: 31; height: 26px; padding: 0 12px; border-radius: 13px; font-size: 11.5px;
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 31; height: 26px; white-space: nowrap; -webkit-app-region: no-drag; padding: 0 12px; border-radius: 13px; font-size: 11.5px;
   color: var(--fg-muted); background: var(--glass-bg); border: 1px solid var(--glass-edge);
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
 }
@@ -460,3 +460,18 @@ body.mode-sticky .editor-col { --maxw: 100%; padding-left: 10px; padding-right: 
 .snap-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; }
 .snap-diff pre { white-space: pre-wrap; margin: 2px 0; padding: 4px 6px; border-radius: 6px; font-size: 12px; }
 .dash-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* 番茄鐘（獨立浮動模組） */
+.pomo-chip { position: fixed; right: 18px; bottom: 44px; z-index: 60; display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; font-size: 13px; color: var(--fg); background: color-mix(in srgb, var(--bg) 62%, transparent); border: 1px solid var(--line-strong); backdrop-filter: blur(18px) saturate(1.4); box-shadow: 0 6px 22px rgba(0, 0, 0, 0.18); font-variant-numeric: tabular-nums; }
+.pomo-chip span { color: var(--fg-muted); font-size: 12px; }
+.pomo-chip.rest { border-color: #2fa96b; }
+.pomo-chip.pending { border-color: var(--accent); animation: chip-pulse 1.6s ease-in-out infinite; }
+@keyframes chip-pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 25%, transparent); } }
+.pomo-panel { position: fixed; right: 18px; bottom: 44px; z-index: 61; width: 288px; padding: 8px 14px 14px; border-radius: 18px; background: color-mix(in srgb, var(--bg) 66%, transparent); border: 1px solid var(--line-strong); backdrop-filter: blur(24px) saturate(1.5); box-shadow: 0 14px 44px rgba(0, 0, 0, 0.26); }
+.pomo-head { display: flex; align-items: center; gap: 8px; padding: 4px 0 8px; cursor: grab; user-select: none; font-size: 13px; }
+.pomo-head.pinned { cursor: default; }
+.pomo-head .icon-btn.on { color: var(--accent); }
+.pomo-done { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.pomo-words { position: relative; width: 100%; text-align: center; font-size: 12.5px; color: var(--fg-muted); padding-bottom: 6px; }
+.pomo-words b { color: var(--fg); }
+.pomo-words i { position: absolute; left: 0; bottom: 0; height: 3px; border-radius: 3px; background: var(--accent); transition: width 0.4s; }

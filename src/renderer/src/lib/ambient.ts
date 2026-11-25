@@ -1,6 +1,6 @@
 /** 以 WebAudio 即時合成的環境音，不需要任何音訊檔。 */
 export type AmbientKind =
-  | 'off' | 'white' | 'pink' | 'brown' | 'rain' | 'ocean' | 'wind' | 'fire' | 'cafe' | 'fan' | 'night'
+  | 'off' | 'white' | 'pink' | 'brown' | 'rain' | 'ocean' | 'wind' | 'fire' | 'cafe' | 'fan' | 'night' | 'forest' | 'stream'
 
 export const AMBIENT_LIST: { k: AmbientKind; label: string }[] = [
   { k: 'off', label: '靜音' },
@@ -13,8 +13,13 @@ export const AMBIENT_LIST: { k: AmbientKind; label: string }[] = [
   { k: 'fire', label: '篝火' },
   { k: 'cafe', label: '咖啡館' },
   { k: 'fan', label: '風扇' },
-  { k: 'night', label: '夏夜蟲鳴' }
+  { k: 'night', label: '夏夜蟲鳴' },
+  { k: 'forest', label: '森林鳥鳴' },
+  { k: 'stream', label: '溪流' }
 ]
+
+/** 這幾種只有真實錄音才有意思，沒有錄音檔時不提供合成版本（合成的很刺耳）。 */
+export const RECORDING_ONLY: AmbientKind[] = ['forest', 'stream']
 
 let ctx: AudioContext | null = null
 let master: GainNode | null = null
@@ -56,7 +61,7 @@ function noise(c: AudioContext, kind: 'white' | 'pink' | 'brown'): AudioBuffer {
 type Cleanup = () => void
 
 /** 組出某種聲音的節點圖，回傳清理函式。 */
-function build(c: AudioContext, kind: Exclude<AmbientKind, 'off'>, out: AudioNode): Cleanup {
+function build(c: AudioContext, kind: Exclude<AmbientKind, 'off' | 'forest' | 'stream'>, out: AudioNode): Cleanup {
   const nodes: AudioNode[] = []
   const timers: number[] = []
   const srcs: (AudioScheduledSourceNode)[] = []
@@ -183,10 +188,50 @@ function build(c: AudioContext, kind: Exclude<AmbientKind, 'off'>, out: AudioNod
   }
 }
 
-export function setAmbient(kind: AmbientKind, volume: number): void {
+/** 有錄音檔的種類（kind → 來源）；由 refreshAmbientFiles 更新。 */
+export let ambientFiles: Record<string, 'user' | 'bundled'> = {}
+export async function refreshAmbientFiles(): Promise<Record<string, 'user' | 'bundled'>> {
+  try {
+    ambientFiles = await window.api.ambientList()
+  } catch {
+    ambientFiles = {}
+  }
+  return ambientFiles
+}
+
+let token = 0
+/** 真實錄音：解碼後無縫循環播放，1.5 秒淡入。 */
+async function playFile(c: AudioContext, kind: string, out: AudioNode, my: number): Promise<Cleanup | null> {
+  const bytes = await window.api.ambientRead(kind)
+  if (!bytes || my !== token) return null
+  const copy = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
+  const buf = await c.decodeAudioData(copy)
+  if (my !== token) return null
+  const src = c.createBufferSource()
+  src.buffer = buf
+  src.loop = true
+  const g = c.createGain()
+  g.gain.setValueAtTime(0, c.currentTime)
+  g.gain.linearRampToValueAtTime(1, c.currentTime + 1.5)
+  src.connect(g).connect(out)
+  src.start()
+  return () => {
+    try {
+      src.stop()
+    } catch {
+      /* 已停止 */
+    }
+    src.disconnect()
+    g.disconnect()
+  }
+}
+
+/** 回傳目前播放的是錄音（true）、合成（false）或沒有聲音（null：只有錄音才有的種類但沒檔案）。 */
+export async function setAmbient(kind: AmbientKind, volume: number): Promise<boolean | null> {
+  const my = ++token
   stopCurrent?.()
   stopCurrent = null
-  if (kind === 'off') return
+  if (kind === 'off') return false
   ctx ??= new AudioContext()
   void ctx.resume()
   if (!master) {
@@ -194,7 +239,26 @@ export function setAmbient(kind: AmbientKind, volume: number): void {
     master.connect(ctx.destination)
   }
   master.gain.value = volume
-  stopCurrent = build(ctx, kind, master)
+  if (!(kind in ambientFiles)) await refreshAmbientFiles()
+  if (kind in ambientFiles) {
+    try {
+      const stop = await playFile(ctx, kind, master, my)
+      if (my !== token) {
+        stop?.()
+        return false
+      }
+      if (stop) {
+        stopCurrent = stop
+        return true
+      }
+    } catch {
+      /* 解碼失敗就退回合成 */
+    }
+  }
+  if (my !== token) return false
+  if (RECORDING_ONLY.includes(kind)) return null
+  stopCurrent = build(ctx, kind as Exclude<AmbientKind, 'off' | 'forest' | 'stream'>, master)
+  return false
 }
 
 export function setAmbientVolume(v: number): void {

@@ -88,6 +88,11 @@ export interface InkwellApi {
   /** 在本機以編譯器／直譯器執行原生語言代碼塊（暫存資料夾、逾時、輸出上限；無沙盒） */
   nativeRun(req: import('./native').NativeRunRequest): Promise<import('./native').NativeRunResult>
   nativeStop(id: string): void
+  /** 氛圍音錄音檔：種類 → 來源 */
+  ambientList(): Promise<Record<string, 'user' | 'bundled'>>
+  ambientRead(kind: string): Promise<Uint8Array | null>
+  ambientImport(kind: string): Promise<boolean>
+  ambientRemove(kind: string): Promise<boolean>
   /** 略過未儲存提示，直接關閉視窗（儲存完成後使用） */
   forceClose(): void
   /** 原生確認對話框（不要用 window.confirm，它會讓編輯器失去焦點） */
