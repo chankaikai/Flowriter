@@ -44,6 +44,7 @@ import { languages } from '@codemirror/language-data'
 import { LanguageDescription, LanguageSupport, StreamLanguage } from '@codemirror/language'
 import { caretAnchor, setVoiceNotes, stopVoicePlayback } from './voiceUi'
 import type { VoiceNote } from '@/lib/voice'
+import { blockTexts } from './extras'
 import { refreshLens, gotoBlockOffset, setTaskChecked, insertCallout, removeFrontMatter, isLockedAtCaret, setLockTexts, toggleLockAtCaret, gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
 import { LARGE_DOC } from '@/lib/markdown'
 
@@ -75,6 +76,8 @@ export interface EditorHandle {
   refreshLens(): void
   /** 游標所在段落的語音錨點；不在文字段落回 null */
   voiceAnchor(): string | null
+  /** 所有文字區塊（index 與 gotoBlock 一致），逆向大綱用 */
+  blockTexts(): { index: number; text: string; skip: boolean }[]
   /** 同步語音便籤清單與刪除回呼 */
   setVoice(notes: VoiceNote[], docPath: string, onDelete: (id: string) => void): void
   stopVoice(): void
@@ -296,6 +299,10 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
     refreshLens: () => {
       const v = view()
       if (v) refreshLens(v)
+    },
+    blockTexts: () => {
+      const v = view()
+      return v ? blockTexts(v) : []
     },
     voiceAnchor: () => {
       const v = view()

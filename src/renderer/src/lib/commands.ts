@@ -3,7 +3,7 @@ import type { SidebarTab, ThemeName } from './settings'
 import { THEMES } from './themes'
 
 export type ExportKind = 'html' | 'pdf' | 'docx' | 'md' | 'png'
-export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks' | 'vault' | 'diag' | 'clips' | 'notes' | 'radar' | 'refs' | 'about' | 'resumes' | 'ambient'
+export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks' | 'vault' | 'diag' | 'clips' | 'notes' | 'radar' | 'refs' | 'reverse' | 'about' | 'resumes' | 'ambient'
 
 export interface Actions {
   newDoc(): void
@@ -115,6 +115,7 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'panel.ambient', title: '氛圍音', group: '面板', run: () => a.openPanel('ambient') },
     { id: 'panel.dashboard', title: '寫作儀表板', group: '面板', keys: ['Mod+Alt+D'], run: () => a.openPanel('dashboard') },
     { id: 'panel.radar', title: '本地知識雷達', group: '面板', keys: ['Mod+Alt+G'], run: () => a.openPanel('radar') },
+    { id: 'panel.reverse', title: '逆向大綱與重複段落（AI）', group: '面板', keys: ['Mod+Alt+S'], run: () => a.openPanel('reverse') },
     { id: 'panel.refs', title: '參考資料抽屜', group: '面板', keys: ['Mod+Alt+U'], run: () => a.openPanel('refs') },
     { id: 'panel.runner', title: '執行游標所在的代碼塊（JavaScript／Python）', group: '面板', keys: ['Mod+Alt+E'], editorOnly: true, run: a.runCode },
     { id: 'panel.resumes', title: '接續列表', group: '面板', run: () => a.openPanel('resumes') },

@@ -500,3 +500,15 @@ body.tab-out .tabsbar::after { content: '放開即可在新視窗中開啟'; pos
 .cmp-box pre.empty { color: var(--fg-muted); font-style: italic; }
 .cmp-del { background: color-mix(in srgb, #d6455d 24%, transparent); color: inherit; border-radius: 3px; text-decoration: line-through; }
 .cmp-add { background: color-mix(in srgb, #2fa96b 26%, transparent); color: inherit; border-radius: 3px; }
+
+/* 逆向大綱 */
+.rv-thesis { min-height: 0; }
+.rv-tree { display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; }
+.rv-point { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.rv-link { all: unset; cursor: pointer; line-height: 1.6; border-bottom: 1px dashed var(--line-strong); }
+.rv-link:hover:not(:disabled) { color: var(--accent); border-bottom-color: var(--accent); }
+.rv-link:disabled { cursor: default; opacity: .6; }
+.rv-refs { display: inline-flex; gap: 3px; }
+.rv-ref { all: unset; cursor: pointer; font-size: 11px; min-width: 16px; text-align: center; border-radius: 8px; padding: 0 4px; background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.rv-flag { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; font-size: 13px; }
+.rv-why { font-size: 12px; color: var(--fg-muted); }

@@ -145,6 +145,7 @@ export const MENUS: MenuDef[] = [
       c('panel.tasks'),
       c('panel.notes'),
       c('panel.refs'),
+      c('panel.reverse'),
       c('panel.runner'),
       SEP,
       c('panel.clips'),

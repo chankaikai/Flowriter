@@ -733,6 +733,17 @@ export function flashRange(view: EditorView, from: number, to: number): void {
   }, 2500)
 }
 
+/** 依 gotoBlockOffset 的計數方式列出所有文字區塊（含程式碼區塊與 front matter，標成 skip）。 */
+export function blockTexts(view: EditorView): { index: number; text: string; skip: boolean }[] {
+  const out: { index: number; text: string; skip: boolean }[] = []
+  view.state.doc.descendants((node: any) => {
+    if (!node.isTextblock) return true
+    out.push({ index: out.length, text: node.textContent, skip: !!node.type.spec.code || node.type.name === 'inkwell_front_matter' })
+    return false
+  })
+  return out
+}
+
 /** 跳到第 n 個文字區塊（從 0 起算）內的指定字元偏移並高亮，找不到回傳 false。 */
 export function gotoBlockOffset(view: EditorView, blockIndex: number, offset = 0, len = 0): boolean {
   let i = 0

@@ -23,6 +23,7 @@ import { checkImages, healthCheck } from '@/lib/health'
 import { speak, splitSentences, ttsAvailable, type SpeakHandle } from '@/lib/tts'
 import { TimeMachine } from '@/components/TimeMachine'
 import { VaultPanel } from '@/components/VaultPanel'
+import { ReversePanel } from '@/components/ReversePanel'
 import { Pomodoro } from '@/components/Pomodoro'
 import { VoiceRecorder, type VoiceResult } from '@/components/VoiceRecorder'
 import { addVoice, anchorOf, emptyVoice, parseVoice, removeVoice, serializeVoice, type VoiceFile } from '@/lib/voice'
@@ -1966,6 +1967,18 @@ export default function App() {
           <Popover open={panel === 'radar'} icon="search" title={tr('本地知識雷達')} onClose={() => setPanel(null)}>
             {panel === 'radar' && (
               <RadarPanel folder={folder} docPath={doc.path} query={radarQ} onOpen={(p) => void openPath(p)} />
+            )}
+          </Popover>
+          <Popover open={panel === 'reverse'} icon="sparkle" title={tr('逆向大綱與重複段落')} onClose={() => setPanel(null)}>
+            {panel === 'reverse' && (
+              <ReversePanel
+                docKey={doc.path ?? `untitled-${activeIdRef.current}`}
+                prefs={settings}
+                update={update}
+                getBlocks={() => editorRef.current?.blockTexts() ?? []}
+                onJump={(i, len) => { if (!editorRef.current?.gotoBlock(i, 0, len)) showToast(tr('找不到對應段落，文件可能已經改動，請重新分析')) }}
+                onCopy={(md) => { void navigator.clipboard.writeText(md); showToast(tr('已複製大綱')) }}
+              />
             )}
           </Popover>
           <Popover open={panel === 'refs'} icon="book" title={tr('參考資料抽屜')} onClose={() => setPanel(null)}>
