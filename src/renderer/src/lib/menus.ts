@@ -388,6 +388,15 @@ export const RIBBON: RibbonTab[] = [
           r('export.docx', 'Word', { glyph: 'DOC', lg: true }),
           r('export.html', 'HTML', { glyph: '</>', lg: true }),
           r('export.png', '長圖', { icon: 'image', lg: true }),
+          r('export.cards', '輪播圖', {
+            icon: 'image',
+            lg: true,
+            sub: [
+              { cmd: 'export.cards', label: '3:4（ZIP）' },
+              { cmd: 'export.cards45', label: '4:5（ZIP）' },
+              { cmd: 'export.cardsPng', label: '多張 PNG（資料夾）' }
+            ]
+          }),
           r('export.md', 'Markdown', { glyph: 'MD', lg: true })
         ]
       }

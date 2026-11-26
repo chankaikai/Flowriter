@@ -1,5 +1,9 @@
 /** 面板、側邊欄、對話框與狀態文字的英文翻譯（其他非中文語言退回英文）。 */
 export const PANELS: Record<string, string> = {
+  "輪播圖": "Carousel",
+  "3:4（ZIP）": "3:4 (ZIP)",
+  "4:5（ZIP）": "4:5 (ZIP)",
+  "多張 PNG（資料夾）": "PNGs (to a folder)",
   "逆向大綱與重複段落（AI）": "Reverse outline & repeated paragraphs (AI)",
   "逆向大綱與重複段落": "Reverse outline & repeated paragraphs",
   "文字段落太少（至少 3 段），不需要逆向大綱": "Too few text paragraphs (at least 3) for a reverse outline",
