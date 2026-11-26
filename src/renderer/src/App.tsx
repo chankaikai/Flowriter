@@ -52,7 +52,7 @@ import type { UpdateStatus } from '../../shared/update'
 import { WELCOME } from '@/lib/welcome'
 import { buildHtmlDocument, renderHtmlBody } from '@/export/exportHtml'
 import { buildDocx } from '@/export/exportDocx'
-import { tr } from '@/lib/i18n'
+import { tr, trf } from '@/lib/i18n'
 
 type Mode = 'wysiwyg' | 'source'
 interface DocMeta {
@@ -296,14 +296,14 @@ export default function App() {
         markDirty(mdRef.current !== md)
         const tab = tabsRef.current.find((x) => x.id === activeIdRef.current)
         if (tab) tab.mtime = (await window.api.statFile(d.path)) ?? tab.mtime
-        if (!silent) showToast('已儲存')
+        if (!silent) showToast(tr('已儲存'))
         // 版本快照：手動儲存一定留；自動儲存至少相隔 90 秒
         const now = Date.now()
         if (!silent || now - (lastSnap.current[d.path] || 0) > 90_000) {
           lastSnap.current[d.path] = now
           void window.api.historySave(d.path, md)
         }
-      } else showToast('儲存失敗')
+      } else showToast(tr('儲存失敗'))
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -320,13 +320,13 @@ export default function App() {
       }
       for (const t of tabsRef.current) {
         if (t.id === activeIdRef.current || t.md === t.saved) continue
-        if (!t.path) return showToast(`「${stripExt(t.name)}」尚未命名，請先另存新檔`)
-        if (!(await window.api.saveFile(t.path, t.md))) return showToast('儲存失敗，已取消關閉')
+        if (!t.path) return showToast(trf('「{0}」尚未命名，請先另存新檔', stripExt(t.name)))
+        if (!(await window.api.saveFile(t.path, t.md))) return showToast(tr('儲存失敗，已取消關閉'))
       }
       void d
       window.api.forceClose()
     } catch {
-      showToast('儲存失敗，已取消關閉')
+      showToast(tr('儲存失敗，已取消關閉'))
     }
   }
 
@@ -342,7 +342,7 @@ export default function App() {
     if (tab) tab.mtime = (await window.api.statFile(p)) ?? 0
     setRecent(pushRecent(p))
     markDirty(false)
-    showToast('已儲存')
+    showToast(tr('已儲存'))
   }, [syncFromEditor, markDirty, showToast])
 
   /* ------------------------------ 多分頁 ------------------------------ */
@@ -485,7 +485,7 @@ export default function App() {
         if (t.path && settingsRef.current.autosave) {
           if (isActive) await save(true)
           else await window.api.saveFile(t.path, t.md)
-        } else if (!(await confirmBox(`「${stripExt(isActive ? docRef.current.name : t.name)}」有尚未儲存的更改，確定要關閉嗎？`, '關閉不儲存'))) {
+        } else if (!(await confirmBox(trf('「{0}」有尚未儲存的更改，確定要關閉嗎？', stripExt(isActive ? docRef.current.name : t.name)), tr('關閉不儲存')))) {
           return
         }
       }
@@ -520,7 +520,7 @@ export default function App() {
       const path = isActive ? docRef.current.path : t.path
       if (path && md === saved) saveCaretNow()
       const ok = await window.api.detachTab({ path, name, md, saved }, at)
-      if (!ok) return showToast('無法開啟新視窗')
+      if (!ok) return showToast(tr('無法開啟新視窗'))
       const idx = tabsRef.current.findIndex((x) => x.id === id)
       const rest = tabsRef.current.filter((x) => x.id !== id)
       tabsRef.current = rest
@@ -577,7 +577,7 @@ export default function App() {
       let content = existing?.md ?? ''
       if (!existing) {
         const r = await window.api.readFile(p)
-        if (!r) return showToast('無法開啟檔案')
+        if (!r) return showToast(tr('無法開啟檔案'))
         content = r.content
       }
       pendingFind.current = findText ?? null
@@ -634,7 +634,7 @@ export default function App() {
     activate(activeTab ?? tabs[0])
     if (recovered) {
       showToast(
-        `已恢復 ${recovered} 個分頁上次未儲存的更改` +
+        trf('已恢復 {0} 個分頁上次未儲存的更改', recovered) +
           (conflicts ? `，其中 ${conflicts} 個檔案之後被其他程式修改過，儲存前請留意` : '')
       )
     }
@@ -657,7 +657,7 @@ export default function App() {
       const dirtyNow = isActive ? mdRef.current !== savedRef.current : t.md !== t.saved
       if (
         dirtyNow &&
-        !(await confirmBox(`「${stripExt(t.name)}」已被其他程式修改。要重新載入並放棄目前未儲存的更改嗎？`, '重新載入'))
+        !(await confirmBox(trf('「{0}」已被其他程式修改。要重新載入並放棄目前未儲存的更改嗎？', stripExt(t.name)), tr('重新載入')))
       ) {
         continue
       }
@@ -668,7 +668,7 @@ export default function App() {
       t.saved = r.content
       if (isActive) activate(t)
       else publishTabs()
-      showToast(`已重新載入「${stripExt(t.name)}」`)
+      showToast(trf('已重新載入「{0}」', stripExt(t.name)))
     }
   }, [activate, publishTabs, showToast, syncFromEditor])
 
@@ -705,7 +705,7 @@ export default function App() {
   const closeFolder = useCallback(() => {
     setFolder(null)
     update({ lastFolder: null })
-    showToast('已關閉文件樹')
+    showToast(tr('已關閉文件樹'))
   }, [update, showToast])
 
   /* ------------------------------ 圖片 ------------------------------ */
@@ -777,7 +777,7 @@ export default function App() {
         const h = healthCheck(md)
         const miss = await checkImages(h.images, (src) => toAbsolutePath(dir, src), async (p) => (await window.api.statFile(p)) != null)
         const errs = [...miss, ...h.issues].filter((i) => i.level === 'error')
-        if (errs.length && !(await confirmBox(`文件健檢發現 ${errs.length} 個錯誤，例如：\n${errs[0].message}\n\n仍要匯出嗎？（取消會打開健檢面板）`, '仍要匯出'))) {
+        if (errs.length && !(await confirmBox(trf('文件健檢發現 {0} 個錯誤，例如：\n{1}\n\n仍要匯出嗎？（取消會打開健檢面板）', errs.length, errs[0].message), tr('仍要匯出')))) {
           setPanel('diag')
           return
         }
@@ -787,7 +787,7 @@ export default function App() {
         if (kind === 'md') {
           out = await window.api.exportFile({ name: base, ext: 'md', filterName: 'Markdown', data: md })
         } else if (kind === 'png') {
-          showToast('正在繪製長圖…')
+          showToast(tr('正在繪製長圖…'))
           const body = await renderHtmlBody(md, dir)
           const html = buildHtmlDocument(base, `<main class="share-card">${body}</main><p class="share-foot">FLOWITER</p>`)
             .replace('</style>', `${SHARE_CSS}</style>`)
@@ -795,7 +795,7 @@ export default function App() {
         } else if (kind === 'docx') {
           out = await window.api.exportFile({ name: base, ext: 'docx', filterName: 'Word', data: await buildDocx(md) })
         } else {
-          showToast('正在處理…')
+          showToast(tr('正在處理…'))
           const html = buildHtmlDocument(base, await renderHtmlBody(md, dir))
           out =
             kind === 'html'
@@ -803,12 +803,12 @@ export default function App() {
               : await window.api.exportPdf({ name: base, html })
         }
         if (out) {
-          showToast('已匯出')
+          showToast(tr('已匯出'))
           window.api.reveal(out)
         } else setToast(null)
       } catch (err) {
         console.error(err)
-        showToast('匯出失敗')
+        showToast(tr('匯出失敗'))
       }
     },
     [syncFromEditor, showToast]
@@ -839,7 +839,7 @@ export default function App() {
       const r = moveSection(mdRef.current, from, to)
       if (r == null || r === mdRef.current) return
       replaceContent(r)
-      showToast('已調整章節順序')
+      showToast(tr('已調整章節順序'))
     },
     [replaceContent, showToast, syncFromEditor]
   )
@@ -848,7 +848,7 @@ export default function App() {
     async (name: string) => {
       const root = folder ?? (docRef.current.path ? dirname(docRef.current.path) : null)
       if (!root) {
-        showToast('先儲存檔案或開啟資料夾，才能使用連結')
+        showToast(tr('先儲存檔案或開啟資料夾，才能使用連結'))
         return
       }
       const list = await window.api.listAll(root)
@@ -857,10 +857,10 @@ export default function App() {
         await openPath(hit.path)
         return
       }
-      if (!(await confirmBox(`「${name}」還不存在，要在目前資料夾建立嗎？`, '建立'))) return
+      if (!(await confirmBox(trf('「{0}」還不存在，要在目前資料夾建立嗎？', name), tr('建立')))) return
       const p = await window.api.createFile(root, /\.md$/i.test(name) ? name : `${name}.md`)
       if (p) await openPath(p)
-      else showToast('建立失敗')
+      else showToast(tr('建立失敗'))
     },
     [folder, openPath, showToast]
   )
@@ -880,14 +880,14 @@ export default function App() {
   const [resumeTick, setResumeTick] = useState(0)
   const setResumeHintCmd = useCallback(async () => {
     const p = docRef.current.path
-    if (!p) return showToast('先儲存檔案，才能添加接續提示')
+    if (!p) return showToast(tr('先儲存檔案，才能添加接續提示'))
     const pos = editorRef.current?.getCaret() ?? getBookmark(p)?.pos ?? 0
-    const v = await askText('接續提示：寫給下次打開時的自己', { placeholder: '例如：先把第三章的數據補上（可留空，只記位置）', okLabel: '添加' })
+    const v = await askText(tr('接續提示：寫給下次打開時的自己'), { placeholder: tr('例如：先把第三章的數據補上（可留空，只記位置）'), okLabel: tr('添加') })
     if (v == null) return
     saveCaretNow()
     addResume(p, pos, v)
     setResumeTick((n) => n + 1)
-    showToast('已添加接續提示')
+    showToast(tr('已添加接續提示'))
   }, [askText, saveCaretNow, showToast])
 
   const clipStack = useClipStack()
@@ -901,10 +901,10 @@ export default function App() {
       return
     }
     const ed = editorRef.current
-    if (!ed) return showToast('朗讀只能在所見即所得模式使用')
-    if (!ttsAvailable()) return showToast('這台電腦沒有可用的語音合成')
+    if (!ed) return showToast(tr('朗讀只能在所見即所得模式使用'))
+    if (!ttsAvailable()) return showToast(tr('這台電腦沒有可用的語音合成'))
     const sentences = splitSentences(ed.selectionText() || ed.textFromCaret())
-    if (!sentences.length) return showToast('沒有可朗讀的文字')
+    if (!sentences.length) return showToast(tr('沒有可朗讀的文字'))
     setSpeaking(true)
     speakRef.current = speak(sentences, {
       rate: 1,
@@ -912,7 +912,7 @@ export default function App() {
       onEnd: (why) => {
         speakRef.current = null
         setSpeaking(false)
-        if (why === 'error') showToast('朗讀失敗：可能沒有安裝中文語音')
+        if (why === 'error') showToast(tr('朗讀失敗：可能沒有安裝中文語音'))
       }
     })
   }, [showToast])
@@ -926,9 +926,9 @@ export default function App() {
 
   const milestoneCmd = useCallback(async () => {
     const path = docRef.current.path
-    if (!path) return showToast('先儲存檔案，才能標記里程碑')
+    if (!path) return showToast(tr('先儲存檔案，才能標記里程碑'))
     syncFromEditor()
-    const v = await askText('里程碑名稱', { placeholder: '例如：初稿完成、交給導師前', okLabel: '標記' })
+    const v = await askText(tr('里程碑名稱'), { placeholder: tr('例如：初稿完成、交給導師前'), okLabel: tr('標記') })
     if (!v?.trim()) return
     const ok = await window.api.historyMilestone(path, mdRef.current, v)
     showToast(ok ? `已標記里程碑「${v.trim()}」，不會被自動清除` : '標記失敗')
@@ -956,7 +956,7 @@ export default function App() {
 
   const toggleReading = useCallback(() => {
     if (!reading && modeRef.current !== 'wysiwyg') {
-      showToast('請先切回所見即所得模式')
+      showToast(tr('請先切回所見即所得模式'))
       return
     }
     if (!reading) {
@@ -1003,7 +1003,7 @@ export default function App() {
     quit: () => window.api.closeWindow(),
     toggleLock: () => toggleLockCmd(),
     runCode: () => {
-      if (!editorRef.current?.runAtCaret()) showToast('把游標放在可執行語言（JS、Python、C、C++、Rust、Java、Go…）的代碼塊裡，或直接點代碼塊右上角的「▶ 執行」')
+      if (!editorRef.current?.runAtCaret()) showToast(tr('把游標放在可執行語言（JS、Python、C、C++、Rust、Java、Go…）的代碼塊裡，或直接點代碼塊右上角的「▶ 執行」'))
     },
     inboxCapture: () => void window.api.inboxShow(),
     inboxOpen: () => void window.api.inboxPath().then((p) => openPath(p)),
@@ -1322,9 +1322,9 @@ export default function App() {
       if (!r.ok) {
         // 所有組合都被占用：把開關還原成關閉，讓畫面如實反映，不留下「開著但沒作用」
         updateSettingsRef.current({ inboxShortcut: false })
-        showToast('Ctrl/⌘+Alt+Space 等組合都已被其他程式占用，收件匣快捷鍵無法啟用')
+        showToast(tr('Ctrl/⌘+Alt+Space 等組合都已被其他程式占用，收件匣快捷鍵無法啟用'))
       } else if (r.accel && r.accel !== 'CommandOrControl+Alt+Space') {
-        showToast(`Ctrl/⌘+Alt+Space 被占用，已改用 ${r.accel.replace('CommandOrControl', 'Ctrl/⌘').replace(/\+/g, '+')}`)
+        showToast(trf('Ctrl/⌘+Alt+Space 被占用，已改用 {0}', r.accel.replace('CommandOrControl', 'Ctrl/⌘').replace(/\+/g, '+')))
       }
     })
     return () => {
@@ -1406,15 +1406,15 @@ export default function App() {
     editorReady?.setLocks(lockList ?? [])
   }, [editorReady, lockList])
   useEffect(() => {
-    const h = () => showToast('這一段已上鎖，先解鎖（Ctrl/⌘+Alt+Q）才能修改')
+    const h = () => showToast(tr('這一段已上鎖，先解鎖（Ctrl/⌘+Alt+Q）才能修改'))
     window.addEventListener('inkwell-locked', h)
     return () => window.removeEventListener('inkwell-locked', h)
   }, [showToast])
   function toggleLockCmd() {
     const path = docRef.current.path
-    if (!path) return showToast('先儲存檔案，上鎖資訊才有地方存放（.inkwell/locks.json）')
+    if (!path) return showToast(tr('先儲存檔案，上鎖資訊才有地方存放（.inkwell/locks.json）'))
     const r = editorRef.current?.toggleLock()
-    if (!r) return showToast('游標要放在有文字的段落裡才能上鎖')
+    if (!r) return showToast(tr('游標要放在有文字的段落裡才能上鎖'))
     const key = basename(path)
     setLocksFile((cur) => {
       const next = setLocked(cur, key, r.text, r.locked)
@@ -1526,7 +1526,7 @@ export default function App() {
 
   const cmdRun = (id: string) => commands.find((c) => c.id === id)?.run()
   wordsRef.current = stats.words
-  const minutes = stats.minutes < 1 ? '不到 1 分鐘' : `約 ${Math.round(stats.minutes)} 分鐘`
+  const minutes = stats.minutes < 1 ? tr('不到 1 分鐘') : trf('約 {0} 分鐘', Math.round(stats.minutes))
 
   return (
     <div
@@ -1542,7 +1542,7 @@ export default function App() {
         <img className="tb-logo" src={logo} alt="" />
         <MenuBar commands={commands} checks={checks} editorEnabled={mode === 'wysiwyg'} />
         <div className="tb-title" title={doc.path ?? ''}>
-          {(doc.name || '未命名') + (dirty ? ' ●' : '')} — Flowiter
+          {(doc.name || tr('未命名')) + (dirty ? ' ●' : '')} — Flowiter
         </div>
       </header>
       <Ribbon
@@ -1591,7 +1591,7 @@ export default function App() {
             // 文件已被移除：保留內容，標記為未儲存，讓用戶決定另存位置
             setDoc((d) => ({ ...d, path: null }))
             markDirty(true)
-            showToast('檔案已移到回收桶，內容仍保留，可另存')
+            showToast(tr('檔案已移到回收桶，內容仍保留，可另存'))
           }
         }}
         outline={outline}
@@ -1773,13 +1773,13 @@ export default function App() {
           <SelectionBubble
             actions={(
               [
-                ['panel.focus', '計時', 'timer'],
+                ['panel.focus', tr('計時'), 'timer'],
                 ['panel.ai', 'AI', 'sparkle'],
-                ['panel.notes', '便條', 'pen'],
-                ['edit.lock', '上鎖', 'lock'],
-                ['panel.refs', '參考', 'book'],
-                ['panel.vault', '膠囊', 'clip'],
-                ['panel.radar', '雷達', 'search']
+                ['panel.notes', tr('便條'), 'pen'],
+                ['edit.lock', tr('上鎖'), 'lock'],
+                ['panel.refs', tr('參考'), 'book'],
+                ['panel.vault', tr('膠囊'), 'clip'],
+                ['panel.radar', tr('雷達'), 'search']
               ] as const
             ).map(([id, label, icon]) => ({ id, label, icon, run: () => cmdRun(id) }))}
           />
@@ -1792,20 +1792,20 @@ export default function App() {
                 const r = await window.api.openFile()
                 return r ? { label: basename(r.path), md: r.content } : null
               }}
-              onApply={(m) => { replaceContent(m); setCmp(null); showToast('已套用，原本的內容留在時光機裡') }}
+              onApply={(m) => { replaceContent(m); setCmp(null); showToast(tr('已套用，原本的內容留在時光機裡')) }}
               onClose={() => setCmp(null)}
             />
           )}
           <ResumeBubble hint={resume?.hint ?? null} rect={resume?.rect ?? null} onDone={() => setResume(null)} />
           {sticky && (
             <button className="sticky-chip" onClick={toggleSticky} title={tr('退出迷你模式，還原視窗（不會關閉程式）')}>
-              ↩ 退出迷你模式
+              {tr('↩ 退出迷你模式')}
             </button>
           )}
           {reading && <div className="reading-prog" />}
           {reading && (
             <div className="reading-chip">
-              <span>閱讀 {minutes}</span>
+              <span>{tr('閱讀')} {minutes}</span>
               <button className="icon-btn sm" onClick={toggleReading} title={tr('退出閱讀模式 (Esc)')}>
                 <Icon name="close" size={14} />
               </button>
@@ -1817,15 +1817,15 @@ export default function App() {
                 path={doc.path}
                 current={() => mdRef.current}
                 onMilestone={milestoneCmd}
-                onJump={(t) => { if (!editorRef.current?.gotoText(t)) showToast('找不到對應位置（可能內含格式符號）') }}
+                onJump={(t) => { if (!editorRef.current?.gotoText(t)) showToast(tr('找不到對應位置（可能內含格式符號）')) }}
                 onInsert={(t) => {
                   editorRef.current?.insert(t)
-                  showToast('已插回游標處')
+                  showToast(tr('已插回游標處'))
                 }}
                 onRestore={(c) => {
                   replaceContent(c)
                   setPanel(null)
-                  showToast('已還原，原本的內容也留在時光機裡')
+                  showToast(tr('已還原，原本的內容也留在時光機裡'))
                 }}
               />
             )}
@@ -1835,10 +1835,10 @@ export default function App() {
               <DiagnosticsPanel
                 md={mdRef.current}
                 docDir={doc.path ? dirname(doc.path) : null}
-                onJump={(t) => { if (!editorRef.current?.gotoText(t)) showToast('找不到對應位置（可能內含格式符號）') }}
+                onJump={(t) => { if (!editorRef.current?.gotoText(t)) showToast(tr('找不到對應位置（可能內含格式符號）')) }}
                 onReplace={(m) => {
                   replaceContent(m)
-                  showToast('已修正，原本的內容留在時光機裡')
+                  showToast(tr('已修正，原本的內容留在時光機裡'))
                 }}
               />
             )}
@@ -1887,7 +1887,7 @@ export default function App() {
                 saved={!!doc.path}
                 items={doc.path ? getResumes(doc.path) : []}
                 onAdd={() => void setResumeHintCmd()}
-                onJump={(r: Resume) => { if (!editorRef.current?.setCaret(r.pos)) showToast('只能在所見即所得模式跳轉') }}
+                onJump={(r: Resume) => { if (!editorRef.current?.setCaret(r.pos)) showToast(tr('只能在所見即所得模式跳轉')) }}
                 onRemove={(id) => { if (doc.path) { removeResume(doc.path, id); setResumeTick((n) => n + 1) } }}
               />
             )}
@@ -1902,7 +1902,7 @@ export default function App() {
                 onAdd={(q, t) => commitNotes(addNote(notesFile, notesKey, q, t))}
                 onToggle={(id, done) => commitNotes(updateNote(notesFile, notesKey, id, { done }))}
                 onRemove={(id) => commitNotes(removeNote(notesFile, notesKey, id))}
-                onJump={(q) => { if (!editorRef.current?.gotoText(q)) showToast('找不到對應位置（可能內含格式符號）') }}
+                onJump={(q) => { if (!editorRef.current?.gotoText(q)) showToast(tr('找不到對應位置（可能內含格式符號）')) }}
               />
             )}
           </Popover>
@@ -1957,12 +1957,12 @@ export default function App() {
                 goal={settings.dailyGoal}
                 onGoal={(n) => update({ dailyGoal: n })}
                 onTarget={(n) => { replaceContent(withTarget(mdRef.current, n)); showToast(n ? '已寫入目標字數' : '已移除目標字數') }}
-                onToggleTask={(i, c) => { if (!editorRef.current?.setTask(i, c)) showToast('請在所見即所得模式勾選任務') }}
-                onJumpText={(t) => { if (!editorRef.current?.gotoText(t)) showToast('找不到對應位置（可能在源碼模式，或內含格式符號）') }}
-                onJumpPos={(pos) => { if (!editorRef.current?.setCaret(pos)) showToast('只能在所見即所得模式跳轉') }}
-                onRestore={(c) => { replaceContent(c); showToast('已還原，原本的內容也留在時光機裡') }}
+                onToggleTask={(i, c) => { if (!editorRef.current?.setTask(i, c)) showToast(tr('請在所見即所得模式勾選任務')) }}
+                onJumpText={(t) => { if (!editorRef.current?.gotoText(t)) showToast(tr('找不到對應位置（可能在源碼模式，或內含格式符號）')) }}
+                onJumpPos={(pos) => { if (!editorRef.current?.setCaret(pos)) showToast(tr('只能在所見即所得模式跳轉')) }}
+                onRestore={(c) => { replaceContent(c); showToast(tr('已還原，原本的內容也留在時光機裡')) }}
                 onExportImage={() => void exportAs('png')}
-                onCopyClean={() => { syncFromEditor(); void navigator.clipboard.writeText(cleanMarkdown(mdRef.current)).then(() => showToast('已複製乾淨的 Markdown'), () => showToast('複製失敗')) }}
+                onCopyClean={() => { syncFromEditor(); void navigator.clipboard.writeText(cleanMarkdown(mdRef.current)).then(() => showToast(tr('已複製乾淨的 Markdown')), () => showToast(tr('複製失敗'))) }}
                 onStyleCheck={() => setPanel('diag')}
               />
             )}
@@ -1983,15 +1983,15 @@ export default function App() {
         <button className={`sb-btn${settings.sidebarOpen ? ' on' : ''}`} onClick={() => update({ sidebarOpen: !settings.sidebarOpen })} title={tr('側邊欄')}>
           <Icon name="sidebar" size={14} />
         </button>
-        <span className="sb-text">{stats.words.toLocaleString()} 字</span>
-        <span className="sb-text">閱讀 {minutes}</span>
+        <span className="sb-text">{stats.words.toLocaleString()} {tr('字')}</span>
+        <span className="sb-text">{tr('閱讀')} {minutes}</span>
         <span className="grow" />
         <span className={`save-state${dirty ? ' unsaved' : ''}`}>
-          {doc.path ? (dirty ? (settings.autosave ? '自動儲存中…' : '未儲存') : '已儲存') : dirty ? '未儲存' : ''}
+          {doc.path ? (dirty ? (settings.autosave ? tr('自動儲存中…') : tr('未儲存')) : tr('已儲存')) : dirty ? tr('未儲存') : ''}
         </span>
         <button className={`sb-btn${mode === 'source' ? ' on' : ''}`} onClick={toggleSource} title={tr('源碼模式')}>
           <Icon name="code" size={14} />
-          <span>{mode === 'source' ? '源碼' : '所見即所得'}</span>
+          <span>{mode === 'source' ? tr('源碼') : tr('所見即所得')}</span>
         </button>
         <button className={`sb-btn${settings.focusMode ? ' on' : ''}`} onClick={() => update({ focusMode: !settings.focusMode })} title={tr('聚焦模式')}>
           <Icon name="focus" size={14} />
@@ -2018,14 +2018,14 @@ export default function App() {
           onChange={(e) => update({ theme: e.target.value })}
           title={tr('主題')}
         >
-          <optgroup label="淺色">
+          <optgroup label={tr('淺色')}>
             {THEMES.filter((t) => !t.dark).map((t) => (
-              <option key={t.id} value={t.id}>{t.label}</option>
+              <option key={t.id} value={t.id}>{tr(t.label)}</option>
             ))}
           </optgroup>
-          <optgroup label="深色">
+          <optgroup label={tr('深色')}>
             {THEMES.filter((t) => t.dark).map((t) => (
-              <option key={t.id} value={t.id}>{t.label}</option>
+              <option key={t.id} value={t.id}>{tr(t.label)}</option>
             ))}
           </optgroup>
           <option value="system">{tr('跟隨系統')}</option>

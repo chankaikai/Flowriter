@@ -58,6 +58,10 @@ export function setLang(id: string): void {
     /* 非瀏覽器環境 */
   }
 }
+/** 帶參數的翻譯：原文用 {0}、{1} 當佔位符，翻譯後再代入 */
+export function trf(zh: string, ...args: (string | number)[]): string {
+  return tr(zh).replace(/\{(\d+)\}/g, (_m, i) => String(args[Number(i)] ?? ''))
+}
 export const getLang = (): string => current
 /** 翻譯一個繁體中文原文；沒有對應就原樣回傳 */
 export function tr(zh: string): string {

@@ -169,7 +169,7 @@ export function Pomodoro({ getWords, openSignal }: { getWords(): number; openSig
         <div className="chips center">
           {PRESETS.map((p) => (
             <button key={p.label} className={`chip${!custom && st.workMin === p.work && st.restMin === p.rest ? ' on' : ''}`} onClick={() => { setCustom(false); setConfig({ workMin: p.work, restMin: p.rest }) }}>
-              {p.label}
+              {tr(p.label)}
             </button>
           ))}
           <button className={`chip${custom || !isPreset ? ' on' : ''}`} onClick={() => setCustom(!custom)}>{tr('自訂')}</button>

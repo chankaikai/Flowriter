@@ -10,7 +10,7 @@ import { AiSetup } from './AiSetup'
 import { resolveAi } from '@/lib/ai'
 import { Segmented } from './Segmented'
 import { AboutPanel } from './AboutPanel'
-import { LANGS, tr } from '@/lib/i18n'
+import { LANGS, tr, trf } from '@/lib/i18n'
 import { importThemeCss, listImported, removeImported, MAX_THEME_CSS } from '@/lib/themeImport'
 import type { UpdateStatus } from '../../../shared/update'
 
@@ -125,7 +125,7 @@ export function SettingsPanel({
                           Aa
                           <i style={{ background: t.accent }} />
                         </span>
-                        {t.label}
+                        {tr(t.label)}
                       </button>
                     ))}
                   </div>
@@ -231,7 +231,7 @@ export function SettingsPanel({
               title={tr('AI 改寫')}
               summary={(() => {
                 const r = resolveAi(settings)
-                return r.missing ? `${r.provider.label} · 尚未完成設定` : `${r.provider.label} · ${r.model}`
+                return r.missing ? trf('{0} · 尚未完成設定', r.provider.label) : `${r.provider.label} · ${r.model}`
               })()}
             >
               <AiSetup s={settings} update={update} />

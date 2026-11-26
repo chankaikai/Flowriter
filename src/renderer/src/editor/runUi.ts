@@ -6,6 +6,7 @@ import type { Node as PMNode } from '@milkdown/kit/prose/model'
 import { preflight, runKind } from '@/lib/runner'
 import { confirmBox } from '@/lib/confirm'
 import { runCode, type RunHandle, type RunResult } from '@/lib/runnerHost'
+import { tr, trf } from '@/lib/i18n'
 
 /**
  * 代碼塊直接執行：
@@ -50,7 +51,7 @@ async function runBlock(view: EditorView, pos: number): Promise<void> {
 
   const pf = preflight(lang, code)
   if (!pf.runnable) return setEntry(view, k, { status: 'done', note: pf.reason })
-  if (pf.warnings.length && !(await confirmBox(`這段程式碼含有：\n・${pf.warnings.join('\n・')}\n\n仍要在隔離環境中執行嗎？`, '仍要執行'))) return
+  if (pf.warnings.length && !(await confirmBox(trf('這段程式碼含有：\n・{0}\n\n仍要在隔離環境中執行嗎？', pf.warnings.join('\n・')), '仍要執行'))) return
   if (kind === 'py') {
     let ok = false
     try {
@@ -59,7 +60,7 @@ async function runBlock(view: EditorView, pos: number): Promise<void> {
       /* 忽略 */
     }
     if (!ok) {
-      if (!(await confirmBox('首次執行 Python 會從 cdn.jsdelivr.net 下載 Python 執行環境（約 10 MB，之後瀏覽器會快取）。\n\n程式碼仍在隔離的 WebAssembly 環境中執行，碰不到你的檔案與網路。要繼續嗎？', '下載並執行'))) return
+      if (!(await confirmBox(tr('首次執行 Python 會從 cdn.jsdelivr.net 下載 Python 執行環境（約 10 MB，之後瀏覽器會快取）。\n\n程式碼仍在隔離的 WebAssembly 環境中執行，碰不到你的檔案與網路。要繼續嗎？'), tr('下載並執行')))) return
       try {
         localStorage.setItem(PY_CONSENT, '1')
       } catch {
@@ -77,7 +78,7 @@ async function runBlock(view: EditorView, pos: number): Promise<void> {
       /* 忽略 */
     }
     if (!ok) {
-      if (!(await confirmBox(`這段 ${lang} 程式會用你電腦上安裝的編譯器／直譯器直接執行，沒有沙盒隔離。\n\n・在暫存資料夾執行、5 秒逾時、輸出有上限，結束後自動刪除\n・已攔截明顯的刪檔、啟動其他程式、網路等寫法，但無法保證擋住刻意繞過的程式\n\n只執行你看得懂、信任的程式碼。要繼續嗎？`, '繼續執行'))) return
+      if (!(await confirmBox(trf('這段 {0} 程式會用你電腦上安裝的編譯器／直譯器直接執行，沒有沙盒隔離。\n\n・在暫存資料夾執行、5 秒逾時、輸出有上限，結束後自動刪除\n・已攔截明顯的刪檔、啟動其他程式、網路等寫法，但無法保證擋住刻意繞過的程式\n\n只執行你看得懂、信任的程式碼。要繼續嗎？', lang), tr('繼續執行')))) return
       try {
         localStorage.setItem(key, '1')
       } catch {

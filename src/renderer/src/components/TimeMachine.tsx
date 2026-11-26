@@ -197,7 +197,7 @@ function MemoryTab() {
     <div className="tm-list">
       {mem.map((m) => (
         <div key={`${m.key}-${m.ts}`} className="tm-card">
-          <small className="tm-when">{m.label} · {new Date(m.ts).toLocaleDateString()} · {m.name}</small>
+          <small className="tm-when">{tr(m.label)} · {new Date(m.ts).toLocaleDateString()} · {m.name}</small>
           <div>{m.excerpt || '（空白）'}</div>
           <button className="btn ghost" onClick={() => void window.api.historyReadKey(m.key, m.ts).then((t) => t && navigator.clipboard.writeText(t))}>{tr('複製全文')}</button>
         </div>

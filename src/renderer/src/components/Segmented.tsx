@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { usePill } from '@/lib/pill'
+import { tr } from '@/lib/i18n'
 
 interface Option<T extends string> {
   value: T
@@ -41,7 +42,7 @@ export function Segmented<T extends string>({
             if (e.detail === 0 && o.value !== value) onChange(o.value)
           }}
         >
-          {o.label}
+          {tr(o.label)}
         </button>
       ))}
     </div>

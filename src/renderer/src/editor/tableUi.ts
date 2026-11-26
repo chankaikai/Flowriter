@@ -13,6 +13,7 @@ import {
   deleteRow,
   deleteTable
 } from '@milkdown/kit/prose/tables'
+import { tr } from '@/lib/i18n'
 
 /**
  * 表格工具列：游標在表格裡時，浮在表格上方；在表格上按右鍵會在滑鼠位置展開同一組按鈕。
@@ -105,8 +106,8 @@ export const tableUiPlugin = $prose(
             continue
           }
           const b = document.createElement('button')
-          b.textContent = a.label
-          b.title = a.title
+          b.textContent = tr(a.label)
+          b.title = tr(a.title)
           b.addEventListener('mousedown', (e) => e.preventDefault()) // 不搶走編輯器焦點與選取
           b.addEventListener('click', () => {
             if (v.isDestroyed) return

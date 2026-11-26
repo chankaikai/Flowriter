@@ -9,7 +9,7 @@ import { AiSetup } from './AiSetup'
 import { recordUsage, fmtTokens } from '@/lib/aiUsage'
 import { collectTasks } from '@/lib/tasks'
 import { resolveAi, type AiPrefs } from '@/lib/ai'
-import { tr } from '@/lib/i18n'
+import { tr, trf } from '@/lib/i18n'
 
 /** 停靠欄上方的浮動玻璃面板，一次只開一個。 */
 export function Popover({
@@ -180,7 +180,7 @@ export function AmbientPanel({ ambient, setAmbientKind }: { ambient: AmbientKind
       <div className="chips">
         {AMBIENT_LIST.map((a) => (
           <button key={a.k} className={`chip${ambient === a.k ? ' on' : ''}`} onClick={() => setAmbientKind(a.k)}>
-            {a.label}{a.k in files ? ' ●' : ''}
+            {tr(a.label)}{a.k in files ? ' ●' : ''}
           </button>
         ))}
       </div>
@@ -192,7 +192,7 @@ export function AmbientPanel({ ambient, setAmbientKind }: { ambient: AmbientKind
         }}
       />
       <div className="hist-hint">{tr('● 表示有真實錄音。沒有錄音的種類是軟體合成的，聽起來比較單調。')}</div>
-      {ambient !== 'off' && real === null && <div className="hist-hint">「{AMBIENT_LIST.find((a) => a.k === ambient)?.label}」沒有錄音檔就不會有聲音，請按下面的「匯入錄音」。</div>}
+      {ambient !== 'off' && real === null && <div className="hist-hint">{trf('「{0}」沒有錄音檔就不會有聲音，請按下面的「匯入錄音」。', tr(AMBIENT_LIST.find((a) => a.k === ambient)?.label ?? ''))}</div>}
       {ambient !== 'off' && (
         <div className="pop-actions">
           <button className="btn ghost" onClick={async () => { if (await window.api.ambientImport(ambient)) setFiles(await refreshAmbientFiles()) }}>{tr('匯入錄音')}</button>
@@ -274,7 +274,7 @@ export function AiPanel({
           <div className="chips">
             {AI_PRESETS.filter((p) => selection || p.cont).map((p) => (
               <button key={p.label} className="chip" disabled={busy || !!cfg.missing} onClick={() => void run(p.prompt, !!p.cont)}>
-                {p.label}
+                {tr(p.label)}
               </button>
             ))}
           </div>
@@ -288,7 +288,7 @@ export function AiPanel({
             </div>
           )}
           {cfg.missing && <div className="ai-err">需要先設定 AI：{cfg.missing}</div>}
-          {busy && <div className="ai-busy"><i /><span>{cfg.provider.label} 正在處理…</span></div>}
+          {busy && <div className="ai-busy"><i /><span>{trf('{0} 正在處理…', cfg.provider.label)}</span></div>}
           {err && <div className="ai-err">{err}</div>}
           {out && (
             <>

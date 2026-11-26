@@ -15,9 +15,11 @@ import { createGongcheRenderer } from '@/lib/music/gongcheRender'
 import { gongcheEdit } from '@/lib/music/gongcheEdit'
 import { GONGCHE_CHARS } from '@/lib/music/gongche'
 import { createLilypondRenderer } from '@/lib/music/lilypondRenderer'
+import { standaloneSvg, svgFileName } from '@/lib/music/svgExport'
 import { createTabRenderer } from '@/lib/music/tabRenderer'
 import { tabEdit, type TabTool } from '@/lib/music/tabEdit'
 import type { MusicRenderer } from '@/lib/music/types'
+import { getLang, tr } from '@/lib/i18n'
 
 /**
  * 樂譜預覽：語言命中（目前只有 abc）的圍欄代碼塊，下面畫一個唯讀的 widget。
@@ -71,7 +73,7 @@ async function draw(b: Block): Promise<void> {
     b.mount.replaceChildren()
     b.err.textContent = e instanceof MusicError ? e.message : `無法渲染：${String((e as Error)?.message ?? e).split('\n')[0].slice(0, 160)}`
   }
-  b.playBtn.textContent = '▶ 播放'
+  b.playBtn.textContent = tr('▶ 播放')
 }
 
 function partsOf(b: Block): { id: string; name: string }[] {
@@ -88,7 +90,7 @@ function syncParts(b: Block): void {
   const show = parts.length >= 2
   b.select.style.display = show ? '' : 'none'
   if (show) {
-    b.select.replaceChildren(new Option('總譜', 'all'), ...parts.map((p) => new Option(p.name, p.id)))
+    b.select.replaceChildren(new Option(tr('總譜'), 'all'), ...parts.map((p) => new Option(p.name, p.id)))
     b.select.value = b.part
   }
 }
@@ -102,16 +104,16 @@ function create(lang: MusicLang, source: string, key: string, reg: Reg): Block {
   bar.className = 'music-bar'
   const select = document.createElement('select')
   select.className = 'music-part'
-  select.title = '聲部'
+  select.title = tr('聲部')
   const playBtn = document.createElement('button')
   playBtn.className = 'music-play'
-  playBtn.textContent = '▶ 播放'
+  playBtn.textContent = tr('▶ 播放')
   // 只有 abc 有聲部與播放；其他譜種這一階段不做播放
   const hideBtn = document.createElement('button')
   hideBtn.className = 'music-hide'
   const paintHide = () => {
-    hideBtn.textContent = hiddenKeys.has(key) ? '顯示代碼' : '隱藏代碼'
-    hideBtn.title = '只留譜、收起代碼（不影響 Markdown 內容）'
+    hideBtn.textContent = hiddenKeys.has(key) ? tr('顯示代碼') : tr('隱藏代碼')
+    hideBtn.title = tr('只留譜、收起代碼（不影響 Markdown 內容）')
   }
   paintHide()
   hideBtn.addEventListener('mousedown', (e) => e.preventDefault())
@@ -124,7 +126,31 @@ function create(lang: MusicLang, source: string, key: string, reg: Reg): Block {
   })
   if (lang === 'abc' || lang === 'mei' || lang === 'xml') bar.append(select)
   if (lang === 'abc' || lang === 'tab') bar.append(playBtn)
-  bar.append(hideBtn)
+  const dlBtn = document.createElement('button')
+  dlBtn.className = 'music-dl'
+  dlBtn.textContent = tr('下載 SVG')
+  dlBtn.title = tr('把這塊譜存成 SVG 檔（不含代碼）')
+  dlBtn.addEventListener('mousedown', (e) => e.preventDefault())
+  dlBtn.addEventListener('click', () => {
+    const svgs = [...mount.querySelectorAll('svg')]
+    if (!svgs.length) {
+      err.textContent = tr('還沒有可下載的譜面')
+      return
+    }
+    svgs.forEach((svg, i) => {
+      const blob = new Blob([standaloneSvg(new XMLSerializer().serializeToString(svg))], { type: 'image/svg+xml' })
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = svgFileName(lang, i, svgs.length)
+      document.body.appendChild(a)
+      window.setTimeout(() => {
+        a.click()
+        a.remove()
+        window.setTimeout(() => URL.revokeObjectURL(a.href), 2000)
+      }, i * 250) // 多頁時錯開，避免被瀏覽器當成連續彈出而擋掉
+    })
+  })
+  bar.append(dlBtn, hideBtn)
   const mount = document.createElement('div')
   mount.className = 'music-mount'
   const err = document.createElement('div')
@@ -139,15 +165,15 @@ function create(lang: MusicLang, source: string, key: string, reg: Reg): Block {
   playBtn.addEventListener('click', async () => {
     if (b.engine.playing?.()) {
       b.engine.stop?.()
-      playBtn.textContent = '▶ 播放'
+      playBtn.textContent = tr('▶ 播放')
       return
     }
-    playBtn.textContent = '載入音源…'
+    playBtn.textContent = tr('載入音源…')
     try {
       await b.engine.play?.()
-      playBtn.textContent = b.engine.playing?.() ? '■ 停止' : '▶ 播放'
+      playBtn.textContent = b.engine.playing?.() ? tr('■ 停止') : tr('▶ 播放')
     } catch (e) {
-      playBtn.textContent = '▶ 播放'
+      playBtn.textContent = tr('▶ 播放')
       err.textContent = e instanceof MusicError ? e.message : `無法播放：${String((e as Error)?.message ?? e).slice(0, 120)}`
     }
   })
@@ -306,14 +332,17 @@ export const musicPlugin = $prose(() => {
         bar.style.display = 'none'
         document.body.appendChild(bar)
         let barLang: MusicLang | null = null
+        let barKey = ''
         const makeButtons = (lang: MusicLang) => {
-          if (barLang === lang) return
+          const stamp = `${lang}|${getLang()}`
+          if (barKey === stamp) return
+          barKey = stamp
           barLang = lang
           bar.replaceChildren()
           for (const t of TOOLS[lang] ?? []) {
             const b = document.createElement('button')
-            b.textContent = t.label
-            b.title = t.title
+            b.textContent = tr(t.label)
+            b.title = tr(t.title)
             b.addEventListener('mousedown', (e) => e.preventDefault()) // 不搶走編輯器的焦點與選區
             b.addEventListener('click', () => runTool(v, t.id))
             bar.appendChild(b)

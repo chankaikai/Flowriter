@@ -3,7 +3,7 @@ import { PROVIDERS, providerOf, resolveAi, type AiPrefs } from '@/lib/ai'
 import { balanceKind, isLocalUrl } from '../../../shared/aiHosts'
 import { fmtTokens, loadUsage, readUsage } from '@/lib/aiUsage'
 import { dayKey } from '@/lib/writing'
-import { tr } from '@/lib/i18n'
+import { tr, trf } from '@/lib/i18n'
 
 type Update = (patch: Partial<AiPrefs>) => void
 
@@ -60,7 +60,7 @@ function QuotaBlock({ prefs }: { prefs: AiPrefs }) {
         </div>
       ) : (
         <p className="hist-hint">
-          {cfg.provider.label} 沒有公開的餘額查詢介面，無法在這裡顯示剩餘額度。
+          {trf('{0} 沒有公開的餘額查詢介面，無法在這裡顯示剩餘額度。', cfg.provider.label)}
           {cfg.provider.consoleUrl && (
             <> <a href="#" onClick={(e) => { e.preventDefault(); window.api.openExternal(cfg.provider.consoleUrl!) }}>{tr('到控制台查看餘額與用量')}</a></>
           )}
@@ -88,7 +88,7 @@ export function AiSetup({ s, update, compact }: { s: AiPrefs; update: Update; co
           <select className="ai-input" value={p.id} onChange={(e) => update({ aiProvider: e.target.value })}>
             {PROVIDERS.map((x) => (
               <option key={x.id} value={x.id}>
-                {x.label}
+                {tr(x.label)}
               </option>
             ))}
           </select>

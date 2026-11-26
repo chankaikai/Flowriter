@@ -148,7 +148,7 @@ function FileTree({
 
   const trash = async (e: DirEntry) => {
     const msg = e.isDir ? `將資料夾「${e.name}」移到回收桶？` : `將「${e.name}」移到回收桶？`
-    if (!(await confirmBox(msg, '移到回收桶'))) return
+    if (!(await confirmBox(msg, tr('移到回收桶')))) return
     if (await window.api.trashPath(e.path)) {
       await load(parentOf(e.path))
       onTrashed(e.path)
@@ -238,7 +238,7 @@ function FileTree({
                 m.run()
               }}
             >
-              {m.label}
+              {tr(m.label)}
             </button>
           ))}
         </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { computeStats } from '@/lib/markdown'
 import { Icon, type IconName } from './Icon'
+import { tr } from '@/lib/i18n'
 
 export interface BubbleAction {
   id: string
@@ -73,9 +74,9 @@ export function SelectionBubble({ actions }: { actions: BubbleAction[] }) {
         </span>
       )}
       {actions.map((a) => (
-        <button key={a.id} className="sb-act" title={a.label} onClick={a.run}>
+        <button key={a.id} className="sb-act" title={tr(a.label)} onClick={a.run}>
           <Icon name={a.icon} size={14} />
-          <span>{a.label}</span>
+          <span>{tr(a.label)}</span>
         </button>
       ))}
     </div>

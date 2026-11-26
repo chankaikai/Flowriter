@@ -262,7 +262,7 @@ html[data-tone='dark'] .music-block[data-lang='lilypond'] .music-mount svg { fil
 
 /* 樂譜：只留譜、隱藏代碼 */
 .editor-col .milkdown .music-code-hidden { display: none !important; }
-.music-bar .music-hide { margin-left: auto; }
+.music-bar .music-dl { margin-left: auto; }
 .music-block { margin-top: 0; }
 
 .music-status { margin-bottom: 6px; font-size: 12px; color: var(--muted, #888); }
