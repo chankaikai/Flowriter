@@ -63,3 +63,22 @@ blockquote.callout .callout-title{font-size:12px;font-weight:600;letter-spacing:
 .callout-tip,.callout-success{--co:#2fa96b}.callout-warning,.callout-caution{--co:#d8902a}
 .callout-danger,.callout-important{--co:#d6455d}.callout-question{--co:#8a63d2}
 `
+
+/** 輪播圖卡片：固定尺寸、玻璃質感、數字角標；封面卡字更大 */
+export const cardCss = (w: number, h: number): string => `
+html, body { margin: 0; padding: 0; width: ${w}px; height: ${h}px; overflow: hidden; background: linear-gradient(135deg, #ebe5da 0%, #d9e0e9 55%, #e8dae0 100%); }
+body { max-width: none; }
+.card { position: relative; box-sizing: border-box; width: ${w}px; height: ${h}px; padding: 34px; }
+.card-glass { box-sizing: border-box; width: 100%; height: 100%; padding: 40px 38px 46px; border-radius: 26px; overflow: hidden;
+  background: rgba(255,255,255,.82); border: 1px solid rgba(255,255,255,.8); box-shadow: 0 18px 44px rgba(40,40,70,.16), inset 0 1px 0 #fff; display: flex; flex-direction: column; }
+.card-body { flex: 1; min-height: 0; overflow: hidden; font-size: 24px; line-height: 1.65; }
+.card-body h1 { font-size: 44px; line-height: 1.25; margin: 0 0 18px; }
+.card-body h2 { font-size: 34px; line-height: 1.3; margin: 0 0 16px; }
+.card-body h3 { font-size: 28px; margin: 18px 0 10px; }
+.card-body p, .card-body li { margin: 0 0 14px; }
+.card-body img { max-width: 100%; height: auto; border-radius: 10px; }
+.card-body pre { font-size: 17px; }
+.card.cover .card-body { display: flex; flex-direction: column; justify-content: center; }
+.card.cover .card-body h1 { font-size: 56px; }
+.card-no { position: absolute; right: 56px; bottom: 50px; font-size: 15px; letter-spacing: .12em; color: #8a8478; }
+`

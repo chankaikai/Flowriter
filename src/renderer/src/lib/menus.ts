@@ -35,7 +35,7 @@ export const MENUS: MenuDef[] = [
       c('inbox.capture'),
       c('inbox.open'),
       SEP,
-      { sub: '匯出', items: [c('export.pdf'), c('export.docx'), c('export.html'), c('export.png'), c('export.md')] },
+      { sub: '匯出', items: [c('export.pdf'), c('export.docx'), c('export.html'), c('export.png'), c('export.cards'), c('export.cards45'), c('export.cardsPng'), c('export.md')] },
       SEP,
       c('tab.close'),
       c('app.quit')

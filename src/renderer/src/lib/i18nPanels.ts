@@ -231,5 +231,13 @@ export const PANELS: Record<string, string> = {
   "讀者視角": "Reader lens",
   "讀者視角（標出未解釋的縮寫與跳躍的轉折）": "Reader lens (mark unexplained abbreviations and abrupt transitions)",
   "讀者視角已開啟：黃色虛線是未解釋的縮寫與跳躍的轉折": "Reader lens on: yellow dashes mark unexplained abbreviations and abrupt transitions",
-  "讀者視角已關閉": "Reader lens off"
+  "讀者視角已關閉": "Reader lens off",
+  "匯出為輪播圖 3:4（ZIP）…": "Export as carousel 3:4 (ZIP)…",
+  "匯出為輪播圖 4:5（ZIP）…": "Export as carousel 4:5 (ZIP)…",
+  "匯出為輪播圖（多張 PNG，存到資料夾）…": "Export as carousel (PNG files into a folder)…",
+  "沒有可切成卡片的內容": "Nothing to split into cards",
+  "正在繪製 {0} 張卡片…": "Rendering {0} cards…",
+  "已匯出 {0} 張；第 {1} 張內容太長被截掉，建議多分一張": "Exported {0} cards; card(s) {1} were too long and got cut off — consider splitting further",
+  "已匯出 {0} 張輪播圖": "Exported {0} carousel cards",
+  "選擇要放輪播圖 PNG 的資料夾": "Choose a folder for the carousel PNGs"
 }

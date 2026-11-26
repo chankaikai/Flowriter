@@ -1,5 +1,6 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, net, protocol, shell } from 'electron'
 import { balanceKind } from '../shared/aiHosts'
+import { zipStore } from '../shared/zip'
 import { basename, dirname, extname, join, relative, sep } from 'node:path'
 import { existsSync, promises as fs } from 'node:fs'
 import { pathToFileURL } from 'node:url'
@@ -882,6 +883,49 @@ function registerIpc(): void {
       w.destroy()
       fs.unlink(tmp).catch(() => {})
     }
+  })
+
+  // 輪播圖：每張卡片載入一個隱藏視窗截圖；zip 模式打包成一個檔，png 模式寫進選好的資料夾
+  ipcMain.handle('export:cards', async (e, o: { name: string; cards: { html: string }[]; width: number; height: number; mode: 'zip' | 'png' }) => {
+    const okNum = (n: unknown) => typeof n === 'number' && Number.isInteger(n) && n >= 200 && n <= 2000
+    if (!o || !Array.isArray(o.cards) || o.cards.length < 1 || o.cards.length > 30 || !okNum(o.width) || !okNum(o.height)) return null
+    if (o.cards.some((c) => typeof c?.html !== 'string' || c.html.length > 8_000_000)) return null
+    const base = String(o.name || 'cards').replace(/[\\/:*?"<>|]/g, '_').slice(0, 80) || 'cards'
+    const win = BrowserWindow.fromWebContents(e.sender)!
+    let target: string
+    if (o.mode === 'zip') {
+      const r = await dialog.showSaveDialog(win, { defaultPath: `${base}-cards.zip`, filters: [{ name: 'ZIP', extensions: ['zip'] }] })
+      if (r.canceled || !r.filePath) return null
+      target = r.filePath
+    } else {
+      const r = await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'], title: '選擇要放輪播圖 PNG 的資料夾' })
+      if (r.canceled || !r.filePaths[0]) return null
+      target = r.filePaths[0]
+    }
+    const w = new BrowserWindow({ show: false, width: o.width, height: o.height, useContentSize: true, webPreferences: { sandbox: true, offscreen: false, zoomFactor: 1 } })
+    const pad = String(o.cards.length).length < 2 ? 2 : String(o.cards.length).length
+    const files: { name: string; data: Uint8Array }[] = []
+    const overflow: number[] = []
+    const tmp = join(tmpdir(), `inkwell-card-${Date.now()}.html`)
+    try {
+      w.setContentSize(o.width, o.height)
+      for (let i = 0; i < o.cards.length; i++) {
+        await fs.writeFile(tmp, o.cards[i].html, 'utf8')
+        await w.loadFile(tmp)
+        await w.webContents.executeJavaScript('document.fonts.ready.then(() => true)')
+        await new Promise((res) => setTimeout(res, 250))
+        const over: boolean = await w.webContents.executeJavaScript("(() => { const b = document.querySelector('.card-body'); return !!b && b.scrollHeight > b.clientHeight + 2 })()")
+        if (over) overflow.push(i + 1)
+        const img = await w.webContents.capturePage()
+        files.push({ name: `${base}-${String(i + 1).padStart(pad, '0')}.png`, data: new Uint8Array(img.toPNG()) })
+      }
+    } finally {
+      w.destroy()
+      fs.unlink(tmp).catch(() => {})
+    }
+    if (o.mode === 'zip') await fs.writeFile(target, zipStore(files))
+    else for (const f of files) await fs.writeFile(join(target, f.name), f.data)
+    return { path: o.mode === 'zip' ? target : join(target, files[0].name), count: files.length, overflow }
   })
 
   ipcMain.handle('app:launchFile', async () => {

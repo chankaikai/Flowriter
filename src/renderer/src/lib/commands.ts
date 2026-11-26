@@ -16,6 +16,7 @@ export interface Actions {
   save(): void
   saveAs(): void
   exportAs(kind: ExportKind): void
+  exportCards(ratio: '3:4' | '4:5', mode: 'zip' | 'png'): void
   toggleSidebar(): void
   showSidebarTab(tab: SidebarTab): void
   toggleSource(): void
@@ -80,6 +81,9 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'export.pdf', title: '匯出為 PDF…', group: '匯出', run: () => a.exportAs('pdf') },
     { id: 'export.docx', title: '匯出為 Word…', group: '匯出', run: () => a.exportAs('docx') },
     { id: 'export.png', title: '匯出為分享長圖…', group: '匯出', run: () => a.exportAs('png') },
+    { id: 'export.cards', title: '匯出為輪播圖 3:4（ZIP）…', group: '匯出', run: () => a.exportCards('3:4', 'zip') },
+    { id: 'export.cards45', title: '匯出為輪播圖 4:5（ZIP）…', group: '匯出', run: () => a.exportCards('4:5', 'zip') },
+    { id: 'export.cardsPng', title: '匯出為輪播圖（多張 PNG，存到資料夾）…', group: '匯出', run: () => a.exportCards('3:4', 'png') },
     { id: 'export.md', title: '匯出為 Markdown…', group: '匯出', run: () => a.exportAs('md') },
 
     // 導航與面板

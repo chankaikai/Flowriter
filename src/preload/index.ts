@@ -85,6 +85,7 @@ const api: InkwellApi = {
   aiBalance: (r) => inv('ai:balance', r),
   exportImage: (o) => inv('export:image', o),
   copyRegionImage: (r) => inv('clip:region', r),
+  exportCards: (o) => inv('export:cards', o),
   clipWatch: (on) => inv('clip:watch', on),
   onClip: (cb) => {
     const handler = (_e: unknown, text: string) => cb(text)

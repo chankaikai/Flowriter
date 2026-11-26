@@ -27,7 +27,8 @@ import { Pomodoro } from '@/components/Pomodoro'
 import { type AmbientKind, setAmbient } from '@/lib/ambient'
 import { addWords, loadWriting } from '@/lib/writing'
 import { moveSection } from '@/lib/markdown'
-import { SHARE_CSS } from '@/export/exportStyles'
+import { SHARE_CSS, cardCss } from '@/export/exportStyles'
+import { CARD_SIZE, splitCards, type Ratio } from '@/lib/carousel'
 import { Ruler } from '@/components/Ruler'
 import { SelectionBubble } from '@/components/SelectionBubble'
 import { ResumeBubble } from '@/components/ResumeBubble'
@@ -766,6 +767,35 @@ export default function App() {
     setFind(null)
   }, [syncFromEditor, snapshotActive, mountEditor])
 
+  const exportCards = useCallback(
+    async (ratio: Ratio, mode: 'zip' | 'png') => {
+      syncFromEditor()
+      const cards = splitCards(mdRef.current)
+      if (!cards.length) return showToast(tr('沒有可切成卡片的內容'))
+      const base = stripExt(docRef.current.name)
+      const dir = docRef.current.path ? dirname(docRef.current.path) : null
+      const { width, height } = CARD_SIZE[ratio]
+      try {
+        showToast(trf('正在繪製 {0} 張卡片…', cards.length))
+        const pages: { html: string }[] = []
+        for (const c of cards) {
+          const body = await renderHtmlBody(c.md, dir)
+          const html = buildHtmlDocument(c.title || base, `<div class="card${c.cover ? ' cover' : ''}"><div class="card-glass"><div class="card-body">${body}</div></div><span class="card-no">${c.index + 1}/${c.total}</span></div>`)
+            .replace('</style>', `${cardCss(width, height)}</style>`)
+          pages.push({ html })
+        }
+        const out = await window.api.exportCards({ name: base, cards: pages, width, height, mode })
+        if (!out) return setToast(null)
+        showToast(out.overflow.length ? trf('已匯出 {0} 張；第 {1} 張內容太長被截掉，建議多分一張', out.count, out.overflow.join('、')) : trf('已匯出 {0} 張輪播圖', out.count))
+        window.api.reveal(out.path)
+      } catch (err) {
+        console.error(err)
+        showToast(tr('匯出失敗'))
+      }
+    },
+    [showToast, syncFromEditor]
+  )
+
   const exportAs = useCallback(
     async (kind: ExportKind) => {
       syncFromEditor()
@@ -993,6 +1023,7 @@ export default function App() {
     save: () => void save(),
     saveAs: () => void saveAs(),
     exportAs: (k) => void exportAs(k),
+    exportCards: (r, m) => void exportCards(r, m),
     toggleSidebar: () => update({ sidebarOpen: !settings.sidebarOpen }),
     showSidebarTab: (tab: SidebarTab) => {
       update({ sidebarOpen: true, sidebarTab: tab })

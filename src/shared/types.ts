@@ -158,6 +158,8 @@ export interface InkwellApi {
   /** 把 HTML 渲染成長圖（PNG）並讓使用者選擇儲存位置 */
   exportImage(opts: { name: string; html: string; width: number }): Promise<string | null>
   /** 把目前視窗的某個區域（CSS px）截圖放進剪貼簿 */
+  /** 輪播圖：每張卡片一份完整 HTML，主程序逐張截圖；zip 打包成單檔，png 寫進所選資料夾 */
+  exportCards(opts: { name: string; cards: { html: string }[]; width: number; height: number; mode: 'zip' | 'png' }): Promise<{ path: string; count: number; overflow: number[] } | null>
   copyRegionImage(rect: { x: number; y: number; width: number; height: number }): Promise<boolean>
   clipWatch(on: boolean): Promise<boolean>
   onClip(cb: (text: string) => void): () => void
