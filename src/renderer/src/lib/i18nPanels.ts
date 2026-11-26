@@ -1,5 +1,17 @@
 /** 面板、側邊欄、對話框與狀態文字的英文翻譯（其他非中文語言退回英文）。 */
 export const PANELS: Record<string, string> = {
+  "更多標題": "More headings",
+  "剪貼": "Clipboard",
+  "檔案與分頁": "File & tabs",
+  "另存為": "Save as",
+  "分頁": "Tabs",
+  "收件匣": "Inbox",
+  "語音便籤": "Voice note",
+  "快速開啟": "Quick open",
+  "最近開啟": "Recent",
+  "外觀與應用": "Appearance & app",
+  "切換到下一個主題": "Next theme",
+  "逆向大綱": "Reverse outline",
   "輪播圖": "Carousel",
   "3:4（ZIP）": "3:4 (ZIP)",
   "4:5（ZIP）": "4:5 (ZIP)",

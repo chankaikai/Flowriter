@@ -229,10 +229,39 @@ export const RIBBON: RibbonTab[] = [
           r('fmt.h1', '標題 1', { glyph: 'H1' }),
           r('fmt.h2', '標題 2', { glyph: 'H2' }),
           r('fmt.h3', '標題 3', { glyph: 'H3' }),
+          r('fmt.h4', '更多標題', { glyph: 'H▾', sub: [{ cmd: 'fmt.h4', label: '標題 4' }, { cmd: 'fmt.h5', label: '標題 5' }, { cmd: 'fmt.h6', label: '標題 6' }] }),
           r('fmt.quote', '引用', { glyph: '❝' }),
           r('fmt.ul', '無序清單', { glyph: '•≡' }),
           r('fmt.ol', '有序清單', { glyph: '1≡' }),
           r('fmt.task', '任務清單', { icon: 'tasks' })
+        ]
+      },
+      {
+        label: '剪貼',
+        items: [r('edit.cut', '剪下', { glyph: '✂' }), r('edit.copy', '複製', { glyph: '⧉' }), r('edit.paste', '貼上', { glyph: '⎗' }), r('edit.selectAll', '全選', { glyph: '▣' })]
+      },
+      {
+        label: '檔案與分頁',
+        items: [
+          r('file.saveAs', '另存為', { icon: 'file', lg: true }),
+          r('file.newWindow', '新視窗', { icon: 'plus', lg: true }),
+          r('tab.close', '分頁', {
+            icon: 'swap',
+            lg: true,
+            sub: [
+              { cmd: 'tab.close', label: '關閉分頁' },
+              { cmd: 'tab.next', label: '下一個分頁' },
+              { cmd: 'tab.prev', label: '上一個分頁' }
+            ]
+          }),
+          r('inbox.capture', '收件匣', {
+            icon: 'clip',
+            lg: true,
+            sub: [
+              { cmd: 'inbox.capture', label: '快速收集到收件匣…' },
+              { cmd: 'inbox.open', label: '開啟收件匣檔案' }
+            ]
+          })
         ]
       },
       {
@@ -279,7 +308,7 @@ export const RIBBON: RibbonTab[] = [
       },
       {
         label: '進階',
-        items: [r('fmt.bilingual', '雙語對照', { glyph: '文A', lg: true }), r('fmt.frontmatter', '前置資料', { glyph: '---', lg: true }), r('fmt.frontmatter.remove', '移除前置資料', { glyph: '✕', lg: true })]
+        items: [r('fmt.bilingual', '雙語對照', { glyph: '文A', lg: true }), r('fmt.frontmatter', '前置資料', { glyph: '---', lg: true }), r('fmt.frontmatter.remove', '移除前置資料', { glyph: '✕', lg: true }), r('insert.voice', '語音便籤', { glyph: '🎙', lg: true })]
       },
       {
         label: '表格工具',
@@ -325,7 +354,38 @@ export const RIBBON: RibbonTab[] = [
       },
       {
         label: '導覽',
-        items: [r('nav.files', '文件樹', { icon: 'folder' }), r('nav.outline', '大綱', { icon: 'list' }), r('nav.folderSearch', '全域搜尋', { icon: 'search' })]
+        items: [
+          r('nav.files', '文件樹', { icon: 'folder' }),
+          r('nav.outline', '大綱', { icon: 'list' }),
+          r('nav.folderSearch', '全域搜尋', { icon: 'search' }),
+          r('nav.quickOpen', '快速開啟', { icon: 'file' }),
+          r('nav.recent', '最近開啟', { icon: 'history' }),
+          r('nav.commands', '命令面板', { icon: 'prompt' })
+        ]
+      },
+      {
+        label: '外觀與應用',
+        items: [
+          r('view.theme', '主題', {
+            glyph: '◐',
+            lg: true,
+            sub: [
+              { cmd: 'view.theme', label: '切換到下一個主題' },
+              ...THEMES.map((t) => ({ cmd: `theme.${t.id}`, label: t.label })),
+              { cmd: 'theme.system', label: '跟隨系統' }
+            ]
+          }),
+          r('app.settings', '偏好設定', { icon: 'gear', lg: true }),
+          r('app.about', '說明', {
+            icon: 'book',
+            lg: true,
+            sub: [
+              { cmd: 'app.about', label: '關於 Flowiter／說明與回饋' },
+              { cmd: 'app.checkUpdate', label: '檢查更新' }
+            ]
+          }),
+          r('app.quit', '結束', { icon: 'close', lg: true })
+        ]
       }
     ]
   },
@@ -338,6 +398,7 @@ export const RIBBON: RibbonTab[] = [
         items: [
           r('panel.ai', 'AI 改寫', { icon: 'sparkle', lg: true }),
           r('panel.diag', '健檢排版', { icon: 'diag', lg: true }),
+          r('panel.reverse', '逆向大綱', { icon: 'sparkle', lg: true }),
           r('doc.speak', '朗讀校對', { icon: 'speaker', lg: true }),
           r('panel.runner', '執行代碼塊', { glyph: '▶', lg: true })
         ]
