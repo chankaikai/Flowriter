@@ -1,5 +1,7 @@
 /** 面板、側邊欄、對話框與狀態文字的英文翻譯（其他非中文語言退回英文）。 */
 export const PANELS: Record<string, string> = {
+  "外觀": "Look",
+  "新建": "New",
   "更多標題": "More headings",
   "剪貼": "Clipboard",
   "檔案與分頁": "File & tabs",

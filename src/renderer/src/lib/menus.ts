@@ -183,14 +183,22 @@ export interface RibbonItem {
   sub?: { cmd: string; label: string }[]
   /** 懸浮展開「行列選擇器」（像 Word 的插入表格） */
   grid?: boolean
+  /** 精簡模式下的字形樣式（斜體／刪除線） */
+  gcls?: 'i' | 's'
+  /** 精簡模式下，在這一欄左邊多留一點空隙 */
+  gapLeft?: boolean
 }
 export interface RibbonGroup {
   label: string
+  /** 精簡分頁：每列幾欄（預設把按鈕平分成兩列） */
+  cols?: number
   items: RibbonItem[]
 }
 export interface RibbonTab {
   id: string
   label: string
+  /** 精簡：只有小圖示、沒有文字、固定兩列，盡量少佔編輯空間 */
+  compact?: boolean
   groups: RibbonGroup[]
 }
 const r = (cmd: string, label: string, o: Partial<RibbonItem> = {}): RibbonItem => ({ cmd, label, ...o })
@@ -199,55 +207,21 @@ export const RIBBON: RibbonTab[] = [
   {
     id: 'home',
     label: '常用',
+    compact: true,
     groups: [
       {
         label: '檔案',
+        cols: 4,
         items: [
-          r('file.new', '新建', { icon: 'plus', lg: true }),
-          r('file.open', '開啟', { icon: 'file', lg: true }),
-          r('file.save', '儲存', { icon: 'check', lg: true }),
-          r('file.openFolder', '資料夾', { icon: 'folderOpen' })
-        ]
-      },
-      {
-        label: '復原',
-        items: [r('edit.undo', '復原', { glyph: '↶' }), r('edit.redo', '重做', { glyph: '↷' })]
-      },
-      {
-        label: '字型',
-        items: [
-          r('fmt.strong', '粗體', { glyph: 'B' }),
-          r('fmt.em', '斜體', { glyph: 'I' }),
-          r('fmt.strike', '刪除線', { glyph: 'S' }),
-          r('fmt.code', '行內代碼', { icon: 'code' })
-        ]
-      },
-      {
-        label: '段落',
-        items: [
-          r('fmt.p', '正文', { glyph: '¶' }),
-          r('fmt.h1', '標題 1', { glyph: 'H1' }),
-          r('fmt.h2', '標題 2', { glyph: 'H2' }),
-          r('fmt.h3', '標題 3', { glyph: 'H3' }),
-          r('fmt.h4', '更多標題', { glyph: 'H▾', sub: [{ cmd: 'fmt.h4', label: '標題 4' }, { cmd: 'fmt.h5', label: '標題 5' }, { cmd: 'fmt.h6', label: '標題 6' }] }),
-          r('fmt.quote', '引用', { glyph: '❝' }),
-          r('fmt.ul', '無序清單', { glyph: '•≡' }),
-          r('fmt.ol', '有序清單', { glyph: '1≡' }),
-          r('fmt.task', '任務清單', { icon: 'tasks' })
-        ]
-      },
-      {
-        label: '剪貼',
-        items: [r('edit.cut', '剪下', { glyph: '✂' }), r('edit.copy', '複製', { glyph: '⧉' }), r('edit.paste', '貼上', { glyph: '⎗' }), r('edit.selectAll', '全選', { glyph: '▣' })]
-      },
-      {
-        label: '檔案與分頁',
-        items: [
-          r('file.saveAs', '另存為', { icon: 'file', lg: true }),
-          r('file.newWindow', '新視窗', { icon: 'plus', lg: true }),
+          r('file.new', '新建', { icon: 'newDoc' }),
+          r('file.open', '開啟', { icon: 'openDoc' }),
+          r('file.saveAs', '另存為', { icon: 'saveAs', gapLeft: true }),
+          r('file.newWindow', '新視窗', { icon: 'newWindow' }),
+          r('file.save', '儲存', { icon: 'save' }),
+          r('file.openFolder', '資料夾', { icon: 'folderOpen' }),
           r('tab.close', '分頁', {
-            icon: 'swap',
-            lg: true,
+            icon: 'tabs',
+            gapLeft: true,
             sub: [
               { cmd: 'tab.close', label: '關閉分頁' },
               { cmd: 'tab.next', label: '下一個分頁' },
@@ -255,8 +229,7 @@ export const RIBBON: RibbonTab[] = [
             ]
           }),
           r('inbox.capture', '收件匣', {
-            icon: 'clip',
-            lg: true,
+            icon: 'inbox',
             sub: [
               { cmd: 'inbox.capture', label: '快速收集到收件匣…' },
               { cmd: 'inbox.open', label: '開啟收件匣檔案' }
@@ -265,12 +238,39 @@ export const RIBBON: RibbonTab[] = [
         ]
       },
       {
-        label: '保護',
-        items: [r('edit.lock', '段落上鎖', { icon: 'lock', lg: true })]
+        label: '復原',
+        cols: 1,
+        items: [r('edit.undo', '復原', { icon: 'undo' }), r('edit.redo', '重做', { icon: 'redo' })]
+      },
+      {
+        label: '剪貼',
+        cols: 2,
+        items: [r('edit.cut', '剪下', { icon: 'cut' }), r('edit.copy', '複製', { icon: 'copy' }), r('edit.paste', '貼上', { icon: 'clip' }), r('edit.selectAll', '全選', { icon: 'selectAll' })]
+      },
+      {
+        label: '段落',
+        cols: 5,
+        items: [
+          r('fmt.p', '正文', { glyph: '¶' }),
+          r('fmt.h1', '標題 1', { glyph: 'H1' }),
+          r('fmt.h2', '標題 2', { glyph: 'H2' }),
+          r('fmt.h3', '標題 3', { glyph: 'H3' }),
+          r('fmt.h4', '更多標題', { glyph: 'H▾', sub: [{ cmd: 'fmt.h4', label: '標題 4' }, { cmd: 'fmt.h5', label: '標題 5' }, { cmd: 'fmt.h6', label: '標題 6' }] }),
+          r('fmt.strong', '粗體', { glyph: 'B' }),
+          r('fmt.em', '斜體', { glyph: 'I', gcls: 'i' }),
+          r('fmt.strike', '刪除線', { glyph: 'S', gcls: 's' }),
+          r('fmt.code', '行內代碼', { icon: 'code' })
+        ]
+      },
+      {
+        label: '清單',
+        cols: 2,
+        items: [r('fmt.quote', '引用', { icon: 'quote' }), r('fmt.ul', '無序清單', { icon: 'ul' }), r('fmt.ol', '有序清單', { icon: 'ol' }), r('fmt.task', '任務清單', { icon: 'tasks' })]
       },
       {
         label: '尋找',
-        items: [r('nav.find', '查找', { icon: 'search', lg: true }), r('nav.replace', '替換', { icon: 'replace', lg: true })]
+        cols: 1,
+        items: [r('nav.find', '查找', { icon: 'search' }), r('nav.replace', '替換', { icon: 'replace' })]
       }
     ]
   },
@@ -362,7 +362,13 @@ export const RIBBON: RibbonTab[] = [
           r('nav.recent', '最近開啟', { icon: 'history' }),
           r('nav.commands', '命令面板', { icon: 'prompt' })
         ]
-      },
+      }
+    ]
+  },
+  {
+    id: 'look',
+    label: '外觀',
+    groups: [
       {
         label: '外觀與應用',
         items: [
@@ -418,7 +424,7 @@ export const RIBBON: RibbonTab[] = [
       },
       {
         label: '收集與保護',
-        items: [r('panel.clips', '剪貼簿', { icon: 'clip', lg: true }), r('panel.vault', '膠囊抽屜', { icon: 'lock', lg: true })]
+        items: [r('edit.lock', '段落上鎖', { icon: 'lock', lg: true }), r('panel.clips', '剪貼簿', { icon: 'clip', lg: true }), r('panel.vault', '膠囊抽屜', { icon: 'lock', lg: true })]
       },
       {
         label: '專注',

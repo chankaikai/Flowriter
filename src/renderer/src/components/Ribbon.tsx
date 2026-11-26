@@ -56,10 +56,10 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse,
         ))}
       </div>
       {!collapsed && (
-        <div className="rb-body" role="toolbar">
+        <div className={`rb-body${cur.compact ? ' compact' : ''}`} role="toolbar">
           {cur.groups.map((g) => (
             <div key={g.label} className="rb-group">
-              <div className="rb-items">
+              <div className="rb-items" style={cur.compact ? { display: 'grid', gridTemplateColumns: `repeat(${g.cols ?? Math.ceil(g.items.length / 2)}, auto)` } : undefined}>
                 {g.items.map((it) => {
                   const cmd = commands.find((c) => c.id === it.cmd)
                   if (!cmd) return null
@@ -68,6 +68,8 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse,
                   const ov = overrides?.[it.cmd]
                   const label = it.label || ov?.label ? tr((ov?.label ?? it.label) as string) : undefined
                   const icon = ov?.icon ?? it.icon
+                  const sm = !!cur.compact
+                  const gl = `rb-ico${it.glyph ? ' glyph' : ''}${it.gcls ? ` g-${it.gcls}` : ''}`
                   const k = cmd.keys?.[0] ? ` (${formatKeys(cmd.keys[0]).join(' ')})` : ''
                   if (it.grid) {
                     return (
@@ -97,16 +99,16 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse,
                   }
                   if (it.sub) {
                     return (
-                      <div key={it.cmd} className="rb-split" onMouseDown={(e) => e.stopPropagation()}>
+                      <div key={it.cmd} className={`rb-split${it.gapLeft ? ' gap-l' : ''}`} onMouseDown={(e) => e.stopPropagation()}>
                         <button
-                          className={`rb-btn lg${subOpen === it.cmd ? ' on' : ''}`}
+                          className={`rb-btn ${sm ? 'sm' : 'lg'}${subOpen === it.cmd ? ' on' : ''}`}
                           disabled={disabled}
                           title={`${label ?? tr(cmd.title)} (${tr('點擊選擇類型')})`}
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => setSubOpen(subOpen === it.cmd ? null : it.cmd)}
                         >
-                          <span className={`rb-ico${it.glyph ? ' glyph' : ''}`}>{it.glyph ? it.glyph : icon ? <Icon name={icon} size={22} /> : null}</span>
-                          <span className="rb-lbl">{label} ▾</span>
+                          <span className={gl}>{it.glyph ? it.glyph : icon ? <Icon name={icon} size={sm ? 16 : 22} /> : null}</span>
+                          {sm ? <span className="rb-caret">▾</span> : <span className="rb-lbl">{label} ▾</span>}
                         </button>
                         {subOpen === it.cmd && (
                           <div className="rb-drop" role="menu">
@@ -131,16 +133,17 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse,
                   return (
                     <button
                       key={it.cmd}
-                      className={`rb-btn lg${on ? ' on' : ''}`}
+                      className={`rb-btn ${sm ? 'sm' : 'lg'}${on ? ' on' : ''}${it.gapLeft ? ' gap-l' : ''}`}
                       disabled={disabled}
                       title={`${label ?? tr(cmd.title)}${k}`}
+                      aria-label={label ?? tr(cmd.title)}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => cmd.run()}
                     >
-                      <span className={`rb-ico${it.glyph ? ' glyph' : ''}`}>
-                        {it.glyph ? it.glyph : icon ? <Icon name={icon} size={22} /> : null}
+                      <span className={gl}>
+                        {it.glyph ? it.glyph : icon ? <Icon name={icon} size={sm ? 16 : 22} /> : null}
                       </span>
-                      <span className="rb-lbl">{label}</span>
+                      {!sm && <span className="rb-lbl">{label}</span>}
                     </button>
                   )
                 })}
