@@ -20,6 +20,7 @@ import remarkFrontmatter from 'remark-frontmatter'
 import { renderMermaid } from '@/lib/mermaid'
 import { findLineForLabel } from '@/lib/mermaidJump'
 import { mathHoverPlugin } from './mathUi'
+import { firstUnexplained, jumpyBlocks, type BlockInfo } from '@/lib/readerLens'
 import { runUiPlugin } from './runUi'
 import { tableUiPlugin } from './tableUi'
 import { musicPlugin } from './musicUi'
@@ -819,6 +820,57 @@ export const weightPlugin = $prose(() => {
   })
 })
 
+/* ------------------------------ 讀者視角（body.show-lens 時才標記；只是裝飾） ------------------------------ */
+
+const lensKey = new PluginKey('inkwell-lens')
+function buildLens(doc: any): DecorationSet {
+  if (!document.body.classList.contains('show-lens')) return DecorationSet.empty
+  // 文字區塊（不含代碼塊），記下每塊的起點，才能把縮寫位置換算回文件位置
+  const blocks: { text: string; pos: number }[] = []
+  doc.descendants((n: any, pos: number) => {
+    if (n.type.name === 'code_block') return false
+    if (n.isTextblock) blocks.push({ text: n.textContent, pos: pos + 1 })
+    return true
+  })
+  const decos: Decoration[] = []
+  for (const { block, hit } of firstUnexplained(blocks.map((b) => b.text))) {
+    const b = blocks[block]
+    // 文字區塊內有行內節點時 textContent 偏移與位置可能不同；只在一致時標記，寧可少標不要標錯
+    const from = b.pos + hit.start
+    const to = b.pos + hit.end
+    if (doc.textBetween(from, to) !== hit.term) continue
+    decos.push(Decoration.inline(from, to, { class: 'lens-abbr', title: `「${hit.term}」第一次出現，文中沒有解釋（可寫成 ${hit.term}（全稱）或建立 [[${hit.term}]] 連結）` }))
+  }
+  const top: BlockInfo[] = []
+  const starts: number[] = []
+  let off = 0
+  doc.forEach((n: any) => {
+    top.push({ type: n.type.name === 'paragraph' ? 'paragraph' : 'other', text: n.textContent })
+    starts.push(off)
+    off += n.nodeSize
+  })
+  for (const i of jumpyBlocks(top)) {
+    const n = doc.child(i)
+    decos.push(Decoration.node(starts[i], starts[i] + n.nodeSize, { class: 'lens-jump', title: '轉折缺少鋪墊：前面沒有可以承接的正文' }))
+  }
+  return DecorationSet.create(doc, decos)
+}
+
+export const lensPlugin = $prose(
+  () =>
+    new Plugin({
+      key: lensKey,
+      state: {
+        init: (_c, st) => buildLens(st.doc),
+        apply: (tr, old) => (tr.docChanged || tr.getMeta(lensKey) === 'refresh' ? buildLens(tr.doc) : old)
+      },
+      props: { decorations: (st) => lensKey.getState(st) }
+    })
+)
+export function refreshLens(view: EditorView): void {
+  if (!view.isDestroyed) view.dispatch(view.state.tr.setMeta(lensKey, 'refresh').setMeta('addToHistory', false))
+}
+
 /* ------------------------------ front matter 徽章（畫面裝飾；布林可點擊切換） ------------------------------ */
 
 export const frontMatterBadgePlugin = $prose(() => {
@@ -1109,6 +1161,7 @@ export function toggleLockAtCaret(view: EditorView): { locked: boolean; text: st
 }
 
 export const extraPlugins = [
+  lensPlugin,
   mathHoverPlugin,
   frontMatterRemark,
   tocRemark,

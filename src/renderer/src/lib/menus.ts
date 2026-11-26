@@ -112,6 +112,7 @@ export const MENUS: MenuDef[] = [
       c('view.reading', undefined, 'reading'),
       c('view.sticky', undefined, 'sticky'),
       c('view.weight', undefined, 'weight'),
+      c('view.lens', undefined, 'lens'),
       c('view.fullscreen', undefined, 'fullscreen'),
       SEP,
       c('view.zoomIn'),
@@ -312,6 +313,7 @@ export const RIBBON: RibbonTab[] = [
             ]
           }),
           r('view.weight', '段落權重', { icon: 'chart', check: 'weight', lg: true }),
+          r('view.lens', '讀者視角', { icon: 'user', check: 'lens', lg: true }),
           r('view.fullscreen', '全螢幕', { icon: 'expand', check: 'fullscreen', lg: true })
         ]
       },

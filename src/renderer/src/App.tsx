@@ -917,6 +917,13 @@ export default function App() {
     })
   }, [showToast])
 
+  const [lensOn, setLensOn] = useState(false)
+  const toggleLens = useCallback(() => {
+    const on = document.body.classList.toggle('show-lens')
+    setLensOn(on)
+    editorRef.current?.refreshLens()
+    showToast(on ? tr('讀者視角已開啟：黃色虛線是未解釋的縮寫與跳躍的轉折') : tr('讀者視角已關閉'))
+  }, [showToast])
   const [weightOn, setWeightOn] = useState(false)
   const toggleWeight = useCallback(() => {
     const on = document.body.classList.toggle('show-weight')
@@ -1031,6 +1038,7 @@ export default function App() {
     setResumeHint: () => void setResumeHintCmd(),
     milestone: () => void milestoneCmd(),
     toggleWeight: () => toggleWeight(),
+    toggleLens: () => toggleLens(),
     toggleSpeak: () => toggleSpeak(),
     openPanel: (p) => openPanel(p),
     cycleTab: (d) => {
@@ -1434,6 +1442,7 @@ export default function App() {
     reading,
     sticky,
     weight: weightOn,
+    lens: lensOn,
     [`theme:${settings.theme}`]: true
   }
   const [ribbonFold, setRibbonFold] = useState(() => localStorage.getItem('flowiter.ribbonFold') === '1')

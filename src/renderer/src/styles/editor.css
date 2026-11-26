@@ -273,3 +273,7 @@ html[data-tone='dark'] .music-block[data-lang='lilypond'] .music-mount svg { fil
 .math-chip code { font-family: var(--font-mono, monospace); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 380px; }
 .math-chip button { flex: none; padding: 2px 8px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; font-size: 12px; cursor: pointer; }
 .math-chip button:hover { background: var(--hover, rgba(128,128,128,.15)); }
+
+/* 讀者視角 */
+.lens-abbr { text-decoration: underline dashed #d9a400; text-decoration-thickness: 1.5px; text-underline-offset: 4px; background: rgba(217,164,0,.10); }
+.lens-jump { border-left: 3px dashed #d9a400; padding-left: 10px; margin-left: -13px; }

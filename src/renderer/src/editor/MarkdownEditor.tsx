@@ -42,7 +42,7 @@ import { TextSelection } from '@milkdown/kit/prose/state'
 import { runBlockAtCaret } from './runUi'
 import { languages } from '@codemirror/language-data'
 import { LanguageDescription, LanguageSupport, StreamLanguage } from '@codemirror/language'
-import { gotoBlockOffset, setTaskChecked, insertCallout, removeFrontMatter, isLockedAtCaret, setLockTexts, toggleLockAtCaret, gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
+import { refreshLens, gotoBlockOffset, setTaskChecked, insertCallout, removeFrontMatter, isLockedAtCaret, setLockTexts, toggleLockAtCaret, gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
 import { LARGE_DOC } from '@/lib/markdown'
 
 export type FormatName =
@@ -70,6 +70,7 @@ export interface EditorHandle {
   getCaret(): number
   /** 把游標移到指定位置並捲動到可見處；超出範圍會夾住。成功回傳 true */
   setCaret(pos: number): boolean
+  refreshLens(): void
   /** 跳到文字相符的任務項目 */
   gotoTask(text: string): boolean
   /** 跳到第 n 個文字區塊的指定偏移並高亮（儀表板／排版檢查用） */
@@ -285,6 +286,10 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       return empty ? '' : v.state.doc.textBetween(from, to, '\n\n')
     },
     getCaret: () => view()?.state.selection.head ?? 0,
+    refreshLens: () => {
+      const v = view()
+      if (v) refreshLens(v)
+    },
     setCaret: (pos) => {
       const v = view()
       if (!v) return false

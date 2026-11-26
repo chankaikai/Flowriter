@@ -227,5 +227,9 @@ export const PANELS: Record<string, string> = {
   "還沒有可下載的譜面": "No score to download yet",
   "複製 PNG": "Copy PNG",
   "已複製": "Copied",
-  "點一下節點，游標跳到代碼裡對應的那一行": "Click a node to jump to its line in the code"
+  "點一下節點，游標跳到代碼裡對應的那一行": "Click a node to jump to its line in the code",
+  "讀者視角": "Reader lens",
+  "讀者視角（標出未解釋的縮寫與跳躍的轉折）": "Reader lens (mark unexplained abbreviations and abrupt transitions)",
+  "讀者視角已開啟：黃色虛線是未解釋的縮寫與跳躍的轉折": "Reader lens on: yellow dashes mark unexplained abbreviations and abrupt transitions",
+  "讀者視角已關閉": "Reader lens off"
 }
