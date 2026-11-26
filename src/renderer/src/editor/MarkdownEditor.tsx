@@ -152,6 +152,8 @@ const TAB_LANG = LanguageDescription.of({
   extensions: ['tab'],
   support: new LanguageSupport(StreamLanguage.define({ token: (stream) => (stream.skipToEnd(), null) }))
 })
+/** 純文字：讓代碼塊也能寫一般文字（語言標籤 text / txt / plain） */
+const TEXT_LANG = LanguageDescription.of({ name: 'Text', alias: ['text', 'txt', 'plain', 'plaintext'], extensions: ['txt'], support: new LanguageSupport(StreamLanguage.define({ token: (stream) => (stream.skipToEnd(), null) })) })
 const MEI_LANG = LanguageDescription.of({ name: 'mei', alias: ['mei'], extensions: ['mei'], support: new LanguageSupport(StreamLanguage.define({ token: (stream) => (stream.skipToEnd(), null) })) })
 const JIANPU_LANG = LanguageDescription.of({
   name: 'jianpu',
@@ -191,7 +193,7 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       featureConfigs: {
         [Crepe.Feature.Placeholder]: { text: '開始書寫…', mode: 'doc' },
         // 代碼塊的語言清單加入 Mermaid（內建清單沒有它），選了之後即時渲染成圖
-        [Crepe.Feature.CodeMirror]: { languages: [...languages, MERMAID_LANG, ABC_LANG, JIANPU_LANG, TAB_LANG, MEI_LANG] },
+        [Crepe.Feature.CodeMirror]: { languages: [TEXT_LANG, ...languages, MERMAID_LANG, ABC_LANG, JIANPU_LANG, TAB_LANG, MEI_LANG] },
         [Crepe.Feature.ImageBlock]: {
           onUpload: (file: File) => propsRef.current.uploadImage(file),
           proxyDomURL: (url: string) => propsRef.current.resolveImageUrl(url)

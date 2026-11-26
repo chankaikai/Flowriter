@@ -426,7 +426,11 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
 .lang-btn { height: 34px; border-radius: 10px; border: 1px solid var(--line); color: var(--fg); font-size: 13px; background: transparent; cursor: pointer; }
 .lang-btn:hover { background: var(--hover); }
 .lang-btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
-body.hide-linenos .cm-lineNumbers, body.hide-linenos .cm-gutters { display: none !important; }
+body.hide-ln-code .milkdown-code-block .cm-gutters { display: none !important; }
+body.hide-ln-source .source-root .cm-gutters { display: none !important; }
+/* 渲染模式行號：每個頂層區塊在 .md 的起始行（估算） */
+body.show-ln-wys .editor-col .milkdown .ProseMirror > [data-ln] { position: relative; }
+body.show-ln-wys .editor-col .milkdown .ProseMirror > [data-ln]::before { content: attr(data-ln); position: absolute; left: -3.4em; width: 2.6em; text-align: right; top: 0; line-height: calc(var(--fs) * var(--lh)); font: 11px/calc(var(--fs) * var(--lh)) var(--font-mono, monospace); color: var(--fg-faint); user-select: none; pointer-events: none; }
 
 .rb-split { position: relative; }
 .rb-drop { position: absolute; top: 100%; left: 0; z-index: 70; min-width: 120px; padding: 6px; display: flex; flex-direction: column; gap: 2px; border-radius: 12px; background: color-mix(in srgb, var(--elev, var(--bg)) 82%, transparent); border: 1px solid var(--line); box-shadow: 0 14px 40px -16px rgba(0, 0, 0, 0.35); -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4); }

@@ -29,8 +29,10 @@ export interface Settings {
   srcSwap: boolean
   /** 分割檢視左窗格比例 */
   srcRatio: number
-  /** 顯示代碼塊與源碼模式的行號 */
-  showLineNumbers: boolean
+  /** 行號：代碼塊、渲染模式（每個區塊在 .md 的起始行）、源碼模式，可分開開關 */
+  lnCode: boolean
+  lnWysiwyg: boolean
+  lnSource: boolean
   translucent: boolean
   surfaceOpacity: number
   winMaterial: 'acrylic' | 'mica'
@@ -68,7 +70,9 @@ export const DEFAULT_SETTINGS: Settings = {
   srcLayout: 'only',
   srcSwap: false,
   srcRatio: 0.5,
-  showLineNumbers: true,
+  lnCode: true,
+  lnWysiwyg: false,
+  lnSource: true,
   translucent: true,
   surfaceOpacity: 0.72,
   winMaterial: 'acrylic',
@@ -93,6 +97,11 @@ export function loadSettings(): Settings {
       j.aiKeys = { anthropic: j.aiKey }
       if (j.aiModel) j.aiModels = { anthropic: j.aiModel }
     }
+    if (typeof j.showLineNumbers === 'boolean') {
+      if (j.lnCode === undefined) j.lnCode = j.showLineNumbers
+      if (j.lnSource === undefined) j.lnSource = j.showLineNumbers
+    }
+    delete j.showLineNumbers
     delete j.aiKey
     delete j.aiModel
     return { ...DEFAULT_SETTINGS, ...j }
@@ -195,8 +204,10 @@ export function useApplySettings(s: Settings, materialSupported: boolean): Resol
 
   setLang(s.uiLang) // 同步設定，讓這一輪渲染就用新語言
   useEffect(() => {
-    document.body.classList.toggle('hide-linenos', !s.showLineNumbers)
-  }, [s.showLineNumbers])
+    document.body.classList.toggle('hide-ln-code', !s.lnCode)
+    document.body.classList.toggle('hide-ln-source', !s.lnSource)
+    document.body.classList.toggle('show-ln-wys', s.lnWysiwyg)
+  }, [s.lnCode, s.lnSource, s.lnWysiwyg])
 
   useEffect(() => {
     document.body.classList.toggle('focus-mode', s.focusMode)

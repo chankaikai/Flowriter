@@ -5,6 +5,8 @@ import {
   crosshairCursor,
   drawSelection,
   highlightActiveLine,
+  highlightActiveLineGutter,
+  lineNumbers,
   keymap,
   rectangularSelection
 } from '@codemirror/view'
@@ -63,6 +65,8 @@ export const SourceEditor = forwardRef<SourceHandle, Props>(function SourceEdito
         doc: value,
         extensions: [
           history(),
+          lineNumbers(),
+          highlightActiveLineGutter(),
           drawSelection(),
           highlightActiveLine(),
           EditorState.allowMultipleSelections.of(true), // 多光標：Alt+點擊、Ctrl/⌘+D

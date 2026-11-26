@@ -4,6 +4,7 @@ import {
   Document,
   ExternalHyperlink,
   HeadingLevel,
+  ImageRun,
   LevelFormat,
   Packer,
   Paragraph,
@@ -20,6 +21,15 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import remarkFrontmatter from 'remark-frontmatter'
 import type { Root, RootContent, PhrasingContent, ListItem } from 'mdast'
+import { isMusicLang, type MusicLang } from '@/lib/music/types'
+import { isScoreFence, renderScoreSvgs } from '@/lib/music/exportMusic'
+import { renderMermaid } from '@/lib/mermaid'
+import { svgToPng, type PngImage } from '@/lib/svgPng'
+
+/** 譜面／流程圖在 Word 裡以透明底 PNG 呈現；key 是 mdast 的 code 節點 */
+type CodeImages = Map<object, { images: PngImage[]; mode: 'code' | 'score' | null }>
+let CODE_IMAGES: CodeImages = new Map()
+const MAX_IMG_W = 600 // 約 A4 版心寬（px）
 
 type Inline = TextRun | ExternalHyperlink
 type Block = Paragraph | Table
@@ -194,7 +204,21 @@ function blocks(nodes: RootContent[], ctx: Ctx): Block[] {
         for (const it of n.children) out.push(...listItem(it, !!n.ordered, instance, ctx))
         break
       }
-      case 'code':
+      case 'code': {
+        const pre = CODE_IMAGES.get(n)
+        if (pre) {
+          for (const im of pre.images) {
+            const k = Math.min(1, MAX_IMG_W / im.width)
+            out.push(
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 60, after: 120 },
+                children: [new ImageRun({ type: 'png', data: im.data, transformation: { width: Math.round(im.width * k), height: Math.round(im.height * k) } })]
+              })
+            )
+          }
+          if (pre.mode === 'code') break // 收起代碼：只留圖
+        }
         for (const line of n.value.split('\n')) {
           out.push(
             new Paragraph({
@@ -206,6 +230,7 @@ function blocks(nodes: RootContent[], ctx: Ctx): Block[] {
         }
         out.push(new Paragraph({ spacing: { after: 120 }, children: [] }))
         break
+      }
       case 'thematicBreak':
         out.push(
           new Paragraph({
@@ -285,7 +310,42 @@ function numberingLevels(format: (typeof LevelFormat)[keyof typeof LevelFormat],
   }))
 }
 
-export async function buildDocx(md: string): Promise<Uint8Array> {
+async function prepareCodeImages(tree: Root, musicHidden?: (lang: string, ordinal: number) => 'code' | 'score' | null): Promise<CodeImages> {
+  const map: CodeImages = new Map()
+  const ord: Record<string, number> = {}
+  const codes: { lang: string; value: string; node: object }[] = []
+  const walk = (ns: RootContent[]) => {
+    for (const n of ns) {
+      if (n.type === 'code') codes.push({ lang: (n.lang ?? '').toLowerCase(), value: n.value, node: n })
+      else if ('children' in n) walk(n.children as RootContent[])
+    }
+  }
+  walk(tree.children)
+  for (const c of codes) {
+    try {
+      if (c.lang === 'mermaid') {
+        const png = await svgToPng(await renderMermaid(c.value, false))
+        if (png) map.set(c.node, { images: [png], mode: 'code' })
+        continue
+      }
+      if (!isMusicLang(c.lang) || !isScoreFence(c.lang as MusicLang, c.value)) continue
+      const n = (ord[c.lang] = (ord[c.lang] ?? -1) + 1)
+      const mode = musicHidden?.(c.lang, n) ?? null
+      if (mode === 'score') continue // 只要代碼文字
+      const imgs: PngImage[] = []
+      for (const svg of await renderScoreSvgs(c.lang as MusicLang, c.value)) {
+        const png = await svgToPng(svg)
+        if (png) imgs.push(png)
+      }
+      if (imgs.length) map.set(c.node, { images: imgs, mode })
+    } catch {
+      /* 渲染失敗就維持代碼文字 */
+    }
+  }
+  return map
+}
+
+export async function buildDocx(md: string, musicHidden?: (lang: string, ordinal: number) => 'code' | 'score' | null): Promise<Uint8Array> {
   const tree = unified()
     .use(remarkParse)
     .use(remarkFrontmatter, ['yaml'])
@@ -293,6 +353,7 @@ export async function buildDocx(md: string): Promise<Uint8Array> {
     .use(remarkMath)
     .parse(md) as Root
 
+  CODE_IMAGES = await prepareCodeImages(tree, musicHidden)
   const children = blocks(tree.children, { quote: 0, listLevel: 0, nextInstance: { n: 1 } })
 
   const doc = new Document({

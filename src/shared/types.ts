@@ -131,6 +131,10 @@ export interface InkwellApi {
   inboxClose(): void
   refsRead(docPath: string): Promise<string>
   refsWrite(docPath: string, json: string): Promise<boolean>
+  /** 截取視窗某區域，回傳 PNG 位元組 */
+  captureRegion(r: { x: number; y: number; width: number; height: number }): Promise<ArrayBuffer | null>
+  /** 把 PNG 位元組放進剪貼簿（透明底保留） */
+  clipboardPng(data: ArrayBuffer): Promise<boolean>
   /** 回報本視窗目前開著的檔案路徑（跨視窗防重複開啟用） */
   reportPaths(list: string[]): void
   /** 別的視窗已開著這個檔案就切過去並回傳 true */

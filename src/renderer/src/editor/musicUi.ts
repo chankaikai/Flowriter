@@ -6,17 +6,14 @@ import type { Node as PMNode } from '@milkdown/kit/prose/model'
 import { isMusicLang, musicDebounce, type MusicLang } from '@/lib/music/types'
 import { listAbcParts } from '@/lib/music/abc'
 import { abcEdit, type AbcTool } from '@/lib/music/abcEdit'
-import { createAbcRenderer, MusicError } from '@/lib/music/abcRenderer'
-import { createJianpuRenderer } from '@/lib/music/jianpuRender'
+import { MusicError } from '@/lib/music/abcRenderer'
+import { copyElementPng } from '@/lib/copyPng'
+import { createEngine } from '@/lib/music/engines'
 import { jianpuEdit, type JianpuTool } from '@/lib/music/jianpuEdit'
-import { createVerovioRenderer } from '@/lib/music/verovioRenderer'
 import { listScoreParts } from '@/lib/music/scoreParts'
-import { createGongcheRenderer } from '@/lib/music/gongcheRender'
 import { gongcheEdit } from '@/lib/music/gongcheEdit'
 import { GONGCHE_CHARS } from '@/lib/music/gongche'
-import { createLilypondRenderer } from '@/lib/music/lilypondRenderer'
 import { standaloneSvg, svgFileName } from '@/lib/music/svgExport'
-import { createTabRenderer } from '@/lib/music/tabRenderer'
 import { tabEdit, type TabTool } from '@/lib/music/tabEdit'
 import type { MusicRenderer } from '@/lib/music/types'
 import { getLang, tr } from '@/lib/i18n'
@@ -53,8 +50,11 @@ interface Reg {
   view: EditorView | null
 }
 /** 只顯示譜、隱藏代碼的圍欄（跨編輯器重建保留，純 UI 狀態，不寫進 md） */
-const hiddenKeys = new Set<string>()
+/** 每個圍欄只能收起「代碼」或「譜面」其中一個（兩個都收起就什麼都看不到） */
+const hidden = new Map<string, 'code' | 'score'>()
 const keyOf = (lang: string, ordinal: number) => `music-${lang}-${ordinal}`
+/** 匯出時查詢：第 ordinal 個該語言的譜目前收起了什麼（null＝兩者都顯示） */
+export const musicHiddenMode = (lang: string, ordinal: number): 'code' | 'score' | null => hidden.get(keyOf(lang, ordinal)) ?? null
 
 function schedule(b: Block, immediate = false): void {
   window.clearTimeout(b.timer)
@@ -111,19 +111,27 @@ function create(lang: MusicLang, source: string, key: string, reg: Reg): Block {
   // 只有 abc 有聲部與播放；其他譜種這一階段不做播放
   const hideBtn = document.createElement('button')
   hideBtn.className = 'music-hide'
+  const hideScoreBtn = document.createElement('button')
+  hideScoreBtn.className = 'music-hide'
   const paintHide = () => {
-    hideBtn.textContent = hiddenKeys.has(key) ? tr('顯示代碼') : tr('隱藏代碼')
-    hideBtn.title = tr('只留譜、收起代碼（不影響 Markdown 內容）')
+    const m = hidden.get(key)
+    hideBtn.textContent = m === 'code' ? tr('顯示代碼') : tr('隱藏代碼')
+    hideBtn.title = tr('只留譜、收起代碼（不影響 Markdown 內容；匯出時也只輸出譜）')
+    hideScoreBtn.textContent = m === 'score' ? tr('顯示譜面') : tr('隱藏譜面')
+    hideScoreBtn.title = tr('只留代碼、收起譜面（匯出時也只輸出代碼文字）')
+    el.classList.toggle('score-hidden', m === 'score')
   }
-  paintHide()
-  hideBtn.addEventListener('mousedown', (e) => e.preventDefault())
-  hideBtn.addEventListener('click', () => {
-    if (hiddenKeys.has(key)) hiddenKeys.delete(key)
-    else hiddenKeys.add(key)
+  const toggle = (what: 'code' | 'score') => {
+    if (hidden.get(key) === what) hidden.delete(key)
+    else hidden.set(key, what) // 收起一個時，另一個自動恢復顯示
     paintHide()
     const v = reg.view
     if (v && !v.isDestroyed) v.dispatch(v.state.tr.setMeta(musicKey, 'rebuild'))
-  })
+  }
+  for (const [btn, what] of [[hideBtn, 'code'], [hideScoreBtn, 'score']] as const) {
+    btn.addEventListener('mousedown', (e) => e.preventDefault())
+    btn.addEventListener('click', () => toggle(what))
+  }
   if (lang === 'abc' || lang === 'mei' || lang === 'xml') bar.append(select)
   if (lang === 'abc' || lang === 'tab') bar.append(playBtn)
   const dlBtn = document.createElement('button')
@@ -150,13 +158,34 @@ function create(lang: MusicLang, source: string, key: string, reg: Reg): Block {
       }, i * 250) // 多頁時錯開，避免被瀏覽器當成連續彈出而擋掉
     })
   })
-  bar.append(dlBtn, hideBtn)
+  const pngBtn = document.createElement('button')
+  pngBtn.className = 'music-dl'
+  pngBtn.textContent = tr('複製 PNG')
+  pngBtn.title = tr('透明底、貼齊譜面外緣的 PNG')
+  pngBtn.addEventListener('mousedown', (e) => e.preventDefault())
+  pngBtn.addEventListener('click', async () => {
+    const first = mount.querySelector('svg')
+    if (!first) {
+      err.textContent = tr('還沒有可複製的譜面')
+      return
+    }
+    let ok = false
+    try {
+      ok = await copyElementPng(first as unknown as HTMLElement)
+    } catch {
+      ok = false
+    }
+    pngBtn.textContent = ok ? tr('已複製') : tr('複製失敗')
+    window.setTimeout(() => (pngBtn.textContent = tr('複製 PNG')), 1400)
+  })
+  bar.append(pngBtn, dlBtn, hideScoreBtn, hideBtn)
+  paintHide()
   const mount = document.createElement('div')
   mount.className = 'music-mount'
   const err = document.createElement('div')
   err.className = 'music-err'
   el.append(bar, mount, err)
-  const b: Block = { lang, el, mount, err, bar, select, playBtn, engine: lang === 'abc' ? createAbcRenderer() : lang === 'tab' ? createTabRenderer() : lang === 'gongche' ? createGongcheRenderer() : lang === 'lilypond' ? createLilypondRenderer() : lang === 'mei' || lang === 'xml' ? createVerovioRenderer(lang) : createJianpuRenderer(), part: 'all', source, timer: 0, seq: 0, dead: false }
+  const b: Block = { lang, el, mount, err, bar, select, playBtn, engine: createEngine(lang), part: 'all', source, timer: 0, seq: 0, dead: false }
   select.addEventListener('change', () => {
     b.part = select.value
     schedule(b, true)
@@ -204,7 +233,7 @@ function build(doc: PMNode, reg: Reg): DecorationSet {
       syncParts(existing)
       schedule(existing)
     }
-    if (hiddenKeys.has(key)) decos.push(Decoration.node(pos, pos + node.nodeSize, { class: 'music-code-hidden' }))
+    if (hidden.get(key) === 'code') decos.push(Decoration.node(pos, pos + node.nodeSize, { class: 'music-code-hidden' }))
     decos.push(
       Decoration.widget(
         pos + node.nodeSize,

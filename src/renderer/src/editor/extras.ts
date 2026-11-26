@@ -24,6 +24,9 @@ import { firstUnexplained, jumpyBlocks, type BlockInfo } from '@/lib/readerLens'
 import { runUiPlugin } from './runUi'
 import { tableUiPlugin } from './tableUi'
 import { musicPlugin } from './musicUi'
+import { blockStartLines } from '@/lib/blockLines'
+import { copyElementPng } from '@/lib/copyPng'
+import { tr } from '@/lib/i18n'
 import { voicePlugin } from './voiceUi'
 import { normLock, touchesLocked, type Range } from '@/lib/locks'
 
@@ -108,7 +111,13 @@ export const footnoteDefNode = $node('inkwell_fndef', () => ({
     match: (n: any) => n.type === 'footnoteDefinition',
     runner: (state: any, node: any, type: any) => {
       state.openNode(type, { label: String(node.label ?? node.identifier ?? '') })
-      state.next(node.children)
+      // 空的定義在 .md 裡以零寬空格佔位（見 toMarkdown）；讀回來時還原成空段落
+      const kids: any[] = node.children ?? []
+      const placeholder = kids.length === 1 && kids[0].type === 'paragraph' && kids[0].children?.length === 1 && kids[0].children[0].type === 'text' && kids[0].children[0].value === '\u200b'
+      if (placeholder) {
+        state.openNode(type.schema.nodes.paragraph)
+        state.closeNode()
+      } else state.next(kids)
       state.closeNode()
     }
   },
@@ -116,7 +125,13 @@ export const footnoteDefNode = $node('inkwell_fndef', () => ({
     match: (n: any) => n.type.name === 'inkwell_fndef',
     runner: (state: any, node: any) => {
       state.openNode('footnoteDefinition', undefined, { identifier: node.attrs.label, label: node.attrs.label })
-      state.next(node.content)
+      // 空定義寫成 `[^1]:` 時 remark 不認得它，連帶引用也會被當成純文字；用零寬空格佔位讓它切到源碼再切回來仍是腳註
+      const first = node.childCount === 1 ? node.firstChild : null
+      if (first && first.type.name === 'paragraph' && first.childCount === 0) {
+        state.openNode('paragraph')
+        state.addNode('text', undefined, '\u200b')
+        state.closeNode()
+      } else state.next(node.content)
       state.closeNode()
     }
   }
@@ -994,6 +1009,24 @@ function mermaidWidget(code: string, view: EditorView, getPos: () => number | un
       renderMermaid(code, dark)
         .then((svg) => {
           el.innerHTML = svg
+          const cp = document.createElement('button')
+          cp.className = 'mermaid-copy'
+          cp.textContent = tr('複製 PNG')
+          cp.title = tr('透明底、貼齊圖形外緣的 PNG')
+          cp.addEventListener('mousedown', (e) => e.preventDefault())
+          cp.addEventListener('click', async (e) => {
+            e.stopPropagation()
+            const s = el.querySelector('svg')
+            let ok = false
+            try {
+              ok = !!s && (await copyElementPng(s as unknown as HTMLElement))
+            } catch {
+              ok = false
+            }
+            cp.textContent = ok ? tr('已複製') : tr('複製失敗')
+            window.setTimeout(() => (cp.textContent = tr('複製 PNG')), 1400)
+          })
+          el.appendChild(cp)
         })
         .catch((e: unknown) => {
           el.classList.add('err')
@@ -1172,7 +1205,28 @@ export function toggleLockAtCaret(view: EditorView): { locked: boolean; text: st
   return { locked, text: block.textContent, texts: [...texts] }
 }
 
+/** 渲染模式行號：幫每個頂層區塊標上它在 .md 的起始行（data-ln），顯示與否由 body.show-ln-wys 決定 */
+export const blockLinePlugin = $prose(() => {
+  const key = new PluginKey<DecorationSet>('inkwell-block-lines')
+  const build = (doc: any): DecorationSet => {
+    if (doc.content.size > 400_000) return DecorationSet.empty // 超大文件不算，避免卡頓
+    const starts = blockStartLines(doc)
+    const decos: Decoration[] = []
+    doc.forEach((n: any, off: number, i: number) => decos.push(Decoration.node(off, off + n.nodeSize, { 'data-ln': String(starts[i]) })))
+    return DecorationSet.create(doc, decos)
+  }
+  return new Plugin({
+    key,
+    state: {
+      init: (_c, st) => build(st.doc),
+      apply: (tr, old) => (tr.docChanged ? build(tr.doc) : old)
+    },
+    props: { decorations: (st) => key.getState(st) }
+  })
+})
+
 export const extraPlugins = [
+  blockLinePlugin,
   lensPlugin,
   mathHoverPlugin,
   frontMatterRemark,

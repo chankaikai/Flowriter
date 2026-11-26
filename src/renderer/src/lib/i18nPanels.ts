@@ -1,5 +1,15 @@
 /** 面板、側邊欄、對話框與狀態文字的英文翻譯（其他非中文語言退回英文）。 */
 export const PANELS: Record<string, string> = {
+  "隱藏譜面": "Hide score",
+  "顯示譜面": "Show score",
+  "只留代碼、收起譜面（匯出時也只輸出代碼文字）": "Keep only the code, collapse the score (exports code text only)",
+  "只留譜、收起代碼（不影響 Markdown 內容；匯出時也只輸出譜）": "Keep only the score, collapse the code (Markdown unchanged; exports the score only)",
+  "透明底、貼齊譜面外緣的 PNG": "Transparent PNG cropped to the score",
+  "透明底、貼齊圖形外緣的 PNG": "Transparent PNG cropped to the diagram",
+  "還沒有可複製的譜面": "No score to copy yet",
+  "行號：代碼塊": "Line numbers: code blocks",
+  "行號：渲染模式（每個區塊在 .md 的起始行）": "Line numbers: rendered mode (start line of each block in the .md)",
+  "行號：源碼模式": "Line numbers: source mode",
   "重新開啟軟體時": "When the app starts",
   "還原上次的分頁": "Restore last tabs",
   "空白未儲存文件": "Blank unsaved document",

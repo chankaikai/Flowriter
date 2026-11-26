@@ -1,4 +1,4 @@
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, net, protocol, shell } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, net, protocol, shell, nativeImage } from 'electron'
 import { balanceKind } from '../shared/aiHosts'
 import { zipStore } from '../shared/zip'
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path'
@@ -863,6 +863,23 @@ function registerIpc(): void {
     if (!ok || r.width < 1 || r.height < 1 || r.width > 4000 || r.height > 4000) return false
     const z = e.sender.getZoomFactor()
     const img = await e.sender.capturePage({ x: Math.round(r.x * z), y: Math.round(r.y * z), width: Math.round(r.width * z), height: Math.round(r.height * z) })
+    if (img.isEmpty()) return false
+    clipboard.writeImage(img)
+    return true
+  })
+  // 只截圖不寫剪貼簿：回傳 PNG 位元組，由畫面端去底色、裁邊後再用 clip:png 放進剪貼簿
+  ipcMain.handle('clip:capture', async (e, r: { x: number; y: number; width: number; height: number }) => {
+    const ok = [r?.x, r?.y, r?.width, r?.height].every((n) => typeof n === 'number' && Number.isFinite(n))
+    if (!ok || r.width < 1 || r.height < 1 || r.width > 4000 || r.height > 4000) return null
+    const z = e.sender.getZoomFactor()
+    const img = await e.sender.capturePage({ x: Math.round(r.x * z), y: Math.round(r.y * z), width: Math.round(r.width * z), height: Math.round(r.height * z) })
+    if (img.isEmpty()) return null
+    const b = img.toPNG()
+    return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)
+  })
+  ipcMain.handle('clip:png', (_e, data: ArrayBuffer) => {
+    if (!(data instanceof ArrayBuffer) || data.byteLength < 8 || data.byteLength > 30_000_000) return false
+    const img = nativeImage.createFromBuffer(Buffer.from(data))
     if (img.isEmpty()) return false
     clipboard.writeImage(img)
     return true

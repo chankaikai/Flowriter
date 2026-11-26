@@ -1,6 +1,6 @@
 import { $prose } from '@milkdown/kit/utils'
 import { Plugin, PluginKey } from '@milkdown/kit/prose/state'
-import { padRect } from '@/lib/regionRect'
+import { copyElementPng } from '@/lib/copyPng'
 import { tr } from '@/lib/i18n'
 
 /**
@@ -40,16 +40,16 @@ function schedule() {
 }
 
 async function copyPng(el: HTMLElement, btn: HTMLButtonElement) {
-  const r = padRect(el.getBoundingClientRect(), 8, window.innerWidth, window.innerHeight)
-  chip && (chip.style.visibility = 'hidden') // 截圖前先藏起浮層，免得拍進去
-  await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)))
   let ok = false
   try {
-    ok = await window.api.copyRegionImage(r)
+    // 截圖前先藏起浮層，免得拍進去；結果是去底色、貼齊公式外緣的透明 PNG
+    ok = await copyElementPng(el, () => {
+      chip && (chip.style.visibility = 'hidden')
+      return () => chip && (chip.style.visibility = '')
+    })
   } catch {
     ok = false
   }
-  chip && (chip.style.visibility = '')
   btn.textContent = ok ? tr('已複製') : tr('複製失敗')
   window.setTimeout(() => (btn.textContent = tr('複製 PNG')), 1400)
 }

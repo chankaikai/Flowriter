@@ -56,6 +56,7 @@ import type { UpdateStatus } from '../../shared/update'
 import { WELCOME } from '@/lib/welcome'
 import { INITIAL_DOC, markWelcomeDocShown, suggestedName } from '@/lib/startup'
 import { buildHtmlDocument, renderHtmlBody } from '@/export/exportHtml'
+import { musicHiddenMode } from '@/editor/musicUi'
 import { buildDocx } from '@/export/exportDocx'
 import { tr, trf } from '@/lib/i18n'
 
@@ -789,7 +790,7 @@ export default function App() {
         showToast(trf('正在繪製 {0} 張卡片…', cards.length))
         const pages: { html: string }[] = []
         for (const c of cards) {
-          const body = await renderHtmlBody(c.md, dir)
+          const body = await renderHtmlBody(c.md, dir, musicHiddenMode)
           const html = buildHtmlDocument(c.title || base, `<div class="card${c.cover ? ' cover' : ''}"><div class="card-glass"><div class="card-body">${body}</div></div><span class="card-no">${c.index + 1}/${c.total}</span></div>`)
             .replace('</style>', `${cardCss(width, height)}</style>`)
           pages.push({ html })
@@ -828,15 +829,15 @@ export default function App() {
           out = await window.api.exportFile({ name: base, ext: 'md', filterName: 'Markdown', data: md })
         } else if (kind === 'png') {
           showToast(tr('正在繪製長圖…'))
-          const body = await renderHtmlBody(md, dir)
+          const body = await renderHtmlBody(md, dir, musicHiddenMode)
           const html = buildHtmlDocument(base, `<main class="share-card">${body}</main><p class="share-foot">FLOWITER</p>`)
             .replace('</style>', `${SHARE_CSS}</style>`)
           out = await window.api.exportImage({ name: base, html, width: 760 })
         } else if (kind === 'docx') {
-          out = await window.api.exportFile({ name: base, ext: 'docx', filterName: 'Word', data: await buildDocx(md) })
+          out = await window.api.exportFile({ name: base, ext: 'docx', filterName: 'Word', data: await buildDocx(md, musicHiddenMode) })
         } else {
           showToast(tr('正在處理…'))
-          const html = buildHtmlDocument(base, await renderHtmlBody(md, dir))
+          const html = buildHtmlDocument(base, await renderHtmlBody(md, dir, musicHiddenMode))
           out =
             kind === 'html'
               ? await window.api.exportFile({ name: base, ext: 'html', filterName: 'HTML', data: html })

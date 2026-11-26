@@ -14,6 +14,8 @@ import { renderMermaid } from '@/lib/mermaid'
 import { toAbsolutePath } from '@/lib/path'
 import { applyInlineCalcs } from '@/lib/calc'
 import { bilingualTransform, CALLOUT_TYPES } from '@/lib/mdTransforms'
+import { isMusicLang, type MusicLang } from '@/lib/music/types'
+import { isScoreFence, renderScoreSvgs } from '@/lib/music/exportMusic'
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -23,7 +25,10 @@ function escapeHtml(s: string): string {
  * Markdown → HTML 片段。獨立於編輯器，所以源碼模式下也能匯出。
  * 公式輸出 MathML（Chromium 原生渲染），避免匯出檔還要附帶字型檔。
  */
-export async function renderHtmlBody(md: string, docDir: string | null): Promise<string> {
+/** 譜面收起狀態：由編輯器提供，沒給就視為「代碼與譜都輸出」 */
+export type MusicHidden = (lang: string, ordinal: number) => 'code' | 'score' | null
+
+export async function renderHtmlBody(md: string, docDir: string | null, musicHidden?: MusicHidden): Promise<string> {
   const file = await unified()
     .use(remarkParse)
     .use(remarkFrontmatter, ['yaml'])
@@ -92,6 +97,27 @@ export async function renderHtmlBody(md: string, docDir: string | null): Promise
     } catch {
       /* 語法錯誤時保留原始代碼塊 */
     }
+  }
+
+  // 樂譜 → 內嵌 SVG：收起代碼就只輸出譜；收起譜面就只保留代碼文字；兩者都顯示就先譜後碼
+  const ord: Record<string, number> = {}
+  for (const code of Array.from(dom.querySelectorAll('pre > code'))) {
+    const lang = (/language-([\w-]+)/.exec(code.className)?.[1] ?? '').toLowerCase()
+    if (!isMusicLang(lang)) continue
+    const src = (code.textContent || '').replace(/\n$/, '')
+    if (!isScoreFence(lang as MusicLang, src)) continue
+    const n = (ord[lang] = (ord[lang] ?? -1) + 1)
+    const mode = musicHidden?.(lang, n) ?? null
+    if (mode === 'score') continue // 只要代碼
+    const svgs = await renderScoreSvgs(lang as MusicLang, src)
+    if (!svgs.length) continue // 渲染失敗：保留代碼，不要讓匯出少東西
+    const holder = dom.createElement('div')
+    holder.className = 'diagram score'
+    holder.innerHTML = svgs.join('')
+    const pre = code.parentElement
+    if (!pre) continue
+    if (mode === 'code') pre.replaceWith(holder)
+    else pre.parentElement?.insertBefore(holder, pre)
   }
 
   // 本機圖片 → data URL，使匯出檔可獨立開啟

@@ -189,8 +189,14 @@ export function SettingsPanel({
                 <input type="range" min={1.4} max={2.3} step={0.05} value={settings.lineHeight}
                   onChange={(e) => update({ lineHeight: +e.target.value })} />
               </Row>
-              <Row label="顯示行號（代碼塊與源碼模式）">
-                <Toggle on={settings.showLineNumbers} onChange={(v) => update({ showLineNumbers: v })} />
+              <Row label="行號：代碼塊">
+                <Toggle on={settings.lnCode} onChange={(v) => update({ lnCode: v })} />
+              </Row>
+              <Row label="行號：渲染模式（每個區塊在 .md 的起始行）">
+                <Toggle on={settings.lnWysiwyg} onChange={(v) => update({ lnWysiwyg: v })} />
+              </Row>
+              <Row label="行號：源碼模式">
+                <Toggle on={settings.lnSource} onChange={(v) => update({ lnSource: v })} />
               </Row>
               <Row label="內容最大寬度" value={`${settings.maxWidth}px`}>
                 <input type="range" min={560} max={1200} step={20} value={settings.maxWidth}
