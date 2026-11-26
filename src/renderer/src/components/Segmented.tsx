@@ -23,7 +23,32 @@ export function Segmented<T extends string>({
   const pillRef = useRef<HTMLSpanElement>(null)
   usePill(ref, pillRef, value)
   return (
-    <div className={`segmented ${className ?? ''}`} ref={ref} role="tablist">
+    <div
+      className={`segmented ${className ?? ''}`}
+      ref={ref}
+      role="tablist"
+      // 整條控制列都可點：依指標的水平位置挑最近的選項，不依賴元素命中（避免只有某個遠處才點得到）
+      onPointerDown={(e) => {
+        if (e.button !== 0) return
+        const box = ref.current?.getBoundingClientRect()
+        if (!box || e.clientY < box.top || e.clientY > box.bottom) return
+        let best: Option<T> | null = null
+        let bestD = Infinity
+        ref.current?.querySelectorAll<HTMLButtonElement>('button[data-key]').forEach((b) => {
+          const r = b.getBoundingClientRect()
+          const d = e.clientX < r.left ? r.left - e.clientX : e.clientX > r.right ? e.clientX - r.right : 0
+          if (d < bestD) {
+            bestD = d
+            best = options.find((o) => o.value === b.dataset.key) ?? null
+          }
+        })
+        const hit = best as Option<T> | null
+        if (hit && hit.value !== value) {
+          e.preventDefault()
+          onChange(hit.value)
+        }
+      }}
+    >
       <span className="glass-pill seg-pill" ref={pillRef} />
       {options.map((o) => (
         <button

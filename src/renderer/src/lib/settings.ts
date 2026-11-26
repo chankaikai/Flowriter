@@ -45,6 +45,8 @@ export interface Settings {
   /** AI 回覆長度上限（token）。推理模型思考很長，需要調大 */
   aiMaxTokens: number
   lastFolder: string | null
+  /** 重新開啟軟體時：還原上次的分頁，或只開一個空白未儲存文件 */
+  startupDoc: 'last' | 'blank'
 }
 
 const KEY = 'inkwell.settings.v1'
@@ -79,7 +81,8 @@ export const DEFAULT_SETTINGS: Settings = {
   aiModels: {},
   aiBaseUrls: {},
   aiMaxTokens: 4096,
-  lastFolder: null
+  lastFolder: null,
+  startupDoc: 'last'
 }
 
 export function loadSettings(): Settings {

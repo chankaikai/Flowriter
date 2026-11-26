@@ -131,6 +131,10 @@ export interface InkwellApi {
   inboxClose(): void
   refsRead(docPath: string): Promise<string>
   refsWrite(docPath: string, json: string): Promise<boolean>
+  /** 回報本視窗目前開著的檔案路徑（跨視窗防重複開啟用） */
+  reportPaths(list: string[]): void
+  /** 別的視窗已開著這個檔案就切過去並回傳 true */
+  focusIfOpen(path: string): Promise<boolean>
   voiceRead(docPath: string): Promise<string>
   voiceWrite(docPath: string, json: string): Promise<boolean>
   voiceSave(docPath: string, id: string, data: ArrayBuffer): Promise<boolean>

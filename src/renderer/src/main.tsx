@@ -15,14 +15,39 @@ function showFatal(title: string, err: unknown): void {
   console.error(title, err)
   let box = document.getElementById('fatal-error')
   if (!box) {
-    box = document.createElement('pre')
+    box = document.createElement('div')
     box.id = 'fatal-error'
     box.style.cssText =
-      'position:fixed;inset:0;z-index:99999;margin:0;padding:24px 28px;overflow:auto;background:#1c1b19;color:#f3d9c9;' +
-      'font:12.5px/1.65 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word;-webkit-app-region:no-drag'
+      'position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;background:#1c1b19;color:#f3d9c9;-webkit-app-region:no-drag'
+    const bar = document.createElement('div')
+    bar.style.cssText = 'display:flex;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid #3a3733;font:13px system-ui,sans-serif'
+    const hint = document.createElement('span')
+    hint.style.cssText = 'flex:1;opacity:.8'
+    hint.textContent = '發生錯誤。你可以關閉這個畫面繼續使用（未儲存的內容還在），也可以複製錯誤內容回報。'
+    const mk = (label: string, fn: () => void) => {
+      const b = document.createElement('button')
+      b.textContent = label
+      b.style.cssText = 'cursor:pointer;padding:4px 12px;border-radius:6px;border:1px solid #6b655d;background:#2a2824;color:inherit;font:inherit'
+      b.onclick = fn
+      return b
+    }
+    const pre = document.createElement('pre')
+    pre.id = 'fatal-error-text'
+    pre.style.cssText = 'flex:1;margin:0;padding:18px 24px;overflow:auto;font:12.5px/1.65 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word'
+    const close = () => {
+      box?.remove()
+      window.removeEventListener('keydown', onKey, true)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close()
+    }
+    window.addEventListener('keydown', onKey, true)
+    bar.append(hint, mk('複製', () => void navigator.clipboard.writeText(pre.textContent ?? '')), mk('重新載入', () => location.reload()), mk('關閉 (Esc)', close))
+    box.append(bar, pre)
     document.body.appendChild(box)
   }
-  box.textContent += `${title}\n${msg}\n\n————————\n\n`
+  const pre = document.getElementById('fatal-error-text')
+  if (pre) pre.textContent += `${title}\n${msg}\n\n————————\n\n`
 }
 
 /** 編輯器銷毀過程中（例如開發模式重複掛載、切換分頁），Milkdown 的上下文會先被釋放，

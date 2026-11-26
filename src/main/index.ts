@@ -1,7 +1,7 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, net, protocol, shell } from 'electron'
 import { balanceKind } from '../shared/aiHosts'
 import { zipStore } from '../shared/zip'
-import { basename, dirname, extname, join, relative, sep } from 'node:path'
+import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path'
 import { existsSync, promises as fs } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { release, tmpdir } from 'node:os'
@@ -175,9 +175,22 @@ function createWindow(opts: { initial?: InitialDoc; at?: { x: number; y: number 
     })
     win.webContents.on('preload-error', (_e, path, err) => console.error(`[preload] ${path}\n`, err))
     win.webContents.on('did-fail-load', (_e, code, desc, url) => console.error(`[load] ${code} ${desc} ${url}`))
-    win.webContents.on('render-process-gone', (_e, d) => console.error('[renderer gone]', d.reason))
     if (process.env['INKWELL_DEVTOOLS']) win.webContents.openDevTools({ mode: 'detach' })
   }
+
+  // 渲染程序崩潰（不論開發或正式版）：自動重新載入，工作階段（分頁與未儲存內容）會從本機儲存還原；30 秒內最多重試 2 次
+  let goneAt: number[] = []
+  win.webContents.on('render-process-gone', (_e, d) => {
+    console.error('[renderer gone]', d.reason)
+    if (d.reason === 'clean-exit' || d.reason === 'killed' || win.isDestroyed()) return
+    const now = Date.now()
+    goneAt = goneAt.filter((t) => now - t < 30_000)
+    if (goneAt.length >= 2) return
+    goneAt.push(now)
+    setTimeout(() => {
+      if (!win.isDestroyed()) win.webContents.reload()
+    }, 300)
+  })
 
   const devUrl = process.env['ELECTRON_RENDERER_URL']
   if (!app.isPackaged && devUrl) win.loadURL(devUrl)
@@ -940,6 +953,32 @@ function registerIpc(): void {
       }
     }
     return null
+  })
+
+  // 各視窗目前開著的檔案路徑：同一個檔案只允許在一個視窗／分頁裡開啟
+  const openPaths = new Map<number, Set<string>>()
+  const normPath = (p: string) => (process.platform === 'win32' ? resolve(p).toLowerCase() : resolve(p))
+  ipcMain.on('doc:paths', (e, list: unknown) => {
+    if (!Array.isArray(list)) return
+    openPaths.set(e.sender.id, new Set(list.filter((x): x is string => typeof x === 'string' && x.length < 1024).slice(0, 200).map(normPath)))
+  })
+  /** 若別的視窗已開著這個檔案：把那個視窗拉到前面並回傳 true。 */
+  ipcMain.handle('doc:focusIfOpen', (e, p: string) => {
+    if (typeof p !== 'string' || !p) return false
+    const key = normPath(p)
+    for (const [id, set] of openPaths) {
+      if (id === e.sender.id || !set.has(key)) continue
+      const w = BrowserWindow.getAllWindows().find((x) => !x.isDestroyed() && x.webContents.id === id)
+      if (!w) {
+        openPaths.delete(id)
+        continue
+      }
+      if (w.isMinimized()) w.restore()
+      w.show()
+      w.focus()
+      return true
+    }
+    return false
   })
 
   ipcMain.on('doc:dirty', (e, d: boolean) => {

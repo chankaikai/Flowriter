@@ -1,5 +1,9 @@
 /** 面板、側邊欄、對話框與狀態文字的英文翻譯（其他非中文語言退回英文）。 */
 export const PANELS: Record<string, string> = {
+  "重新開啟軟體時": "When the app starts",
+  "還原上次的分頁": "Restore last tabs",
+  "空白未儲存文件": "Blank unsaved document",
+  "這個檔案已在另一個視窗開啟，已切換過去": "This file is already open in another window; switched to it",
   "外觀": "Look",
   "新建": "New",
   "更多標題": "More headings",

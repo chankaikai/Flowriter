@@ -54,6 +54,7 @@ import { Splash, welcomed } from '@/components/Splash'
 import { AboutPanel, UpdateBanner } from '@/components/AboutPanel'
 import type { UpdateStatus } from '../../shared/update'
 import { WELCOME } from '@/lib/welcome'
+import { INITIAL_DOC, markWelcomeDocShown, suggestedName } from '@/lib/startup'
 import { buildHtmlDocument, renderHtmlBody } from '@/export/exportHtml'
 import { buildDocx } from '@/export/exportDocx'
 import { tr, trf } from '@/lib/i18n'
@@ -117,7 +118,7 @@ export default function App() {
 
   const [doc, setDoc] = useState<DocMeta>({ path: null, name: '未命名' })
   // 每個分頁各自保留一個編輯器實例（最近用過的 MAX_LIVE 個），切換分頁時撤銷歷史、選區都不會丟
-  const [pool, setPool] = useState<PoolEntry[]>([{ key: 1, tabId: 1, initial: WELCOME, md: WELCOME, used: 1 }])
+  const [pool, setPool] = useState<PoolEntry[]>([{ key: 1, tabId: 1, initial: INITIAL_DOC, md: INITIAL_DOC, used: 1 }])
   const [activeTabId, setActiveTabId] = useState(1)
   const [srcKey, setSrcKey] = useState(0)
   const [srcRev, setSrcRev] = useState(0)
@@ -135,8 +136,8 @@ export default function App() {
   const [upd, setUpd] = useState<UpdateStatus>({ state: 'idle' })
   const [updHidden, setUpdHidden] = useState(false)
   const [splashOn, setSplashOn] = useState(() => !welcomed())
-  const [stats, setStats] = useState<DocStats>(() => computeStats(WELCOME))
-  const [outline, setOutline] = useState<OutlineItem[]>(() => parseOutline(WELCOME))
+  const [stats, setStats] = useState<DocStats>(() => computeStats(INITIAL_DOC))
+  const [outline, setOutline] = useState<OutlineItem[]>(() => parseOutline(INITIAL_DOC))
   const [activeHeading, setActiveHeading] = useState(-1)
   const [folder, setFolder] = useState<string | null>(settings.lastFolder)
   const [palette, setPalette] = useState<null | 'files' | 'commands' | 'recent'>(null)
@@ -173,15 +174,15 @@ export default function App() {
   const sourceRef = useRef<SourceHandle>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const appRef = useRef<HTMLDivElement>(null)
-  const tabsRef = useRef<Tab[]>([{ id: 1, path: null, name: '未命名', md: WELCOME, saved: WELCOME, scroll: 0, mtime: 0 }])
+  const tabsRef = useRef<Tab[]>([{ id: 1, path: null, name: '未命名', md: INITIAL_DOC, saved: INITIAL_DOC, scroll: 0, mtime: 0 }])
   const activeIdRef = useRef(1)
   const nextTabId = useRef(2)
   const restored = useRef(false)
   const tabsEl = useRef<HTMLDivElement>(null)
   const tabPill = useRef<HTMLSpanElement>(null)
-  const mdRef = useRef(WELCOME)
-  const lastLen = useRef(WELCOME.length)
-  const savedRef = useRef(WELCOME)
+  const mdRef = useRef(INITIAL_DOC)
+  const lastLen = useRef(INITIAL_DOC.length)
+  const savedRef = useRef(INITIAL_DOC)
   const docRef = useRef(doc)
   const dirtyRef = useRef(false)
   const modeRef = useRef(mode)
@@ -243,6 +244,7 @@ export default function App() {
     }))
     setTabList(list)
     window.api.setDirty(list.some((t) => t.dirty))
+    window.api.reportPaths(tabsRef.current.map((t) => (t.id === act ? docRef.current.path : t.path)).filter((x): x is string => !!x))
     persistSession()
   }, [persistSession])
 
@@ -337,7 +339,7 @@ export default function App() {
   const saveAs = useCallback(async () => {
     syncFromEditor()
     const md = mdRef.current
-    const suggested = docRef.current.path ? basename(docRef.current.path) : `${docRef.current.name}.md`
+    const suggested = docRef.current.path ? basename(docRef.current.path) : `${suggestedName(md)}.md`
     const p = await window.api.saveFileAs(suggested, md)
     if (!p) return
     savedRef.current = md
@@ -461,6 +463,10 @@ export default function App() {
           if (ex.id !== activeIdRef.current) activate(ex)
           return
         }
+        if (await window.api.focusIfOpen(path)) {
+          showToast(tr('這個檔案已在另一個視窗開啟，已切換過去'))
+          return
+        }
       }
       const name = path ? basename(path) : '未命名'
       const cur = tabsRef.current.find((t) => t.id === activeIdRef.current)
@@ -474,7 +480,7 @@ export default function App() {
       tabsRef.current = [...tabsRef.current, t]
       activate(t)
     },
-    [activate, flushActive, snapshotActive]
+    [activate, flushActive, snapshotActive, showToast]
   )
 
   const closeTab = useCallback(
@@ -601,6 +607,7 @@ export default function App() {
 
   /** 啟動時還原上次的分頁（有路徑的從磁碟重新讀取，未命名的用保存的內容）。 */
   const restoreSession = useCallback(async () => {
+    if (settingsRef.current.startupDoc === 'blank') return
     const sess = loadSession()
     if (!sess || sess.tabs.length === 0) return
     const tabs: Tab[] = []
@@ -1154,6 +1161,7 @@ export default function App() {
         return
       }
       const launch = await window.api.getLaunchFile()
+      markWelcomeDocShown()
       if (!launch) await restoreSession()
       restored.current = true
       if (launch) await openPath(launch)

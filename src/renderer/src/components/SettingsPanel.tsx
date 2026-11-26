@@ -207,6 +207,16 @@ export function SettingsPanel({
               <Row label="自動儲存（已有檔案）">
                 <Toggle on={settings.autosave} onChange={(v) => update({ autosave: v })} />
               </Row>
+              <Row label="重新開啟軟體時">
+                <Segmented
+                  value={settings.startupDoc}
+                  onChange={(v) => update({ startupDoc: v })}
+                  options={[
+                    { value: 'last', label: '還原上次的分頁' },
+                    { value: 'blank', label: '空白未儲存文件' }
+                  ]}
+                />
+              </Row>
               <Row label="全域快捷鍵 Ctrl/⌘+Alt+Space 叫出收件匣（任何程式中都可用）">
                 <Toggle on={settings.inboxShortcut} onChange={(v) => update({ inboxShortcut: v })} />
               </Row>
