@@ -480,16 +480,17 @@ body.hide-linenos .cm-lineNumbers, body.hide-linenos .cm-gutters { display: none
 .resume-del:hover { color: var(--fg); }
 .note.jumpable { cursor: pointer; } .note.jumpable:hover { background: var(--hover); }
 
-/* 功能區精簡模式（常用分頁）：兩列小圖示、無文字，少佔編輯空間 */
-.rb-body.compact { flex-wrap: nowrap; min-height: 0; padding: 4px 8px; gap: 0; }
-.rb-body.compact .rb-group { padding: 0 7px; justify-content: center; }
+/* 功能區精簡模式（常用分頁）：兩列圖示、無文字；整體高度與其他分頁一致（84px） */
+.rb-body { min-height: 84px; box-sizing: border-box; }
+.rb-body.compact { flex-wrap: nowrap; height: 84px; padding: 6px 10px 4px; gap: 0; align-items: center; }
+.rb-body.compact .rb-group { padding: 0 12px; justify-content: center; height: 100%; }
 .rb-body.compact .rb-glabel { display: none; }
-.rb-body.compact .rb-items { gap: 1px; }
-.rb-btn.sm { height: 26px; min-width: 28px; padding: 0 4px; justify-content: center; gap: 1px; }
-.rb-btn.sm .rb-ico { min-width: 18px; height: 18px; }
-.rb-btn.sm .rb-ico.glyph { font: 600 13.5px var(--font-ui); }
+.rb-body.compact .rb-items { gap: 4px 5px; }
+.rb-btn.sm { height: 34px; min-width: 36px; padding: 0 5px; justify-content: center; gap: 1px; border-radius: 8px; }
+.rb-btn.sm .rb-ico { min-width: 22px; height: 22px; }
+.rb-btn.sm .rb-ico.glyph { font: 600 16px var(--font-ui); }
 .rb-ico.g-i { font-style: italic; font-family: Georgia, 'Times New Roman', serif; }
 .rb-ico.g-s { text-decoration: line-through; }
 .rb-caret { font-size: 8px; opacity: .6; }
-.rb-body.compact .gap-l { margin-left: 8px; }
+.rb-body.compact .gap-l { margin-left: 12px; }
 .rb-body.compact .rb-drop { top: calc(100% + 2px); }

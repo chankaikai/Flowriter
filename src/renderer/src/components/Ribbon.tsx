@@ -107,7 +107,7 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse,
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => setSubOpen(subOpen === it.cmd ? null : it.cmd)}
                         >
-                          <span className={gl}>{it.glyph ? it.glyph : icon ? <Icon name={icon} size={sm ? 16 : 22} /> : null}</span>
+                          <span className={gl}>{it.glyph ? it.glyph : icon ? <Icon name={icon} size={sm ? 20 : 22} /> : null}</span>
                           {sm ? <span className="rb-caret">▾</span> : <span className="rb-lbl">{label} ▾</span>}
                         </button>
                         {subOpen === it.cmd && (
@@ -141,7 +141,7 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse,
                       onClick={() => cmd.run()}
                     >
                       <span className={gl}>
-                        {it.glyph ? it.glyph : icon ? <Icon name={icon} size={sm ? 16 : 22} /> : null}
+                        {it.glyph ? it.glyph : icon ? <Icon name={icon} size={sm ? 20 : 22} /> : null}
                       </span>
                       {!sm && <span className="rb-lbl">{label}</span>}
                     </button>
