@@ -18,6 +18,8 @@ import { parseFrontMatter, toggleBool } from '@/lib/frontMatter'
 import { collectVars, evaluate, formatNumber } from '@/lib/calc'
 import remarkFrontmatter from 'remark-frontmatter'
 import { renderMermaid } from '@/lib/mermaid'
+import { findLineForLabel } from '@/lib/mermaidJump'
+import { mathHoverPlugin } from './mathUi'
 import { runUiPlugin } from './runUi'
 import { tableUiPlugin } from './tableUi'
 import { musicPlugin } from './musicUi'
@@ -884,14 +886,35 @@ export const frontMatterBadgePlugin = $prose(() => {
 const mermaidCache = new Map<string, HTMLElement>()
 const mermaidTimers = new Map<string, number>()
 
-function mermaidWidget(code: string): HTMLElement {
+function mermaidWidget(code: string, view: EditorView, getPos: () => number | undefined): HTMLElement {
   const dark = document.documentElement.dataset.tone === 'dark'
   const key = `${dark ? 'd' : 'l'}|${code}`
   const hit = mermaidCache.get(key)
-  if (hit) return hit
+  if (hit) {
+    ;(hit as any)._ctx = { view, getPos, code }
+    return hit
+  }
   const el = document.createElement('div')
   el.className = 'mermaid-preview'
   el.contentEditable = 'false'
+  el.title = '點一下節點，游標跳到代碼裡對應的那一行'
+  ;(el as any)._ctx = { view, getPos, code }
+  el.addEventListener('click', (ev) => {
+    const c = (el as any)._ctx as { view: EditorView; getPos: () => number | undefined; code: string }
+    const t = ev.target as Element
+    const node = t.closest?.('.node, .cluster, .edgeLabel, .actor, .messageText, .loopText, text, span, foreignObject') ?? t
+    const hitLine = findLineForLabel(c.code, node.textContent ?? '')
+    const end = c.getPos()
+    if (end === undefined) return
+    const nb = c.view.state.doc.resolve(end).nodeBefore
+    if (!nb || nb.type.name !== 'code_block') return
+    const start = end - nb.nodeSize + 1 // 代碼內容的起點
+    const at = start + (hitLine?.offset ?? 0)
+    const lineLen = hitLine ? (c.code.split('\n')[hitLine.line]?.length ?? 0) : 0
+    c.view.dispatch(c.view.state.tr.setSelection(TextSelection.create(c.view.state.doc, at)).scrollIntoView())
+    c.view.focus()
+    if (lineLen) flashRange(c.view, at, at + lineLen)
+  })
   el.textContent = '圖表渲染中…'
   mermaidCache.set(key, el)
   if (mermaidCache.size > 60) {
@@ -931,7 +954,7 @@ function buildMermaid(doc: import('@milkdown/kit/prose/model').Node): Decoration
     if (node.type.name !== 'code_block') return
     const code = node.textContent
     if (!code.trim() || !isMermaidBlock(String(node.attrs.language ?? ''), code)) return
-    decos.push(Decoration.widget(pos + node.nodeSize, () => mermaidWidget(code), { side: -1, key: `mmd-${code.length}-${code.slice(0, 40)}-${document.documentElement.dataset.tone}`, ignoreSelection: true }))
+    decos.push(Decoration.widget(pos + node.nodeSize, (view, getPos) => mermaidWidget(code, view, getPos as () => number | undefined), { side: -1, key: `mmd-${code.length}-${code.slice(0, 40)}-${document.documentElement.dataset.tone}`, ignoreSelection: true }))
   })
   return DecorationSet.create(doc, decos)
 }
@@ -1086,6 +1109,7 @@ export function toggleLockAtCaret(view: EditorView): { locked: boolean; text: st
 }
 
 export const extraPlugins = [
+  mathHoverPlugin,
   frontMatterRemark,
   tocRemark,
   frontMatterNode,

@@ -224,5 +224,8 @@ export const PANELS: Record<string, string> = {
   "等寬": "Monospace",
   "下載 SVG": "Download SVG",
   "把這塊譜存成 SVG 檔（不含代碼）": "Save this score as an SVG file (without the code)",
-  "還沒有可下載的譜面": "No score to download yet"
+  "還沒有可下載的譜面": "No score to download yet",
+  "複製 PNG": "Copy PNG",
+  "已複製": "Copied",
+  "點一下節點，游標跳到代碼裡對應的那一行": "Click a node to jump to its line in the code"
 }

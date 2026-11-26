@@ -843,6 +843,16 @@ function registerIpc(): void {
   })
 
   /* ---------- 長圖匯出 ---------- */
+  // 把視窗裡某個區域截圖放進剪貼簿（公式複製成 PNG）。座標是 CSS px，乘上頁面縮放轉成截圖座標
+  ipcMain.handle('clip:region', async (e, r: { x: number; y: number; width: number; height: number }) => {
+    const ok = [r?.x, r?.y, r?.width, r?.height].every((n) => typeof n === 'number' && Number.isFinite(n))
+    if (!ok || r.width < 1 || r.height < 1 || r.width > 4000 || r.height > 4000) return false
+    const z = e.sender.getZoomFactor()
+    const img = await e.sender.capturePage({ x: Math.round(r.x * z), y: Math.round(r.y * z), width: Math.round(r.width * z), height: Math.round(r.height * z) })
+    if (img.isEmpty()) return false
+    clipboard.writeImage(img)
+    return true
+  })
   ipcMain.handle('export:image', async (e, o: { name: string; html: string; width: number }) => {
     const win = BrowserWindow.fromWebContents(e.sender)!
     const r = await dialog.showSaveDialog(win, {
