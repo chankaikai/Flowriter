@@ -42,6 +42,8 @@ import { TextSelection } from '@milkdown/kit/prose/state'
 import { runBlockAtCaret } from './runUi'
 import { languages } from '@codemirror/language-data'
 import { LanguageDescription, LanguageSupport, StreamLanguage } from '@codemirror/language'
+import { caretAnchor, setVoiceNotes, stopVoicePlayback } from './voiceUi'
+import type { VoiceNote } from '@/lib/voice'
 import { refreshLens, gotoBlockOffset, setTaskChecked, insertCallout, removeFrontMatter, isLockedAtCaret, setLockTexts, toggleLockAtCaret, gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
 import { LARGE_DOC } from '@/lib/markdown'
 
@@ -71,6 +73,11 @@ export interface EditorHandle {
   /** 把游標移到指定位置並捲動到可見處；超出範圍會夾住。成功回傳 true */
   setCaret(pos: number): boolean
   refreshLens(): void
+  /** 游標所在段落的語音錨點；不在文字段落回 null */
+  voiceAnchor(): string | null
+  /** 同步語音便籤清單與刪除回呼 */
+  setVoice(notes: VoiceNote[], docPath: string, onDelete: (id: string) => void): void
+  stopVoice(): void
   /** 跳到文字相符的任務項目 */
   gotoTask(text: string): boolean
   /** 跳到第 n 個文字區塊的指定偏移並高亮（儀表板／排版檢查用） */
@@ -290,6 +297,15 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       const v = view()
       if (v) refreshLens(v)
     },
+    voiceAnchor: () => {
+      const v = view()
+      return v ? caretAnchor(v) : null
+    },
+    setVoice: (notes, docPath, onDelete) => {
+      const v = view()
+      if (v) setVoiceNotes(v, notes, docPath, onDelete)
+    },
+    stopVoice: () => stopVoicePlayback(),
     setCaret: (pos) => {
       const v = view()
       if (!v) return false

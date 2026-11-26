@@ -1067,6 +1067,57 @@ function registerIpc(): void {
       return false
     }
   })
+  // 語音便籤：索引 voice.json，音檔 media/<id>.webm（id 嚴格驗證，不能跳出 media 資料夾）
+  const voiceFile = (p: string) => join(dirname(p), '.inkwell', 'voice.json')
+  const voiceAudio = (p: string, id: string) => join(dirname(p), '.inkwell', 'media', `${id}.webm`)
+  const okVoiceId = (id: unknown): id is string => typeof id === 'string' && /^[a-z0-9]{6,32}$/.test(id)
+  ipcMain.handle('voice:read', async (_e, p: string) => {
+    try {
+      return await fs.readFile(voiceFile(p), 'utf8')
+    } catch {
+      return ''
+    }
+  })
+  ipcMain.handle('voice:write', async (_e, p: string, json: string) => {
+    if (typeof json !== 'string' || json.length > 4_000_000) return false
+    try {
+      const f = voiceFile(p)
+      await fs.mkdir(dirname(f), { recursive: true })
+      await fs.writeFile(f, json, 'utf8')
+      return true
+    } catch {
+      return false
+    }
+  })
+  ipcMain.handle('voice:save', async (_e, p: string, id: string, data: ArrayBuffer) => {
+    if (!okVoiceId(id) || !(data instanceof ArrayBuffer) || data.byteLength === 0 || data.byteLength > 20_000_000) return false
+    try {
+      const f = voiceAudio(p, id)
+      await fs.mkdir(dirname(f), { recursive: true })
+      await fs.writeFile(f, Buffer.from(data), { flag: 'wx' }) // 不覆蓋既有音檔
+      return true
+    } catch {
+      return false
+    }
+  })
+  ipcMain.handle('voice:load', async (_e, p: string, id: string) => {
+    if (!okVoiceId(id)) return null
+    try {
+      const b = await fs.readFile(voiceAudio(p, id))
+      return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)
+    } catch {
+      return null
+    }
+  })
+  ipcMain.handle('voice:delete', async (_e, p: string, id: string) => {
+    if (!okVoiceId(id)) return false
+    try {
+      await fs.unlink(voiceAudio(p, id))
+      return true
+    } catch {
+      return false
+    }
+  })
   // 段落上鎖清單：.inkwell/locks.json
   const locksFile = (p: string) => join(dirname(p), '.inkwell', 'locks.json')
   ipcMain.handle('locks:read', async (_e, p: string) => {

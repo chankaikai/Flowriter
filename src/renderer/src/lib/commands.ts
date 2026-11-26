@@ -39,6 +39,7 @@ export interface Actions {
   milestone(): void
   toggleWeight(): void
   toggleLens(): void
+  recordVoice(): void
   toggleSpeak(): void
   editRole(r: 'cut' | 'copy' | 'paste' | 'selectAll'): void
   quit(): void
@@ -124,6 +125,7 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'panel.diag', title: '文件健檢、排版與文風', group: '面板', keys: ['Mod+Alt+K'], run: () => a.openPanel('diag') },
     { id: 'panel.clips', title: '剪貼簿收集', group: '面板', keys: ['Mod+Alt+B'], run: () => a.openPanel('clips') },
     { id: 'view.lens', title: '讀者視角（標出未解釋的縮寫與跳躍的轉折）', group: '檢視', keys: ['Mod+Alt+X'], run: a.toggleLens },
+    { id: 'insert.voice', title: '錄製語音便籤（釘在游標所在段落）', group: '插入', keys: ['Mod+Alt+Z'], run: a.recordVoice },
     { id: 'view.weight', title: '顯示／隱藏段落權重', group: '檢視', keys: ['Mod+Alt+W'], run: a.toggleWeight },
     { id: 'doc.speak', title: '朗讀校對（選取處或從游標開始）', group: '檔案', keys: ['Mod+Alt+Y'], run: a.toggleSpeak },
     { id: 'panel.links', title: '連結與反向連結', group: '面板', keys: ['Mod+Alt+L'], run: () => a.openPanel('links') },

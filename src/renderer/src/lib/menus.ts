@@ -75,6 +75,7 @@ export const MENUS: MenuDef[] = [
       SEP,
       c('fmt.toc'),
       c('fmt.footnote'),
+      c('insert.voice'),
       { sub: '提示框', items: [c('fmt.callout.tip'), c('fmt.callout.warning'), c('fmt.callout.important'), c('fmt.callout.note'), c('fmt.callout.summary')] },
       c('fmt.bilingual'),
       c('fmt.frontmatter'),

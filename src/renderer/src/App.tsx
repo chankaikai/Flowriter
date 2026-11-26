@@ -24,6 +24,8 @@ import { speak, splitSentences, ttsAvailable, type SpeakHandle } from '@/lib/tts
 import { TimeMachine } from '@/components/TimeMachine'
 import { VaultPanel } from '@/components/VaultPanel'
 import { Pomodoro } from '@/components/Pomodoro'
+import { VoiceRecorder, type VoiceResult } from '@/components/VoiceRecorder'
+import { addVoice, anchorOf, emptyVoice, parseVoice, removeVoice, serializeVoice, type VoiceFile } from '@/lib/voice'
 import { type AmbientKind, setAmbient } from '@/lib/ambient'
 import { addWords, loadWriting } from '@/lib/writing'
 import { moveSection } from '@/lib/markdown'
@@ -1070,6 +1072,7 @@ export default function App() {
     milestone: () => void milestoneCmd(),
     toggleWeight: () => toggleWeight(),
     toggleLens: () => toggleLens(),
+    recordVoice: () => recordVoice(),
     toggleSpeak: () => toggleSpeak(),
     openPanel: (p) => openPanel(p),
     cycleTab: (d) => {
@@ -1462,6 +1465,69 @@ export default function App() {
     })
     showToast(r.locked ? '已上鎖：這一段無法被修改' : '已解鎖')
     window.dispatchEvent(new Event('inkwell-lock-changed'))
+  }
+  // 語音便籤：.inkwell/voice.json + .inkwell/media/<id>.webm
+  const [voiceFile, setVoiceFile] = useState<VoiceFile>(emptyVoice)
+  const voiceLoaded = useRef<string | null>(null)
+  const [recAnchor, setRecAnchor] = useState<string | null>(null)
+  useEffect(() => {
+    const path = doc.path
+    voiceLoaded.current = null
+    setRecAnchor(null)
+    if (!path) {
+      setVoiceFile(emptyVoice())
+      return
+    }
+    let dead = false
+    void window.api.voiceRead(path).then((raw) => {
+      if (dead) return
+      setVoiceFile(parseVoice(raw))
+      voiceLoaded.current = path
+    })
+    return () => {
+      dead = true
+    }
+  }, [doc.path])
+  const commitVoice = (next: VoiceFile) => {
+    setVoiceFile(next)
+    if (doc.path && voiceLoaded.current === doc.path) void window.api.voiceWrite(doc.path, serializeVoice(next))
+  }
+  const voiceKey = doc.path ? basename(doc.path) : ''
+  const voiceList = voiceFile.files[voiceKey]
+  const voiceDelete = (id: string) => {
+    const path = docRef.current.path
+    if (!path) return
+    if (!window.confirm(tr('刪除這則語音便籤？音檔也會一併刪除。'))) return
+    commitVoice(removeVoice(voiceFile, voiceKey, id))
+    void window.api.voiceDelete(path, id)
+  }
+  const voiceDeleteRef = useRef(voiceDelete)
+  voiceDeleteRef.current = voiceDelete
+  useEffect(() => {
+    editorReady?.setVoice(voiceList ?? [], doc.path ?? '', (id) => voiceDeleteRef.current(id))
+  }, [editorReady, voiceList, doc.path])
+  function recordVoice() {
+    if (!docRef.current.path) return showToast(tr('先儲存檔案，語音才有地方存放（.inkwell/media/，不會寫進 .md）'))
+    if (recAnchor !== null) return
+    const a = editorRef.current?.voiceAnchor()
+    if (!a) return showToast(tr('游標要放在有文字的段落裡，語音才有地方釘'))
+    editorRef.current?.stopVoice()
+    setRecAnchor(a)
+  }
+  async function finishVoice(r: VoiceResult) {
+    const path = docRef.current.path
+    const quote = recAnchor
+    setRecAnchor(null)
+    if (!path || quote === null) return
+    const ok = await window.api.voiceSave(path, r.note.id, r.data)
+    if (!ok) return showToast(tr('語音存檔失敗，沒有加入'))
+    if (docRef.current.path !== path) return
+    setVoiceFile((cur) => {
+      const next = addVoice(cur, basename(path), { ...r.note, quote: anchorOf(quote) })
+      if (voiceLoaded.current === path) void window.api.voiceWrite(path, serializeVoice(next))
+      return next
+    })
+    showToast(tr('已加入語音便籤'))
   }
   const notesKey = doc.path ? basename(doc.path) : ''
 
@@ -2014,6 +2080,7 @@ export default function App() {
 
       </div>
       </div>
+      {recAnchor !== null && <VoiceRecorder onDone={(r) => void finishVoice(r)} onCancel={() => setRecAnchor(null)} onError={showToast} />}
       <Pomodoro getWords={() => wordsRef.current} openSignal={pomoSignal} />
       <footer className="statusbar">
         <button className="sb-btn gear" onClick={() => setSettingsOpen(true)} title={`偏好設定 (${hint('app.settings') ?? ''})`}>

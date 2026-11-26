@@ -24,6 +24,7 @@ import { firstUnexplained, jumpyBlocks, type BlockInfo } from '@/lib/readerLens'
 import { runUiPlugin } from './runUi'
 import { tableUiPlugin } from './tableUi'
 import { musicPlugin } from './musicUi'
+import { voicePlugin } from './voiceUi'
 import { normLock, touchesLocked, type Range } from '@/lib/locks'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -1184,6 +1185,7 @@ export const extraPlugins = [
   flashPlugin,
   tableUiPlugin,
   musicPlugin,
+  voicePlugin,
   runUiPlugin,
   calcPlugin,
   footnoteTipPlugin,

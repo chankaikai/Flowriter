@@ -131,6 +131,11 @@ export interface InkwellApi {
   inboxClose(): void
   refsRead(docPath: string): Promise<string>
   refsWrite(docPath: string, json: string): Promise<boolean>
+  voiceRead(docPath: string): Promise<string>
+  voiceWrite(docPath: string, json: string): Promise<boolean>
+  voiceSave(docPath: string, id: string, data: ArrayBuffer): Promise<boolean>
+  voiceLoad(docPath: string, id: string): Promise<ArrayBuffer | null>
+  voiceDelete(docPath: string, id: string): Promise<boolean>
   locksRead(docPath: string): Promise<string>
   locksWrite(docPath: string, json: string): Promise<boolean>
   editRole(role: 'cut' | 'copy' | 'paste' | 'selectAll'): void
