@@ -17,6 +17,8 @@ export interface Settings {
   focusMode: boolean
   typewriter: boolean
   autosave: boolean
+  /** 自動儲存間隔（秒）：0 = 即時（每次輸入後立刻儲存），否則 30 秒～6 小時 */
+  autosaveSec: number
   /** 側邊欄寬度（可拖曳分隔線調整） */
   sidebarWidth: number
   /** 全域快捷鍵叫出收件匣小視窗 */
@@ -64,6 +66,7 @@ export const DEFAULT_SETTINGS: Settings = {
   focusMode: false,
   typewriter: false,
   autosave: true,
+  autosaveSec: 0,
   sidebarWidth: 264,
   inboxShortcut: false,
   uiLang: 'zh-TW',

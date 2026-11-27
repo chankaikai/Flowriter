@@ -213,6 +213,15 @@ export function SettingsPanel({
               <Row label={tr('自動儲存（已有檔案）')}>
                 <Toggle on={settings.autosave} onChange={(v) => update({ autosave: v })} />
               </Row>
+              {settings.autosave && (
+                <Row label={tr('自動儲存間隔（與時光機同步）')}>
+                  <select className="ai-input" value={settings.autosaveSec} onChange={(e) => update({ autosaveSec: Number(e.target.value) })}>
+                    {AUTOSAVE_OPTS.map(([sec, label]) => (
+                      <option key={sec} value={sec}>{tr(label)}</option>
+                    ))}
+                  </select>
+                </Row>
+              )}
               <Row label={tr('重新開啟軟體時')}>
                 <Segmented
                   value={settings.startupDoc}
@@ -312,6 +321,11 @@ export function SettingsPanel({
     </div>
   )
 }
+
+const AUTOSAVE_OPTS: [number, string][] = [
+  [0, '即時（每次輸入後立即儲存）'], [30, '30 秒'], [60, '1 分鐘'], [120, '2 分鐘'], [300, '5 分鐘'], [600, '10 分鐘'],
+  [1800, '30 分鐘'], [3600, '1 小時'], [10800, '3 小時'], [21600, '6 小時']
+]
 
 const CSS_HELP = `自訂 CSS 會在所有主題之上套用，只影響畫面，不會寫進你的 .md 檔案。
 

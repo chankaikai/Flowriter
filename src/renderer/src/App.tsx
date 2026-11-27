@@ -195,6 +195,17 @@ export default function App() {
   const pendingFind = useRef<string | null>(null)
   const derivedTimer = useRef(0)
   const autosaveTimer = useRef(0)
+  /** 依設定排程自動儲存：即時＝輸入後 0.3 秒；否則「最晚每隔 N 秒存一次」（不會因為持續輸入而一直往後延） */
+  const scheduleAutosave = useCallback(() => {
+    const sec = settingsRef.current.autosaveSec
+    if (sec <= 0) {
+      window.clearTimeout(autosaveTimer.current)
+      autosaveTimer.current = window.setTimeout(() => { autosaveTimer.current = 0; void saveRef.current(true) }, 300)
+    } else if (!autosaveTimer.current) {
+      autosaveTimer.current = window.setTimeout(() => { autosaveTimer.current = 0; void saveRef.current(true) }, sec * 1000)
+    }
+  }, [])
+  const saveRef = useRef<(silent?: boolean) => Promise<void>>(async () => {})
   docRef.current = doc
   modeRef.current = mode
   settingsRef.current = settings
@@ -308,9 +319,10 @@ export default function App() {
         const tab = tabsRef.current.find((x) => x.id === activeIdRef.current)
         if (tab) tab.mtime = (await window.api.statFile(d.path)) ?? tab.mtime
         if (!silent) showToast(tr('已儲存'))
-        // 版本快照：手動儲存一定留；自動儲存至少相隔 90 秒
+        // 版本快照（時光機）：手動儲存一定留；自動儲存與設定的間隔同步——間隔 ≥ 90 秒就每次都留，即時儲存則至少相隔 90 秒
         const now = Date.now()
-        if (!silent || now - (lastSnap.current[d.path] || 0) > 90_000) {
+        const gap = Math.max(90, settingsRef.current.autosaveSec) * 1000
+        if (!silent || now - (lastSnap.current[d.path] || 0) >= (settingsRef.current.autosaveSec >= 90 ? 1000 : gap)) {
           lastSnap.current[d.path] = now
           void window.api.historySave(d.path, md)
         }
@@ -319,6 +331,8 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   )
+
+  saveRef.current = save
 
   /** 關閉視窗時選「儲存」：先存目前分頁，再存其他有路徑的已修改分頁；任一步失敗或取消就不關閉 */
   async function saveAllAndQuit(): Promise<void> {
@@ -413,6 +427,7 @@ export default function App() {
   const activate = useCallback(
     (t: Tab) => {
       window.clearTimeout(autosaveTimer.current)
+      autosaveTimer.current = 0
       activeIdRef.current = t.id
       mdRef.current = t.md
       lastLen.current = t.md.length
@@ -872,10 +887,10 @@ export default function App() {
       t.md = md
       activate(t)
       if (settingsRef.current.autosave && t.path) {
-        autosaveTimer.current = window.setTimeout(() => void save(true), 1200)
+        scheduleAutosave()
       }
     },
-    [activate, save, snapshotActive, syncFromEditor]
+    [activate, scheduleAutosave, snapshotActive, syncFromEditor]
   )
 
   const onMoveSection = useCallback(
@@ -1266,10 +1281,9 @@ export default function App() {
     markDirty(true) // 先樂觀標記；精確比對在防抖後的 refreshDerived 中
     refreshDerived()
     if (settingsRef.current.autosave && docRef.current.path) {
-      window.clearTimeout(autosaveTimer.current)
-      autosaveTimer.current = window.setTimeout(() => void save(true), Math.max(1200, lastLen.current / 100))
+      scheduleAutosave()
     }
-  }, [markDirty, refreshDerived, save])
+  }, [markDirty, refreshDerived, scheduleAutosave])
 
   // 切到已存在的實例時不會再觸發 onReady，這裡補上
   useEffect(() => {

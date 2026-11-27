@@ -4,6 +4,7 @@
  * 其他非中文語言查不到時退回英文；簡體中文用逐字轉換。
  */
 export const UI: Record<string, string> = {
+  '自動儲存間隔（與時光機同步）': 'Autosave interval (synced with Time Machine)', '即時（每次輸入後立即儲存）': 'Real-time (save right after each edit)', '30 秒': '30 seconds', '1 分鐘': '1 minute', '2 分鐘': '2 minutes', '5 分鐘': '5 minutes', '10 分鐘': '10 minutes', '30 分鐘': '30 minutes', '1 小時': '1 hour', '3 小時': '3 hours', '6 小時': '6 hours',
   '開啟後，你在任何程式裡複製的文字都會收進來（最多 30 則，只存在記憶體，關閉程式就清掉）。': 'When on, text you copy in any program is collected here (up to 30 items, memory only, cleared when the app closes).', '複製密碼或機密內容前請先關閉。': 'Turn this off before copying passwords or confidential content.',
   // —— 提示訊息 / 對話框（App）——
   '已儲存': 'Saved', '儲存失敗': 'Save failed', '「{0}」尚未命名，請先另存新檔': '"{0}" is untitled. Please save it as a new file first',
