@@ -16,6 +16,7 @@ import { calcTransform, calloutTransform, bilingualTransform, CALLOUT_TYPES } fr
 import { sortOrder } from '@/lib/tableSort'
 import { parseFrontMatter, toggleBool } from '@/lib/frontMatter'
 import { collectVars, evaluate, formatNumber } from '@/lib/calc'
+import { inlineExtTransform, extKind, EMOJI } from '@/lib/inlineExt'
 import remarkFrontmatter from 'remark-frontmatter'
 import { renderMermaid } from '@/lib/mermaid'
 import { findLineForLabel } from '@/lib/mermaidJump'
@@ -335,6 +336,58 @@ export function insertFrontMatter(view: EditorView): boolean {
 /* ------------------------------ 提示框 / 算式 / 雙語（mdast 轉換） ------------------------------ */
 
 export const calloutRemark = $remark('inkwellCallout', () => () => (tree: any) => void calloutTransform(tree))
+export const inlineExtRemark = $remark('inkwellInlineExt', () => () => (tree: any) => void inlineExtTransform(tree))
+
+/** 螢光標記／上標／下標／表情：只加裝飾（上樣式、表情後面補圖示），文件內容不變。 */
+export const inlineExtPlugin = $prose(() => {
+  const key = new PluginKey('inkwell-inline-ext')
+  let timer = 0
+  const compute = (doc: any): DecorationSet => {
+    if (doc.content.size > CALC_MAX_DOC) return DecorationSet.empty
+    const decos: Decoration[] = []
+    doc.descendants((n: any, pos: number) => {
+      if (n.type.name !== 'html') return true
+      const v = String(n.attrs.value)
+      const k = extKind(v)
+      if (!k) return false
+      decos.push(Decoration.node(pos, pos + n.nodeSize, { class: `md-ext md-${k}` }))
+      if (k === 'emoji') {
+        const ch = EMOJI[v.slice(1, -1)]
+        decos.push(Decoration.widget(pos + n.nodeSize, () => {
+          const el = document.createElement('span')
+          el.className = 'md-emoji'
+          el.textContent = ch
+          return el
+        }, { side: 1, key: `emoji-${pos}-${ch}` }))
+      }
+      return false
+    })
+    return DecorationSet.create(doc, decos)
+  }
+  return new Plugin({
+    key,
+    state: {
+      init: (_c, state) => compute(state.doc),
+      apply(tr, old) {
+        const meta = tr.getMeta(key)
+        if (meta) return meta as DecorationSet
+        return tr.docChanged ? old.map(tr.mapping, tr.doc) : old
+      }
+    },
+    props: { decorations: (state) => key.getState(state) },
+    view: () => ({
+      update(view, prev) {
+        if (prev.doc === view.state.doc) return
+        window.clearTimeout(timer)
+        timer = window.setTimeout(() => {
+          try { view.dispatch(view.state.tr.setMeta(key, compute(view.state.doc)).setMeta('addToHistory', false)) } catch { /* 視圖已銷毀 */ }
+        }, 400)
+      },
+      destroy: () => window.clearTimeout(timer)
+    })
+  })
+})
+
 export const calcRemark = $remark('inkwellCalc', () => () => (tree: any) => void calcTransform(tree))
 export const bilingualRemark = $remark('inkwellBilingual', () => () => (tree: any) => void bilingualTransform(tree))
 
@@ -1265,6 +1318,7 @@ export const extraPlugins = [
   tocRefreshPlugin,
   calloutRemark,
   calcRemark,
+  inlineExtRemark,
   bilingualRemark,
   biColNode,
   biBlockNode,
@@ -1279,6 +1333,7 @@ export const extraPlugins = [
   notesMarksPlugin,
   runUiPlugin,
   calcPlugin,
+  inlineExtPlugin,
   footnoteTipPlugin,
   frontMatterBadgePlugin,
   weightPlugin

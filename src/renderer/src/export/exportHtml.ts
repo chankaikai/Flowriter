@@ -13,6 +13,7 @@ import { EXPORT_CSS, TOC_CSS, SYNTAX_CSS } from './exportStyles'
 import { renderMermaid } from '@/lib/mermaid'
 import { toAbsolutePath } from '@/lib/path'
 import { applyInlineCalcs } from '@/lib/calc'
+import { applyInlineExtDom } from '@/lib/inlineExt'
 import { bilingualTransform, CALLOUT_TYPES } from '@/lib/mdTransforms'
 import { isMusicLang, type MusicLang } from '@/lib/music/types'
 import { isScoreFence, renderScoreSvgs } from '@/lib/music/exportMusic'
@@ -47,6 +48,7 @@ export async function renderHtmlBody(md: string, docDir: string | null, musicHid
     .process(applyInlineCalcs(md))
 
   const dom = new DOMParser().parseFromString(`<body>${String(file)}</body>`, 'text/html')
+  applyInlineExtDom(dom.body)
 
   // > [!NOTE] → 提示框
   const coRe = new RegExp(`^\\[!(${CALLOUT_TYPES.join('|')})\\]\\s*`, 'i')
