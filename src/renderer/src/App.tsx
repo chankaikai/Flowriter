@@ -51,10 +51,11 @@ import { THEMES, isDarkTheme } from '@/lib/themes'
 import { useApplySettings, useSettings, type SidebarTab, type ThemeName } from '@/lib/settings'
 import { confirmBox } from '@/lib/confirm'
 import { Splash, welcomed } from '@/components/Splash'
+import { changelogFor } from '@/lib/changelog'
 import { AboutPanel, UpdateBanner } from '@/components/AboutPanel'
 import type { UpdateStatus } from '../../shared/update'
 import { WELCOME } from '@/lib/welcome'
-import { INITIAL_DOC, markWelcomeDocShown, suggestedName } from '@/lib/startup'
+import { INITIAL_DOC, lastSeenVersion, markWelcomeDocShown, setSeenVersion, suggestedName } from '@/lib/startup'
 import { buildHtmlDocument, renderHtmlBody } from '@/export/exportHtml'
 import { musicHiddenMode } from '@/editor/musicUi'
 import { buildDocx } from '@/export/exportDocx'
@@ -137,6 +138,9 @@ export default function App() {
   const [upd, setUpd] = useState<UpdateStatus>({ state: 'idle' })
   const [updHidden, setUpdHidden] = useState(false)
   const [splashOn, setSplashOn] = useState(() => !welcomed())
+  const [logOpen, setLogOpen] = useState(false)
+  // 升級後第一次啟動：先看歡迎畫面，再顯示這個版本的更新日誌
+  const [updatedFrom, setUpdatedFrom] = useState<string | null | undefined>(undefined)
   const [stats, setStats] = useState<DocStats>(() => computeStats(INITIAL_DOC))
   const [outline, setOutline] = useState<OutlineItem[]>(() => parseOutline(INITIAL_DOC))
   const [activeHeading, setActiveHeading] = useState(-1)
@@ -1358,7 +1362,14 @@ export default function App() {
 
   // 版本號與自動更新狀態
   useEffect(() => {
-    void window.api.appVersion().then(setAppVersion)
+    void window.api.appVersion().then((v) => {
+      setAppVersion(v)
+      const prev = lastSeenVersion()
+      if (prev !== v) {
+        setSeenVersion(v)
+        if (prev) { setUpdatedFrom(prev); setSplashOn(true) }
+      }
+    })
     void window.api.updateStatus().then(setUpd)
     return window.api.onUpdate((s) => {
       setUpd(s)
@@ -1658,7 +1669,16 @@ export default function App() {
       data-mode={mode}
     >
       {!updHidden && panel !== 'about' && <UpdateBanner status={upd} onDismiss={() => setUpdHidden(true)} onAbout={() => setPanel('about')} />}
-      {splashOn && <Splash onDone={() => setSplashOn(false)} />}
+      {splashOn && <Splash onDone={() => { setSplashOn(false); if (updatedFrom) setLogOpen(true) }} />}
+      {logOpen && changelogFor(appVersion) && (
+        <div className="prompt-scrim" onMouseDown={() => setLogOpen(false)}>
+          <div className="cmp-box about-logbox" onMouseDown={(e) => e.stopPropagation()}>
+            <h3>{tr('已更新到')} {appVersion}</h3>
+            <ul>{changelogFor(appVersion)!.items.map((t, i) => <li key={i}>{tr(t)}</li>)}</ul>
+            <button className="btn" onClick={() => setLogOpen(false)}>{tr('知道了')}</button>
+          </div>
+        </div>
+      )}
       <header className="topbar">
         <img className="tb-logo" src={logo} alt="" />
         <MenuBar commands={commands} checks={checks} editorEnabled={mode === 'wysiwyg'} />

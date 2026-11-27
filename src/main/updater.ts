@@ -35,10 +35,16 @@ export function setupUpdater(beforeInstall: () => boolean): void {
   autoUpdater.allowPrerelease = false
 
   autoUpdater.on('checking-for-update', () => push({ state: 'checking' }))
-  autoUpdater.on('update-available', (info) => push({ state: 'available', version: info.version }))
+  const notesOf = (info: { releaseNotes?: unknown }): string | undefined => {
+    const n = info.releaseNotes
+    const raw = typeof n === 'string' ? n : Array.isArray(n) ? n.map((x) => (x && typeof x === 'object' ? String((x as { note?: unknown }).note ?? '') : '')).join('\n') : ''
+    const t = raw.replace(/<[^>]+>/g, ' ').replace(/[ \t]+/g, ' ').trim().slice(0, 1500)
+    return t || undefined
+  }
+  autoUpdater.on('update-available', (info) => push({ state: 'available', version: info.version, notes: notesOf(info) }))
   autoUpdater.on('update-not-available', () => push({ state: 'none' }))
   autoUpdater.on('download-progress', (p) => push({ state: 'downloading', percent: Math.round(p.percent), version: status.version }))
-  autoUpdater.on('update-downloaded', (info) => push({ state: 'downloaded', version: info.version }))
+  autoUpdater.on('update-downloaded', (info) => push({ state: 'downloaded', version: info.version, notes: notesOf(info) }))
   autoUpdater.on('error', (e) => {
     // 背景檢查的錯誤只記錄，手動檢查或下載中才顯示
     if (manual || status.state === 'downloading') push({ state: 'error', message: String(e?.message ?? e).split('\n')[0].slice(0, 160) })

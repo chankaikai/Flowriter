@@ -519,3 +519,8 @@ body.tab-out .tabsbar::after { content: '放開即可在新視窗中開啟'; pos
 
 .src-split.dragging .src-preview { pointer-events: none; }
 .src-split.dragging { cursor: col-resize; user-select: none; }
+
+.about-notes { white-space: pre-wrap; font: 12px/1.6 var(--font-ui, system-ui); background: var(--hover); border-radius: 10px; padding: 8px 10px; margin: 0 0 8px; max-height: 160px; overflow: auto; }
+.about-log { font-size: 12.5px; line-height: 1.6; max-height: 220px; overflow: auto; } .about-log ul { margin: 2px 0 8px; padding-left: 18px; }
+.prompt-scrim .about-logbox { flex: none; width: min(520px, 92vw); max-height: 80vh; height: auto; border-radius: 18px; padding: 18px 22px; overflow: auto; background: color-mix(in srgb, var(--bg) 80%, transparent); border: 1px solid var(--line-strong); backdrop-filter: blur(26px) saturate(1.5); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+.about-logbox ul { padding-left: 18px; line-height: 1.7; font-size: 13px; }

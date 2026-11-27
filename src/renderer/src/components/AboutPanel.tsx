@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { FEEDBACK_EMAIL, REPO_URL, type UpdateStatus } from '../../../shared/update'
 import { tr } from '@/lib/i18n'
+import { CHANGELOG } from '@/lib/changelog'
 
 interface Props {
   version: string
@@ -55,6 +56,22 @@ export function AboutPanel({ version, status }: Props) {
         ) : (
           <button className="btn" disabled={busy || status.state === 'dev'} onClick={() => void window.api.updateCheck()}>{tr('檢查更新')}</button>
         )}
+      </div>
+
+      {status.notes && (
+        <>
+          <div className="about-sec">{tr('新版本更新說明')}</div>
+          <pre className="about-notes">{status.notes}</pre>
+        </>
+      )}
+      <div className="about-sec">{tr('更新日誌')}</div>
+      <div className="about-log">
+        {CHANGELOG.map((c) => (
+          <div key={c.version}>
+            <b>{c.version}</b>
+            <ul>{c.items.map((t, i) => <li key={i}>{tr(t)}</li>)}</ul>
+          </div>
+        ))}
       </div>
 
       <div className="about-sec">{tr('說明與回饋')}</div>

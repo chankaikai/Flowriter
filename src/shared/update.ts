@@ -7,6 +7,8 @@ export interface UpdateStatus {
   /** 下載進度 0–100 */
   percent?: number
   message?: string
+  /** 新版本的更新說明（純文字） */
+  notes?: string
 }
 
 /** 回饋信箱（說明與回饋） */
