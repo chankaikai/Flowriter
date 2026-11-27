@@ -4,6 +4,8 @@
  * 其他非中文語言查不到時退回英文；簡體中文用逐字轉換。
  */
 export const UI: Record<string, string> = {
+  '回到右側欄': 'Dock to the right sidebar',
+  '變成浮動小窗': 'Float as a small window',
   '播放／暫停': 'Play / pause',
   '停止並回到開頭': 'Stop and rewind',
   '拖曳跳到想聽的位置': 'Drag to seek',

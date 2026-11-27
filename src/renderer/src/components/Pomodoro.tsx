@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { fmtClock, PRESETS, usePomodoro } from '@/lib/pomodoro'
 import { Ring } from './Panels'
 import { Icon } from './Icon'
 import { tr } from '@/lib/i18n'
 
 const POS_KEY = 'inkwell.pomo.pos.v1'
+const FLOAT_KEY = 'inkwell.pomo.float.v1'
 interface Pos { x: number; y: number; pinned: boolean }
 
 const loadPos = (): Pos => {
@@ -37,12 +39,30 @@ const NumField = ({ label, value, min, max, unit, onChange }: { label: string; v
  * 番茄鐘（獨立模組）：收合時是角落的倒數小膠囊，展開是可拖曳的玻璃面板。
  * 計時狀態只在這個元件內更新，不會牽動編輯器或 App 其他部分。
  */
-export function Pomodoro({ getWords, openSignal }: { getWords(): number; openSignal: number }) {
+export function Pomodoro({ getWords, openSignal, slot, otherPanelOpen, onDockOpen }: { getWords(): number; openSignal: number; slot: HTMLElement | null; otherPanelOpen: boolean; onDockOpen(): void }) {
   const { st, toggle, reset, skip, enterRest, extend, setConfig } = usePomodoro(getWords)
   const [open, setOpen] = useState(false)
   const [custom, setCustom] = useState(false)
   const [pos, setPos] = useState<Pos>(loadPos)
   const [live, setLive] = useState(0)
+  // 預設停靠在右側欄；按「浮動」變成可拖曳的小窗，再按一次回到側欄（記住選擇）
+  const [floating, setFloating] = useState(() => {
+    try {
+      return localStorage.getItem(FLOAT_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  const setFloat = (f: boolean) => {
+    setFloating(f)
+    try {
+      localStorage.setItem(FLOAT_KEY, f ? '1' : '0')
+    } catch {
+      /* ignore */
+    }
+    if (!f) onDockOpen() // 回到側欄時，把其他側欄面板讓出來
+  }
+  const docked = !floating && !!slot
   const box = useRef<HTMLDivElement>(null)
 
   // 命令／選單觸發：切換展開。用「上次看到的訊號值」比較，不依賴 first-run 旗標
@@ -53,6 +73,15 @@ export function Pomodoro({ getWords, openSignal }: { getWords(): number; openSig
     lastSignal.current = openSignal
     setOpen((o) => !o)
   }, [openSignal])
+
+  // 側欄模式：打開時收起其他面板；別的面板打開時自己讓位
+  useEffect(() => {
+    if (open && docked) onDockOpen()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, docked])
+  useEffect(() => {
+    if (docked && otherPanelOpen) setOpen(false)
+  }, [docked, otherPanelOpen])
 
   // 專注中即時更新「本輪新增字數」（2 秒一次，只讀 App 已算好的字數）
   useEffect(() => {
@@ -122,18 +151,21 @@ export function Pomodoro({ getWords, openSignal }: { getWords(): number; openSig
     )
   }
 
-  return (
-    <div ref={box} className="pomo-panel" style={style}>
-      <div className={`pomo-head${pos.pinned ? ' pinned' : ''}`} onPointerDown={onDrag}>
+  const panel = (
+    <div ref={box} className={docked ? 'pop in pomo-docked' : 'pomo-panel'} style={docked ? undefined : style}>
+      <div className={`pomo-head${pos.pinned && !docked ? ' pinned' : ''}`} onPointerDown={docked ? undefined : onDrag}>
         <Icon name="timer" size={15} />
         <b>{tr('番茄鐘')}</b>
         <span className="grow" />
         <button className="icon-btn sm" title={st.muted ? '已靜音（點一下開啟提示音）' : '提示音開啟（點一下靜音）'} onPointerDown={tap(() => setConfig({ muted: !st.muted }))}>
           <span aria-hidden>{st.muted ? '🔕' : '🔔'}</span>
         </button>
-        <button className={`icon-btn sm${pos.pinned ? ' on' : ''}`} title={pos.pinned ? '已固定位置（點一下可拖曳）' : '固定位置'} onPointerDown={tap(() => savePos({ ...pos, x: pos.x >= 0 ? pos.x : box.current?.getBoundingClientRect().left ?? 0, y: pos.y >= 0 ? pos.y : box.current?.getBoundingClientRect().top ?? 0, pinned: !pos.pinned }))}>
-          <Icon name="pin" size={13} />
+        <button className="icon-btn sm" title={floating ? '回到右側欄' : '變成浮動小窗'} onPointerDown={tap(() => setFloat(!floating))}>
+          <span aria-hidden>{floating ? '▣' : '⧉'}</span>
         </button>
+        {!docked && <button className={`icon-btn sm${pos.pinned ? ' on' : ''}`} title={pos.pinned ? '已固定位置（點一下可拖曳）' : '固定位置'} onPointerDown={tap(() => savePos({ ...pos, x: pos.x >= 0 ? pos.x : box.current?.getBoundingClientRect().left ?? 0, y: pos.y >= 0 ? pos.y : box.current?.getBoundingClientRect().top ?? 0, pinned: !pos.pinned }))}>
+          <Icon name="pin" size={13} />
+        </button>}
         <button className="icon-btn sm" title={tr('關閉番茄鐘')} onPointerDown={tap(() => setOpen(false))}>
           <Icon name="close" size={14} />
         </button>
@@ -197,4 +229,5 @@ export function Pomodoro({ getWords, openSignal }: { getWords(): number; openSig
       </div>
     </div>
   )
+  return docked ? createPortal(panel, slot!) : panel
 }

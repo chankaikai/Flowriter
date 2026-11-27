@@ -531,3 +531,7 @@ body.tab-out .tabsbar::after { content: '放開即可在新視窗中開啟'; pos
 .xgroup:first-child { margin-top: 0; }
 .xgrid .xcard { min-height: 0; }
 .xgrid .xcard .xcard-summary { margin-top: 4px; min-height: 0; }
+
+/* 番茄鐘停靠在右側欄時：沿用側欄面板外觀，編輯區讓出空間 */
+.pomo-docked { overflow: auto; padding: 8px 14px 14px; }
+.stage:has(.pomo-docked) .editor-scroll { right: min(380px, 60%); }

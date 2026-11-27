@@ -1368,6 +1368,7 @@ export default function App() {
     else actionsRef.current.showSidebarTab(tab)
   }
   const [pomoSignal, setPomoSignal] = useState(0)
+  const [popSlot, setPopSlot] = useState<HTMLElement | null>(null)
   const [cmp, setCmp] = useState<{ current: CompareSource; others: CompareSource[] } | null>(null)
   const wordsRef = useRef(0)
   useEffect(() => () => setAmbient('off', 0), [])
@@ -2158,12 +2159,13 @@ export default function App() {
           <Popover open={panel === 'ambient'} icon="timer" title={tr('氛圍音')} onClose={() => setPanel(null)}>
             <AmbientPanel ambient={ambient} setAmbientKind={setAmbientKind} />
           </Popover>
+          <div ref={setPopSlot} style={{ display: 'contents' }} />
         </div>
 
       </div>
       </div>
       {recAnchor !== null && <VoiceRecorder onDone={(r) => void finishVoice(r)} onCancel={() => setRecAnchor(null)} onError={showToast} />}
-      <Pomodoro getWords={() => wordsRef.current} openSignal={pomoSignal} />
+      <Pomodoro getWords={() => wordsRef.current} openSignal={pomoSignal} slot={popSlot} otherPanelOpen={panel !== null} onDockOpen={() => setPanel(null)} />
       <footer className="statusbar">
         <button className="sb-btn gear" onClick={() => setSettingsOpen(true)} title={`偏好設定 (${hint('app.settings') ?? ''})`}>
           <Icon name="gear" size={15} />
