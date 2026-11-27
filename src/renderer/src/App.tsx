@@ -20,7 +20,7 @@ import { usePill } from '@/lib/pill'
 import { AiPanel, AmbientPanel, LinksPanel, Popover, TasksPanel } from '@/components/Panels'
 import { ClipPanel, DiagnosticsPanel, RadarPanel, useClipStack } from '@/components/FlowPanels'
 import { checkImages, healthCheck } from '@/lib/health'
-import { speak, splitSentences, ttsAvailable, type SpeakHandle } from '@/lib/tts'
+import { speak, splitSentences, ttsAvailable, warmVoices, type SpeakHandle } from '@/lib/tts'
 import { TimeMachine } from '@/components/TimeMachine'
 import { VaultPanel } from '@/components/VaultPanel'
 import { ReversePanel } from '@/components/ReversePanel'
@@ -933,8 +933,8 @@ export default function App() {
 
   const clipStack = useClipStack()
   const speakRef = useRef<SpeakHandle | null>(null)
-  const [, setSpeaking] = useState(false)
-  useEffect(() => () => speakRef.current?.stop(), [])
+  const [speaking, setSpeaking] = useState(false)
+  useEffect(() => { warmVoices(); return () => speakRef.current?.stop() }, [])
 
   const toggleSpeak = useCallback(() => {
     if (speakRef.current) {
@@ -1668,7 +1668,7 @@ export default function App() {
         collapsed={ribbonFold}
         onCollapse={foldRibbon}
         onInsertTable={(r, c) => editorRef.current?.insertTable(r, c)}
-        overrides={caretLocked ? { 'edit.lock': { label: '段落解鎖', icon: 'unlock' } } : undefined}
+        overrides={{ ...(caretLocked ? { 'edit.lock': { label: '段落解鎖', icon: 'unlock' } } : {}), ...(speaking ? { 'doc.speak': { label: '停止朗讀' } } : {}) }}
       />
       <div className="shell">
       <Sidebar
@@ -1914,9 +1914,12 @@ export default function App() {
           )}
           <ResumeBubble hint={resume?.hint ?? null} rect={resume?.rect ?? null} onDone={() => setResume(null)} />
           {sticky && (
-            <button className="sticky-chip" onClick={toggleSticky} title={tr('退出迷你模式，還原視窗（不會關閉程式）')}>
-              {tr('↩ 退出迷你模式')}
-            </button>
+            <div className="sticky-bar">
+              <button className="sticky-exit" onClick={toggleSticky} title={tr('退出迷你模式，還原視窗（不會關閉程式）')}>
+                {tr('↩ 退出迷你模式')}
+              </button>
+              <span className="sticky-title">{doc.path ? basename(doc.path) : tr('未命名')}</span>
+            </div>
           )}
           {reading && <div className="reading-prog" />}
           {reading && (

@@ -391,12 +391,12 @@ body.reading .ruler, body.mode-sticky .ruler { display: none; }
 /* 迷你置頂便籤 */
 body.mode-sticky .statusbar, body.mode-sticky .topbar, body.mode-sticky .ribbon, body.mode-sticky .tabsbar, body.mode-sticky .sidebar { display: none; }
 body.mode-sticky .editor-col { --maxw: 100%; padding-left: 10px; padding-right: 10px; }
-.sticky-chip {
-  position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 31; height: 26px; white-space: nowrap; -webkit-app-region: no-drag; padding: 0 12px; border-radius: 13px; font-size: 11.5px;
-  color: var(--fg-muted); background: var(--glass-bg); border: 1px solid var(--glass-edge);
-  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-}
-.sticky-chip:hover { color: var(--fg); }
+.sticky-bar { position: absolute; top: 0; left: 0; right: 0; height: 34px; z-index: 31; display: flex; align-items: center; gap: 10px; padding: 0 150px 0 10px;
+  -webkit-app-region: drag; background: var(--glass-bg); border-bottom: 1px solid var(--glass-edge); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); user-select: none; }
+.sticky-exit { -webkit-app-region: no-drag; height: 24px; padding: 0 10px; border-radius: 12px; font-size: 11.5px; white-space: nowrap; color: var(--fg-muted); background: transparent; border: 1px solid var(--glass-edge); }
+.sticky-exit:hover { color: var(--fg); }
+.sticky-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--fg-muted); text-align: center; }
+body.mode-sticky .editor-col { padding-top: 40px; }
 
 /* 微光脈衝游標：半徑與亮度跟著打字速度走 */
 .ink-drop {
