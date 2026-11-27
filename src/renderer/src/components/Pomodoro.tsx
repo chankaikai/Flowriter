@@ -181,18 +181,18 @@ export function Pomodoro({ getWords, openSignal }: { getWords(): number; openSig
         </div>
         {(custom || !isPreset) && (
           <div className="pomo-cfg">
-            <NumField label="專注" unit="分" value={st.workMin} min={1} max={180} onChange={(n) => setConfig({ workMin: n })} />
-            <NumField label="休息" unit="分" value={st.restMin} min={1} max={60} onChange={(n) => setConfig({ restMin: n })} />
-            <NumField label="每" unit="輪" value={st.longEvery} min={0} max={12} onChange={(n) => setConfig({ longEvery: n })} />
-            <NumField label="長休息" unit="分" value={st.longMin} min={1} max={90} onChange={(n) => setConfig({ longMin: n })} />
+            <NumField label={tr('專注')} unit="分" value={st.workMin} min={1} max={180} onChange={(n) => setConfig({ workMin: n })} />
+            <NumField label={tr('休息')} unit="分" value={st.restMin} min={1} max={60} onChange={(n) => setConfig({ restMin: n })} />
+            <NumField label={tr('每')} unit="輪" value={st.longEvery} min={0} max={12} onChange={(n) => setConfig({ longEvery: n })} />
+            <NumField label={tr('長休息')} unit="分" value={st.longMin} min={1} max={90} onChange={(n) => setConfig({ longMin: n })} />
           </div>
         )}
         <div className="pomo-cfg">
-          <NumField label="每輪目標" unit="字" value={st.goalWords} min={0} max={100000} onChange={(n) => setConfig({ goalWords: n })} />
+          <NumField label={tr('每輪目標')} unit="字" value={st.goalWords} min={0} max={100000} onChange={(n) => setConfig({ goalWords: n })} />
         </div>
         <label className="check-row">
           <input type="checkbox" checked={st.auto} onChange={(e) => setConfig({ auto: e.target.checked })} />
-          階段結束後自動開始下一階段
+          {tr('階段結束後自動開始下一階段')}
         </label>
       </div>
     </div>

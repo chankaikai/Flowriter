@@ -45,15 +45,15 @@ export function TablePicker({ onPick }: { onPick(rows: number, cols: number): vo
       </div>
       <div className="tp-custom">
         <label>
-          行
+          {tr('行')}
           <input type="number" min={1} max={50} value={rows} onChange={(e) => setRows(clamp(Number(e.target.value), 50))} />
         </label>
         <label>
-          列
+          {tr('列')}
           <input type="number" min={1} max={20} value={cols} onChange={(e) => setCols(clamp(Number(e.target.value), 20))} />
         </label>
         <button className="btn" onMouseDown={(e) => e.preventDefault()} onClick={() => onPick(clamp(rows, 50), clamp(cols, 20))}>
-          插入
+          {tr('插入')}
         </button>
       </div>
     </div>

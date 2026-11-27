@@ -85,7 +85,7 @@ export function Splash({ onDone }: { onDone(): void }) {
         </div>
         <div className="splash-brand">Flowiter</div>
         <button className={`splash-go${ready ? ' show' : ''}`} onClick={start} disabled={!ready} tabIndex={ready ? 0 : -1}>
-          立即使用
+          {tr('立即使用')}
         </button>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { Component, StrictMode, type ErrorInfo, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { startDomTranslate } from '@/locales/dom'
 import '@fontsource-variable/inter'
 import '@fontsource-variable/source-serif-4'
 import '@fontsource-variable/jetbrains-mono'
@@ -91,6 +92,7 @@ class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
 const isInbox = location.hash === '#inbox'
 ;(isInbox ? import('./components/InboxWindow') : import('./App'))
   .then(({ default: App }) => {
+    startDomTranslate()
     createRoot(document.getElementById('root')!).render(
       <StrictMode>
         <Boundary>

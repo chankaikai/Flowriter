@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { tr } from '@/lib/i18n'
+import { tr, trAuto } from '@/lib/i18n'
 
 export interface PromptRequest {
   title: string
@@ -25,10 +25,10 @@ export function TextPrompt({ req }: { req: PromptRequest | null }) {
   return (
     <div className="prompt-scrim" onMouseDown={() => done(null)}>
       <div className="prompt-box" onMouseDown={(e) => e.stopPropagation()}>
-        <h3>{req.title}</h3>
+        <h3>{trAuto(req.title)}</h3>
         <input
           ref={ref} className="ai-input" autoFocus spellCheck={false} value={value}
-          type={req.secret ? 'password' : 'text'} placeholder={req.placeholder}
+          type={req.secret ? 'password' : 'text'} placeholder={req.placeholder ? trAuto(req.placeholder) : undefined}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => {
             if (e.nativeEvent.isComposing) return
@@ -37,7 +37,7 @@ export function TextPrompt({ req }: { req: PromptRequest | null }) {
           }}
         />
         <div className="pop-actions">
-          <button className="btn" onClick={() => done(value)}>{req.okLabel ?? '確定'}</button>
+          <button className="btn" onClick={() => done(value)}>{trAuto(req.okLabel ?? '確定')}</button>
           <button className="btn ghost" onClick={() => done(null)}>{tr('取消')}</button>
         </div>
       </div>

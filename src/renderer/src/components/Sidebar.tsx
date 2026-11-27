@@ -479,7 +479,7 @@ export function Sidebar(p: SidebarProps) {
               <div className="side-empty">
                 <p>{tr('尚未開啟資料夾')}</p>
                 <button className="btn" onClick={p.onOpenFolder}>
-                  開啟資料夾
+                  {tr('開啟資料夾')}
                 </button>
               </div>
             ))}

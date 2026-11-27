@@ -146,10 +146,10 @@ export function HistoryPanel({
       </pre>
       <div className="pop-actions">
         <button className="btn" disabled={text == null || text === cur} onClick={() => text != null && onRestore(text)}>
-          還原到此版本
+          {tr('還原到此版本')}
         </button>
         <button className="btn ghost" onClick={() => void onMilestone().then(() => setReload((n) => n + 1))}>
-          標記目前為里程碑
+          {tr('標記目前為里程碑')}
         </button>
       </div>
     </>

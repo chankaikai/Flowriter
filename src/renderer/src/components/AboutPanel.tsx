@@ -82,7 +82,7 @@ export function AboutPanel({ version, status }: Props) {
           className="btn"
           onClick={() => window.api.openExternal(`mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent('Flowiter 意見回饋')}&body=${encodeURIComponent(`版本：${version}\n系統：${navigator.userAgent}\n\n請描述你遇到的問題或建議：\n`)}`)}
         >
-          寫信給我們
+          {tr('寫信給我們')}
         </button>
         <button className="btn ghost" onClick={copy}>{copied ? '已複製' : '複製信箱'}</button>
       </div>

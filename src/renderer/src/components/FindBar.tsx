@@ -85,10 +85,10 @@ export function FindBar({
             spellCheck={false}
           />
           <button className="btn sm" onClick={() => editor && setInfo(editor.replaceCurrent(rep))}>
-            替換
+            {tr('替換')}
           </button>
           <button className="btn sm" onClick={() => editor && setInfo(editor.replaceAll(rep))}>
-            全部替換
+            {tr('全部替換')}
           </button>
         </div>
       )}

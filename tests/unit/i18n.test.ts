@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { I18N_KEYS, I18N_TABLES, LANGS, setLang, tr } from '@/lib/i18n'
+import { I18N_KEYS, I18N_TABLES, LANGS, setLang, tr, trAuto, trKnown } from '@/lib/i18n'
 import { importThemeCss, listImported, removeImported } from '@/lib/themeImport'
 
 describe('i18n', () => {
@@ -47,5 +47,17 @@ describe('theme import', () => {
     const all = `${a}\n${b}`
     expect(listImported(all)).toEqual(['a', 'b'])
     expect(listImported(removeImported(all, 'a'))).toEqual(['b'])
+  })
+})
+
+describe('trAuto / trKnown', () => {
+  it('translates already-formatted strings by template', () => {
+    setLang('en')
+    expect(trAuto('已匯出 3 張輪播圖')).toBe('Exported 3 carousel cards')
+    expect(trAuto('已儲存')).toBe('Saved')
+    expect(trAuto('完全沒有的句子')).toBe('完全沒有的句子')
+    expect(trKnown('完全沒有的句子')).toBeNull()
+    setLang('zh-TW')
+    expect(trAuto('已儲存')).toBe('已儲存')
   })
 })

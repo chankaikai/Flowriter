@@ -185,8 +185,8 @@ export function ClipPanel({
   return (
     <>
       <div className="hist-hint">
-        開啟後，你在任何程式裡複製的文字都會收進來（最多 30 則，只存在記憶體，關閉程式就清掉）。
-        複製密碼或機密內容前請先關閉。
+        {tr('開啟後，你在任何程式裡複製的文字都會收進來（最多 30 則，只存在記憶體，關閉程式就清掉）。')}
+        {tr('複製密碼或機密內容前請先關閉。')}
       </div>
       <div className="pop-actions">
         <button className={`btn${stack.on ? '' : ' ghost'}`} onClick={stack.toggle}>{stack.on ? '收集中，點擊停止' : '開始收集'}</button>
@@ -277,7 +277,7 @@ export function RadarPanel({
   return (
     <>
       <div className="hist-hint">
-        以選取的文字（沒選取則用游標之後的段落）在資料夾內找相關筆記。索引只存在記憶體，全程在本機計算，不會上傳。
+        {tr('以選取的文字（沒選取則用游標之後的段落）在資料夾內找相關筆記。索引只存在記憶體，全程在本機計算，不會上傳。')}
       </div>
       <textarea
         className="radar-q"

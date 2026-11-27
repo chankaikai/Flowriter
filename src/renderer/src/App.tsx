@@ -59,7 +59,7 @@ import { INITIAL_DOC, lastSeenVersion, markWelcomeDocShown, setSeenVersion, sugg
 import { buildHtmlDocument, renderHtmlBody } from '@/export/exportHtml'
 import { musicHiddenMode } from '@/editor/musicUi'
 import { buildDocx } from '@/export/exportDocx'
-import { tr, trf } from '@/lib/i18n'
+import { tr, trf, trAuto } from '@/lib/i18n'
 
 type Mode = 'wysiwyg' | 'source'
 interface DocMeta {
@@ -202,7 +202,7 @@ export default function App() {
   /* ------------------------------ 小工具 ------------------------------ */
 
   const showToast = useCallback((msg: string) => {
-    setToast({ id: Date.now(), msg })
+    setToast({ id: Date.now(), msg: trAuto(msg) })
   }, [])
   useEffect(() => {
     if (!toast) return
