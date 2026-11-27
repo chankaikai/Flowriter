@@ -43,6 +43,7 @@ import { runBlockAtCaret } from './runUi'
 import { languages } from '@codemirror/language-data'
 import { LanguageDescription, LanguageSupport, StreamLanguage } from '@codemirror/language'
 import { caretAnchor, setVoiceNotes, stopVoicePlayback } from './voiceUi'
+import { setNotesMarks, type NoteMark } from './notesUi'
 import type { VoiceNote } from '@/lib/voice'
 import { blockTexts } from './extras'
 import { refreshLens, gotoBlockOffset, setTaskChecked, insertCallout, removeFrontMatter, isLockedAtCaret, setLockTexts, toggleLockAtCaret, gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
@@ -81,6 +82,8 @@ export interface EditorHandle {
   /** 同步語音便籤清單與刪除回呼 */
   setVoice(notes: VoiceNote[], docPath: string, onDelete: (id: string) => void): void
   stopVoice(): void
+  /** 同步頁邊便條圖示 */
+  setNoteMarks(notes: NoteMark[], onOpen: (id: string) => void): void
   /** 跳到文字相符的任務項目 */
   gotoTask(text: string): boolean
   /** 跳到第 n 個文字區塊的指定偏移並高亮（儀表板／排版檢查用） */
@@ -315,6 +318,10 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       if (v) setVoiceNotes(v, notes, docPath, onDelete)
     },
     stopVoice: () => stopVoicePlayback(),
+    setNoteMarks: (notes, onOpen) => {
+      const v = view()
+      if (v) setNotesMarks(v, notes, onOpen)
+    },
     setCaret: (pos) => {
       const v = view()
       if (!v) return false

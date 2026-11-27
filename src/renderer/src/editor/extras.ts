@@ -28,6 +28,7 @@ import { blockStartLines } from '@/lib/blockLines'
 import { copyElementPng } from '@/lib/copyPng'
 import { tr } from '@/lib/i18n'
 import { voicePlugin } from './voiceUi'
+import { notesMarksPlugin } from './notesUi'
 import { normLock, touchesLocked, type Range } from '@/lib/locks'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -1275,6 +1276,7 @@ export const extraPlugins = [
   tableUiPlugin,
   musicPlugin,
   voicePlugin,
+  notesMarksPlugin,
   runUiPlugin,
   calcPlugin,
   footnoteTipPlugin,

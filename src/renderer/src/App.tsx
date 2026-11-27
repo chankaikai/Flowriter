@@ -1516,6 +1516,11 @@ export default function App() {
   useEffect(() => {
     editorReady?.setVoice(voiceList ?? [], doc.path ?? '', (id) => voiceDeleteRef.current(id))
   }, [editorReady, voiceList, doc.path])
+  const noteListKey = doc.path ? basename(doc.path) : ''
+  const noteList = notesFile.files[noteListKey]
+  useEffect(() => {
+    editorReady?.setNoteMarks(noteList ?? [], () => setPanel('notes'))
+  }, [editorReady, noteList])
   function recordVoice() {
     if (!docRef.current.path) return showToast(tr('先儲存檔案，語音才有地方存放（.inkwell/media/，不會寫進 .md）'))
     if (recAnchor !== null) return
