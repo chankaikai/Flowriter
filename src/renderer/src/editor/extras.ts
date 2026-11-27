@@ -1123,13 +1123,45 @@ export function isMermaidBlock(lang: string, code: string): boolean {
 }
 
 const mermaidKey = new PluginKey('inkwell-mermaid')
+/** 每個圖表塊（依出現順序）目前收起的是哪一邊：code＝只看圖、graph＝只看代碼；二選一，不能兩邊都收。 */
+const mermaidHidden = new Map<number, 'code' | 'graph'>()
+
+function mermaidBar(n: number, state: 'code' | 'graph' | undefined, view: EditorView): HTMLElement {
+  const bar = document.createElement('div')
+  bar.className = 'mm-bar'
+  bar.contentEditable = 'false'
+  const mk = (label: string, tip: string, side: 'code' | 'graph') => {
+    const b = document.createElement('button')
+    b.textContent = tr(label)
+    b.title = tr(tip)
+    b.addEventListener('mousedown', (e) => e.preventDefault())
+    b.addEventListener('click', (e) => {
+      e.stopPropagation()
+      if (mermaidHidden.get(n) === side) mermaidHidden.delete(n)
+      else mermaidHidden.set(n, side)
+      view.dispatch(view.state.tr.setMeta(mermaidKey, 'refresh').setMeta('addToHistory', false))
+    })
+    return b
+  }
+  bar.appendChild(mk(state === 'code' ? '顯示代碼' : '隱藏代碼', '只留圖、收起代碼（不影響 Markdown 內容）', 'code'))
+  bar.appendChild(mk(state === 'graph' ? '顯示圖表' : '隱藏圖表', '只留代碼、收起圖表', 'graph'))
+  return bar
+}
+
 function buildMermaid(doc: import('@milkdown/kit/prose/model').Node): DecorationSet {
   const decos: Decoration[] = []
+  let ordinal = 0
   doc.descendants((node, pos) => {
     if (node.type.name !== 'code_block') return
     const code = node.textContent
     if (!code.trim() || !isMermaidBlock(String(node.attrs.language ?? ''), code)) return
-    decos.push(Decoration.widget(pos + node.nodeSize, (view, getPos) => mermaidWidget(code, view, getPos as () => number | undefined), { side: -1, key: `mmd-${code.length}-${code.slice(0, 40)}-${document.documentElement.dataset.tone}`, ignoreSelection: true }))
+    const n = ordinal++
+    const st = mermaidHidden.get(n)
+    if (st === 'code') decos.push(Decoration.node(pos, pos + node.nodeSize, { class: 'mm-code-hidden' }))
+    decos.push(Decoration.widget(pos + node.nodeSize, (view) => mermaidBar(n, st, view), { side: -2, key: `mmbar-${n}-${st ?? 'x'}`, ignoreSelection: true }))
+    if (st !== 'graph') {
+      decos.push(Decoration.widget(pos + node.nodeSize, (view, getPos) => mermaidWidget(code, view, getPos as () => number | undefined), { side: -1, key: `mmd-${code.length}-${code.slice(0, 40)}-${document.documentElement.dataset.tone}`, ignoreSelection: true }))
+    }
   })
   return DecorationSet.create(doc, decos)
 }
@@ -1140,7 +1172,7 @@ export const mermaidPlugin = $prose(
       key: mermaidKey,
       state: {
         init: (_c, st) => buildMermaid(st.doc),
-        apply: (tr, old) => (tr.docChanged ? buildMermaid(tr.doc) : old)
+        apply: (tr, old) => (tr.docChanged || tr.getMeta(mermaidKey) === 'refresh' ? buildMermaid(tr.doc) : old)
       },
       props: {
         decorations(st) {
