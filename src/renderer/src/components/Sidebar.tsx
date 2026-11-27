@@ -326,6 +326,13 @@ function Highlighted({ text, query }: { text: string; query: string }) {
   )
 }
 
+/** 取命中那一行中、查詢字附近的一小段，用來在文件裡定位「這一處」而不是第一處。 */
+function hitContext(line: string, q: string): string {
+  const i = line.toLowerCase().indexOf(q.toLowerCase())
+  if (i < 0) return q
+  return line.slice(Math.max(0, i - 12), i + q.length + 12).trim()
+}
+
 function FolderSearch({
   root,
   focusSignal,
@@ -389,7 +396,7 @@ function FolderSearch({
               <span>{list.length}</span>
             </div>
             {list.slice(0, 8).map((h) => (
-              <button key={h.line} className="fhit" onClick={() => onOpen(path, q.trim())}>
+              <button key={h.line} className="fhit" onClick={() => onOpen(path, q.trim(), hitContext(h.text, q.trim()))}>
                 <span className="ln">{h.line}</span>
                 <span className="tx">
                   <Highlighted text={h.text} query={q.trim()} />
@@ -412,7 +419,7 @@ export interface SidebarProps {
   folder: string | null
   onOpenFolder(): void
   activePath: string | null
-  onOpenFile(path: string, find?: string): void
+  onOpenFile(path: string, find?: string, context?: string): void
   onCreated(path: string): void
   onRenamed(from: string, to: string): void
   onTrashed(path: string): void

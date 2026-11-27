@@ -193,6 +193,17 @@ export default function App() {
   const modeRef = useRef(mode)
   const settingsRef = useRef(settings)
   const pendingFind = useRef<string | null>(null)
+  /** 側邊欄搜尋點擊的那一處：開啟後跳到它並選取 */
+  const pendingJump = useRef<{ ctx: string; q: string } | null>(null)
+  const runPendingJump = useCallback(() => {
+    const j = pendingJump.current
+    if (!j) return
+    pendingJump.current = null
+    window.setTimeout(() => {
+      const ed = editorRef.current
+      if (ed && !ed.gotoText(j.ctx)) ed.gotoText(j.q)
+    }, 400)
+  }, [])
   const derivedTimer = useRef(0)
   const autosaveTimer = useRef(0)
   /** 依設定排程自動儲存：即時＝輸入後 0.3 秒；否則「最晚每隔 N 秒存一次」（不會因為持續輸入而一直往後延） */
@@ -594,12 +605,14 @@ export default function App() {
   )
 
   const openPath = useCallback(
-    async (p: string, findText?: string) => {
+    async (p: string, findText?: string, context?: string) => {
+      pendingJump.current = findText && context ? { ctx: context, q: findText } : null
       if (docRef.current.path === p) {
         if (findText) {
           setFind('find')
           pendingFind.current = findText
           setFindSignal((n) => n + 1)
+          runPendingJump()
         }
         return
       }
@@ -613,7 +626,7 @@ export default function App() {
       pendingFind.current = findText ?? null
       await openInTab(p, content)
     },
-    [openInTab, showToast]
+    [openInTab, showToast, runPendingJump]
   )
 
   const newDoc = useCallback(async () => {
@@ -1296,6 +1309,7 @@ export default function App() {
     if (pendingFind.current) {
       setFind('find')
       setFindSignal((n) => n + 1)
+      runPendingJump()
       return
     }
     // 冷啟動書籤：游標回到上次落筆處，並顯示接續提示
