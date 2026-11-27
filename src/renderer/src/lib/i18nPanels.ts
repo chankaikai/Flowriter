@@ -1,5 +1,14 @@
 /** 面板、側邊欄、對話框與狀態文字的英文翻譯（其他非中文語言退回英文）。 */
 export const PANELS: Record<string, string> = {
+  "排版檢驗、文風與 AI 檢查": "Layout check, style & AI check",
+  "AI 檢查": "AI check",
+  "沒有可檢查的文字段落": "No text paragraphs to check",
+  "按下後，全文的文字段落（不含程式碼）會送到你設定的 AI 服務。結果只供參考，不會改動文件。": "Pressing this sends the text paragraphs (no code) to your configured AI service. Results are for reference only; the document is never changed.",
+  "重新檢查": "Check again",
+  "開始 AI 檢查": "Start AI check",
+  "{0} 正在檢查全文…": "{0} is checking the whole text…",
+  "文件在檢查後改過了，點擊跳轉已停用。請重新檢查。": "The document changed after the check; jumping is disabled. Please check again.",
+  "AI 沒有發現問題。": "The AI found no problems.",
   "隱藏譜面": "Hide score",
   "顯示譜面": "Show score",
   "只留代碼、收起譜面（匯出時也只輸出代碼文字）": "Keep only the code, collapse the score (exports code text only)",

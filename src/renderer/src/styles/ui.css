@@ -451,8 +451,8 @@ body.show-ln-wys .editor-col .milkdown .ProseMirror > [data-ln]::before { conten
 .tp-drop { padding: 10px; }
 .tp { display: flex; flex-direction: column; gap: 8px; }
 .tp-title { font-size: 12px; color: var(--fg-muted); min-height: 16px; }
-.tp-grid { display: grid; gap: 3px; }
-.tp-cell { width: 18px; height: 18px; border-radius: 3px; border: 1px solid var(--line); background: transparent; padding: 0; }
+.tp-grid { display: grid; cursor: pointer; touch-action: none; }
+.tp-cell { display: block; box-sizing: border-box; width: 14px; height: 14px; border-radius: 2px; border: 1px solid var(--line); background: transparent; pointer-events: none; }
 .tp-cell.on { background: var(--accent-soft); border-color: var(--accent); }
 .tp-custom { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--fg-muted); }
 .tp-custom input { width: 52px; margin-left: 4px; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: var(--fg); }

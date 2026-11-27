@@ -403,7 +403,7 @@ export const RIBBON: RibbonTab[] = [
         label: '寫作',
         items: [
           r('panel.ai', 'AI 改寫', { icon: 'sparkle', lg: true }),
-          r('panel.diag', '健檢排版', { icon: 'diag', lg: true }),
+          r('panel.diag', '排版檢驗', { icon: 'diag', lg: true }),
           r('panel.reverse', '逆向大綱', { icon: 'sparkle', lg: true }),
           r('doc.speak', '朗讀校對', { icon: 'speaker', lg: true }),
           r('panel.runner', '執行代碼塊', { glyph: '▶', lg: true })

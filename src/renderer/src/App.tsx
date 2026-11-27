@@ -1946,7 +1946,7 @@ export default function App() {
               />
             )}
           </Popover>
-          <Popover open={panel === 'diag'} icon="diag" title={tr('文件健檢、排版與文風')} onClose={() => setPanel(null)} wide>
+          <Popover open={panel === 'diag'} icon="diag" title={tr('排版檢驗、文風與 AI 檢查')} onClose={() => setPanel(null)} wide>
             {panel === 'diag' && (
               <DiagnosticsPanel
                 md={mdRef.current}
@@ -1956,6 +1956,10 @@ export default function App() {
                   replaceContent(m)
                   showToast(tr('已修正，原本的內容留在時光機裡'))
                 }}
+                prefs={settings}
+                update={update}
+                getBlocks={() => editorRef.current?.blockTexts() ?? []}
+                onJumpBlock={(i, len) => { if (!editorRef.current?.gotoBlock(i, 0, len)) showToast(tr('找不到對應段落，文件可能已經改動，請重新分析')) }}
               />
             )}
           </Popover>

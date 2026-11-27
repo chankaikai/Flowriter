@@ -123,7 +123,7 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'panel.tasks', title: '任務收集', group: '面板', keys: ['Mod+Alt+J'], run: () => a.openPanel('tasks') },
     { id: 'panel.vault', title: '時間膠囊與加密抽屜', group: '面板', keys: ['Mod+Alt+V'], run: () => a.openPanel('vault') },
     { id: 'doc.milestone', title: '標記目前版本為里程碑…', group: '檔案', run: a.milestone },
-    { id: 'panel.diag', title: '文件健檢、排版與文風', group: '面板', keys: ['Mod+Alt+K'], run: () => a.openPanel('diag') },
+    { id: 'panel.diag', title: '排版檢驗、文風與 AI 檢查', group: '面板', keys: ['Mod+Alt+K'], run: () => a.openPanel('diag') },
     { id: 'panel.clips', title: '剪貼簿收集', group: '面板', keys: ['Mod+Alt+B'], run: () => a.openPanel('clips') },
     { id: 'view.lens', title: '讀者視角（標出未解釋的縮寫與跳躍的轉折）', group: '檢視', keys: ['Mod+Alt+X'], run: a.toggleLens },
     { id: 'insert.voice', title: '錄製語音便籤（釘在游標所在段落）', group: '插入', keys: ['Mod+Alt+Z'], run: a.recordVoice },

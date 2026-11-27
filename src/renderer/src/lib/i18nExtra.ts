@@ -38,7 +38,7 @@ export const EN: Record<string, string> = {
   '大綱': 'Outline', '文件樹': 'File tree', '儀表板': 'Dashboard', '時光機': 'Time machine', '目錄': 'Contents', '腳註': 'Footnote', '連結': 'Link', '表格': 'Table',
   '公式': 'Math', '前置資料': 'Front matter', '提示框': 'Callout', '清單': 'Lists', '有序清單': 'Numbered list', '無序清單': 'Bullet list', '任務清單': 'Task list',
   '雙語對照': 'Bilingual', '資料夾': 'Folder', '源碼': 'Source', '閱讀': 'Read', '膠囊抽屜': 'Capsule drawer', '知識雷達': 'Knowledge radar', '朗讀校對': 'Read aloud',
-  '段落權重': 'Paragraph weight', '段落上鎖': 'Lock paragraph', '段落樣式': 'Paragraph style', '健檢排版': 'Check & layout', '接續提示': 'Resume hint', '正文': 'Body',
+  '段落權重': 'Paragraph weight', '段落上鎖': 'Lock paragraph', '段落樣式': 'Paragraph style', '排版檢驗': 'Check & layout', '接續提示': 'Resume hint', '正文': 'Body',
   '文件比對': 'Compare', '全域搜尋': 'Search all', '參考抽屜': 'References', '長圖': 'Share image', '里程碑': 'Milestone', '升序排序': 'Sort ascending', '降序排序': 'Sort descending',
   '迷你便籤': 'Mini note', '跟隨系統': 'Follow system', '打字機': 'Typewriter', '聚焦': 'Focus', '側邊欄': 'Sidebar', '主題': 'Theme', '檢查更新…': 'Check for updates…',
   '快捷鍵與偏好設定…': 'Shortcuts & preferences…', '預覽': 'Preview', '僅源碼': 'Source only', '源碼＋預覽': 'Source + preview', '佈局': 'Layout', '總譜': 'Full score',

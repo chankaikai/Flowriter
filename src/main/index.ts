@@ -707,7 +707,7 @@ function registerIpc(): void {
   const snippet = (raw: string) => raw.replace(/\s+/g, ' ').trim().slice(0, 200)
 
   /** 呼叫模型。錯誤訊息會帶上實際請求的網址與回應片段（不含金鑰），方便判斷是網址、模型名還是金鑰的問題。 */
-  const callAi = async (r: AiReq, maxTokens: number): Promise<{ text: string; usage?: AiUsage } | { error: string; reasoning?: boolean }> => {
+  const callAi = async (r: AiReq, maxTokens: number, timeoutMs = 120_000): Promise<{ text: string; usage?: AiUsage } | { error: string; reasoning?: boolean }> => {
     if (!r.baseUrl.trim()) return { error: '還沒有填服務網址（Base URL）' }
     if (!r.model.trim()) return { error: '還沒有填模型名稱' }
     const url = aiUrl(r.kind, r.baseUrl)
@@ -720,7 +720,7 @@ function registerIpc(): void {
       }
     })()
     const ctl = new AbortController()
-    const timer = setTimeout(() => ctl.abort(), 120_000)
+    const timer = setTimeout(() => ctl.abort(), timeoutMs)
     const user = r.text ? `${r.instruction}\n\n---\n${r.text}` : r.instruction
     try {
       let res: Response
@@ -786,7 +786,7 @@ function registerIpc(): void {
       return { error: `${where} — 模型沒有回傳內容：${snippet(raw)}` }
     } catch (err) {
       const e = err as Error
-      return { error: e.name === 'AbortError' ? '請求逾時（120 秒）' : `網路錯誤：${e.message}（${where}）` }
+      return { error: e.name === 'AbortError' ? `請求逾時（${Math.round(timeoutMs / 1000)} 秒）` : `網路錯誤：${e.message}（${where}）` }
     } finally {
       clearTimeout(timer)
     }
@@ -849,7 +849,8 @@ function registerIpc(): void {
   /** 測試連線：送一個極短的請求，回報耗時與模型的回覆。 */
   ipcMain.handle('ai:test', async (_e, r: AiReq) => {
     const t0 = Date.now()
-    const out = await callAi({ ...r, instruction: '請只回覆「OK」兩個字母。', text: '' }, 1024)
+    // 連線測試只要確認網址、金鑰、模型能通：回覆上限壓到 32 token、逾時 20 秒，不要等推理模型想完
+    const out = await callAi({ ...r, instruction: '回覆 OK', text: '' }, 32, 20_000)
     const ms = Date.now() - t0
     // 推理模型能連上、也有回應，只是正文被思考吃掉：連線本身算成功，但要提醒
     if ('error' in out && out.reasoning) return { ok: true as const, reply: '（這是推理模型，思考過程很長；改寫時建議換非推理版本）', ms }

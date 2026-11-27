@@ -7,9 +7,12 @@ import { buildStitch, type StitchStyle } from '@/lib/stitch'
 import { resolveAi, type AiPrefs } from '@/lib/ai'
 import { recordUsage } from '@/lib/aiUsage'
 import { dayKey } from '@/lib/writing'
-import { tr } from '@/lib/i18n'
+import { tr, trf } from '@/lib/i18n'
+import { AiSetup } from './AiSetup'
+import { buildCheckPrompt, parseCheckReply, prepare, type AiIssue, type BlockText } from '@/lib/aiCheck'
+import { signature } from '@/lib/reverseOutline'
 
-type Tab = 'health' | 'typo' | 'style'
+type Tab = 'health' | 'typo' | 'style' | 'ai'
 
 /** 診斷結果跳轉用的純文字：去掉 Markdown 標記，取前 40 字。 */
 const plain = (s: string) => s.replace(/^\s*(#{1,6}\s+|>\s*|[-*+]\s+(\[[ xX]\]\s+)?|\d+[.)]\s+)/, '').replace(/[*_`~[\]()#>|]/g, '').trim().slice(0, 40)
@@ -18,19 +21,29 @@ const lineText = (md: string, line: number) => plain(md.split(/\r?\n/)[line] ?? 
 const LEVEL: Record<string, string> = { error: '錯誤', warn: '注意', info: '建議' }
 
 export function DiagnosticsPanel({
-  md, docDir, onJump, onReplace
-}: { md: string; docDir: string | null; onJump(text: string): void; onReplace(md: string): void }) {
+  md, docDir, onJump, onReplace, prefs, update, getBlocks, onJumpBlock
+}: {
+  md: string
+  docDir: string | null
+  onJump(text: string): void
+  onReplace(md: string): void
+  prefs: AiPrefs
+  update(p: Partial<AiPrefs>): void
+  getBlocks(): BlockText[]
+  onJumpBlock(index: number, len: number): void
+}) {
   const [tab, setTab] = useState<Tab>('health')
   return (
     <>
       <div className="chips tm-tabs">
-        {([['health', '文件健檢'], ['typo', '排版'], ['style', '文風']] as [Tab, string][]).map(([k, l]) => (
+        {([['health', '排版檢驗'], ['typo', '排版'], ['style', '文風'], ['ai', 'AI 檢查']] as [Tab, string][]).map(([k, l]) => (
           <button key={k} className={`chip${tab === k ? ' on' : ''}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
       {tab === 'health' && <HealthTab md={md} docDir={docDir} onJump={onJump} />}
       {tab === 'typo' && <TypoTab md={md} onJump={onJump} onReplace={onReplace} />}
       {tab === 'style' && <StyleTab md={md} onJump={onJump} />}
+      {tab === 'ai' && <AiCheckTab prefs={prefs} update={update} getBlocks={getBlocks} onJumpBlock={onJumpBlock} />}
     </>
   )
 }
@@ -288,6 +301,68 @@ export function RadarPanel({
         ))}
         {idx && q.trim() && !hits.length && <p className="pop-empty">{tr('沒有找到相關筆記。')}</p>}
       </div>
+    </>
+  )
+}
+
+const aiCache = new Map<string, { sig: string; issues: AiIssue[]; info: string }>()
+
+/** AI 檢查：把全文文字段落送到使用者自己設定的 AI 服務，找錯字、語法、用詞不一致與前後矛盾。結果只供參考，不會改動文件。 */
+function AiCheckTab({ prefs, update, getBlocks, onJumpBlock }: { prefs: AiPrefs; update(p: Partial<AiPrefs>): void; getBlocks(): BlockText[]; onJumpBlock(i: number, len: number): void }) {
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const [data, setData] = useState(() => aiCache.get('cur') ?? null)
+  const cfg = resolveAi(prefs)
+  const stale = data ? signature(getBlocks()) !== data.sig : false
+  const run = async () => {
+    if (busy || cfg.missing) return
+    const blocks = getBlocks()
+    const p = prepare(blocks)
+    if (p.items.length < 1) return setErr(tr('沒有可檢查的文字段落'))
+    const req = buildCheckPrompt(p)
+    setBusy(true)
+    setErr(null)
+    const r = await window.api.aiRewrite({ kind: cfg.kind, baseUrl: cfg.baseUrl, apiKey: cfg.apiKey, model: cfg.model, maxTokens: Math.max(cfg.maxTokens, 4096), instruction: req.instruction, text: req.text })
+    setBusy(false)
+    if ('error' in r) return setErr(r.error)
+    if (r.usage && (r.usage.in || r.usage.out)) recordUsage(cfg.provider.id, r.usage, dayKey())
+    const issues = parseCheckReply(r.text, new Set(p.items.map((i) => i.id)))
+    if (!issues) return setErr(tr('模型沒有回傳可用的 JSON。可以再按一次，或換一個比較強的模型。'))
+    const notes: string[] = []
+    if (p.dropped) notes.push(trf('文章太長，有 {0} 段沒有送出', p.dropped))
+    if (p.truncated) notes.push(trf('{0} 段只送了開頭', p.truncated))
+    const d = { sig: signature(blocks), issues, info: notes.join('；') }
+    aiCache.set('cur', d)
+    setData(d)
+  }
+  return (
+    <>
+      <AiSetup s={prefs} update={update} compact />
+      {cfg.missing && <p className="pop-empty">{cfg.missing}。</p>}
+      <div className="hist-hint">{tr('按下後，全文的文字段落（不含程式碼）會送到你設定的 AI 服務。結果只供參考，不會改動文件。')}</div>
+      <div className="pop-actions">
+        <button className="btn" disabled={busy || !!cfg.missing} onClick={() => void run()}>{data ? tr('重新檢查') : tr('開始 AI 檢查')}</button>
+      </div>
+      {busy && <div className="ai-busy"><i /><span>{trf('{0} 正在檢查全文…', cfg.provider.label)}</span></div>}
+      {err && <div className="ai-err">{err}</div>}
+      {data && (
+        <>
+          {stale && <div className="ai-err">{tr('文件在檢查後改過了，點擊跳轉已停用。請重新檢查。')}</div>}
+          {data.info && <div className="hist-hint">{data.info}</div>}
+          {data.issues.length === 0 ? (
+            <p className="pop-empty">{tr('AI 沒有發現問題。')}</p>
+          ) : (
+            <div className="tm-list">
+              {data.issues.map((i, k) => (
+                <button key={k} className="diag-row lv-info" disabled={stale} onClick={() => onJumpBlock(i.block, Math.min(i.text.length || 40, 200))}>
+                  <b>{i.kind}</b>
+                  <span>{i.text ? `「${i.text}」 · ` : ''}{i.fix}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </>
   )
 }
