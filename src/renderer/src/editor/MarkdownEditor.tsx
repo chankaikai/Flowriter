@@ -44,6 +44,7 @@ import { languages } from '@codemirror/language-data'
 import { LanguageDescription, LanguageSupport, StreamLanguage } from '@codemirror/language'
 import { caretAnchor, setVoiceNotes, stopVoicePlayback } from './voiceUi'
 import { setNotesMarks, type NoteMark } from './notesUi'
+import { convertList } from './listOps'
 import type { VoiceNote } from '@/lib/voice'
 import { blockTexts } from './extras'
 import { refreshLens, gotoBlockOffset, setTaskChecked, insertCallout, removeFrontMatter, isLockedAtCaret, setLockTexts, toggleLockAtCaret, gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
@@ -249,7 +250,8 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
     const root = rootRef.current
     if (!root) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab' || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return
+      const bracket = (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === '[' || e.key === ']')
+      if (!bracket && (e.key !== 'Tab' || e.ctrlKey || e.metaKey || e.altKey || e.isComposing)) return
       const c = crepeRef.current
       const v = view()
       if (!c || !v) return
@@ -265,7 +267,7 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       if (!inList) return
       e.preventDefault()
       e.stopPropagation()
-      c.editor.action(callCommand(e.shiftKey ? liftListItemCommand.key : sinkListItemCommand.key))
+      c.editor.action(callCommand((bracket ? e.key === '[' : e.shiftKey) ? liftListItemCommand.key : sinkListItemCommand.key))
     }
     root.addEventListener('keydown', onKey, true)
     return () => root.removeEventListener('keydown', onKey, true)
@@ -382,9 +384,9 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
           run(wrapInHeadingCommand.key, Number(name[1])); break
         case 'p': run(turnIntoTextCommand.key); break
         case 'quote': run(wrapInBlockquoteCommand.key); break
-        case 'ul': run(wrapInBulletListCommand.key); break
-        case 'ol': run(wrapInOrderedListCommand.key); break
-        case 'task': c.editor.action(insert('- [ ] ')); break
+        case 'ul': { const v = view(); if (!(v && convertList(v, 'ul'))) run(wrapInBulletListCommand.key); break }
+        case 'ol': { const v = view(); if (!(v && convertList(v, 'ol'))) run(wrapInOrderedListCommand.key); break }
+        case 'task': { const v = view(); if (!(v && convertList(v, 'task'))) c.editor.action(insert('- [ ] ')); break }
         case 'codeblock': run(createCodeBlockCommand.key); break
         case 'math': c.editor.action(insert('$$\n\n$$')); break
         case 'table': run(insertTableCommand.key, { row: 3, col: 3 }); break
