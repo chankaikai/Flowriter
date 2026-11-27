@@ -335,15 +335,6 @@ export const RIBBON: RibbonTab[] = [
         label: '顯示',
         items: [
           r('view.sidebar', '側邊欄', { icon: 'sidebar', check: 'sidebar', lg: true }),
-          r('tree.open', '文件樹', {
-            icon: 'folderOpen',
-            lg: true,
-            sub: [
-              { cmd: 'tree.open', label: '開啟' },
-              { cmd: 'tree.close', label: '關閉' },
-              { cmd: 'tree.change', label: '更換資料夾' }
-            ]
-          }),
           r('view.weight', '段落權重', { icon: 'chart', check: 'weight', lg: true }),
           r('view.lens', '讀者視角', { icon: 'user', check: 'lens', lg: true }),
           r('view.fullscreen', '全螢幕', { icon: 'expand', check: 'fullscreen', lg: true })
@@ -356,7 +347,15 @@ export const RIBBON: RibbonTab[] = [
       {
         label: '導覽',
         items: [
-          r('nav.files', '文件樹', { icon: 'folder' }),
+          r('nav.files', '文件樹', {
+            icon: 'folder',
+            sub: [
+              { cmd: 'nav.files', label: '顯示' },
+              { cmd: 'tree.open', label: '開啟' },
+              { cmd: 'tree.close', label: '關閉' },
+              { cmd: 'tree.change', label: '更換資料夾' }
+            ]
+          }),
           r('nav.outline', '大綱', { icon: 'list' }),
           r('nav.folderSearch', '全域搜尋', { icon: 'search' }),
           r('nav.quickOpen', '快速開啟', { icon: 'file' }),
