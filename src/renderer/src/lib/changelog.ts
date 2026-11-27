@@ -6,7 +6,7 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: '0.4.0',
+    version: '0.4.1',
     items: [
       '啟動設定：可選「開啟最近的文件」或「空白未儲存文件」；關閉全部分頁後下次啟動是空白文件',
       '樂譜、公式、流程圖可複製為透明 PNG（自動裁到最外緣內容），匯出 Word 時樂譜以圖片呈現',
