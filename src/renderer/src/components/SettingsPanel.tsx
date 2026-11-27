@@ -93,7 +93,8 @@ export function SettingsPanel({
 
         <div className="drawer-body">
           <div className="xgrid">
-            <ExpandCard
+            <div className="xgroup">{tr('介面與外觀')}</div>
+            <ExpandCard wide
               active={open}
               icon="half"
               title={tr('外觀')}
@@ -165,7 +166,7 @@ export function SettingsPanel({
               )}
             </ExpandCard>
 
-            <ExpandCard
+            <ExpandCard wide
               active={open}
               icon="type"
               title={tr('排版')}
@@ -205,7 +206,8 @@ export function SettingsPanel({
               </Row>
             </ExpandCard>
 
-            <ExpandCard
+            <div className="xgroup">{tr('寫作與儲存')}</div>
+            <ExpandCard wide
               active={open}
               icon="pen"
               title={tr('寫作')}
@@ -251,7 +253,8 @@ export function SettingsPanel({
               </Row>
             </ExpandCard>
 
-            <ExpandCard
+            <div className="xgroup">{tr('AI 與自訂')}</div>
+            <ExpandCard wide
               active={open}
               icon="sparkle"
               title={tr('AI 改寫')}
@@ -263,7 +266,7 @@ export function SettingsPanel({
               <AiSetup s={settings} update={update} />
             </ExpandCard>
 
-            <ExpandCard
+            <ExpandCard wide
               active={open}
               icon="code"
               title={tr('自訂 CSS')}
@@ -272,8 +275,9 @@ export function SettingsPanel({
               <CssSettings settings={settings} update={update} />
             </ExpandCard>
 
-            <ExpandCard active={open} icon="type" title={tr('語言')} summary={LANGS.find((l) => l.id === settings.uiLang)?.label ?? ''}>
-              <div className="set-help">{tr('選單列、功能區分頁與群組、設定卡片標題會切換成所選語言；功能區按鈕與面板內文暫時仍是繁體中文（逐步補齊中）。')}</div>
+            <div className="xgroup">{tr('語言')}</div>
+            <ExpandCard wide active={open} icon="type" title={tr('語言')} summary={LANGS.find((l) => l.id === settings.uiLang)?.label ?? ''}>
+              <div className="set-help">{tr('除了寫作區的文字（你的文件內容）以外，選單、功能區、面板與提示訊息都會切換成所選語言。')}</div>
               <div className="lang-grid">
                 {LANGS.map((l) => (
                   <button
@@ -293,11 +297,13 @@ export function SettingsPanel({
               </div>
             </ExpandCard>
 
-            <ExpandCard active={open} icon="folder" title={tr('資料與維護')} summary={tr('備份／匯入、清除快取')}>
+            <div className="xgroup">{tr('資料與維護')}</div>
+            <ExpandCard wide active={open} icon="folder" title={tr('資料與維護')} summary={tr('備份／匯入、清除快取')}>
               <DataPanel />
             </ExpandCard>
 
-            <ExpandCard
+            <div className="xgroup">{tr('更新、快捷鍵與關於')}</div>
+            <ExpandCard wide
               active={open}
               icon="sparkle"
               title={tr('更新與關於')}
@@ -306,7 +312,7 @@ export function SettingsPanel({
               <AboutPanel version={version} status={updateStatus} />
             </ExpandCard>
 
-            <ExpandCard active={open} icon="keyboard" title={tr('快捷鍵')} action={tr('查看')} summary={`共 ${keyed.length} 個，點擊查看完整清單`}>
+            <ExpandCard wide active={open} icon="keyboard" title={tr('快捷鍵')} action={tr('查看')} summary={`共 ${keyed.length} 個，點擊查看完整清單`}>
               <div className="keylist">
                 {keyed.map((c) => (
                   <div key={c.id} className="keyrow">

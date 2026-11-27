@@ -4,6 +4,8 @@
  * 其他非中文語言查不到時退回英文；簡體中文用逐字轉換。
  */
 export const UI: Record<string, string> = {
+  '介面與外觀': 'Interface & appearance', '寫作與儲存': 'Writing & saving', 'AI 與自訂': 'AI & customization', '語言': 'Language', '更新、快捷鍵與關於': 'Updates, shortcuts & about',
+  '除了寫作區的文字（你的文件內容）以外，選單、功能區、面板與提示訊息都會切換成所選語言。': 'Everything except the writing area (your document content) — menus, ribbon, panels and messages — switches to the chosen language.',
   '隱藏代碼': 'Hide code', '顯示代碼': 'Show code', '隱藏圖表': 'Hide diagram', '顯示圖表': 'Show diagram', '只留圖、收起代碼（不影響 Markdown 內容）': 'Show only the diagram (Markdown unchanged)', '只留代碼、收起圖表': 'Show only the code',
   '資料與維護': 'Data & maintenance', '備份／匯入、清除快取': 'Backup / import, clear cache', '備份使用者資料…': 'Back up user data…', '匯入備份…': 'Import backup…', '清除快取': 'Clear cache', '匯入': 'Import',
   '備份包含：歷史版本（時光機）、時間膠囊、加密抽屜、環境音檔與所有設定。文件本身不在其中，請照平常方式保管。': 'The backup contains version history (Time Machine), time capsules, the encrypted drawer, ambient audio files and all settings. Your documents are not included — keep them as usual.',
