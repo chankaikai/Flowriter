@@ -6,7 +6,10 @@ import { createGongcheRenderer } from './gongcheRender'
 import { createLilypondRenderer } from './lilypondRenderer'
 import { createTabRenderer } from './tabRenderer'
 
-export type Engine = MusicRenderer & { play?(): Promise<void>; stop?(): void; playing?(): boolean }
+import type { Transport } from './player'
+
+/** transport() 回傳 null 代表這份譜目前沒有可播放的音符 */
+export type Engine = MusicRenderer & { transport?(): Promise<Transport | null> }
 
 /** 依圍欄語言建立對應的譜面引擎（編輯器預覽與匯出共用）。 */
 export function createEngine(lang: MusicLang): Engine {

@@ -1,5 +1,7 @@
 import type { MusicRenderer } from './types'
 import { MusicError } from './abcRenderer'
+import { gongcheEvents } from './scoreEvents'
+import type { Transport } from './player'
 import { parseGongche } from './gongche'
 import { GC, layoutGongche } from './gongcheLayout'
 
@@ -12,11 +14,13 @@ const el = (name: string, attrs: Record<string, string | number> = {}, text?: st
 }
 
 /** 工尺譜渲染器：橫排，顏色用 currentColor，不載入任何函式庫。 */
-export function createGongcheRenderer(): MusicRenderer {
+export function createGongcheRenderer(): MusicRenderer & { transport(): Promise<Transport | null> } {
   let mount: HTMLElement | null = null
+  let src = ''
   return {
     async render(source, target) {
       mount = target
+      src = source
       const r = parseGongche(source)
       if (!r.ok) {
         const e = r.errors[0]
@@ -29,10 +33,14 @@ export function createGongcheRenderer(): MusicRenderer {
       svg.style.color = 'inherit'
       const FONT = `"Noto Serif CJK TC","Noto Serif CJK SC","Songti SC","Source Han Serif","SimSun","Kaiti TC",serif`
       lay.headers.forEach((h, i) => svg.appendChild(el('text', { x: GC.margin + i * 220, y: GC.headH - 6, 'font-size': 15, fill: 'currentColor', 'font-family': FONT, opacity: 0.8 }, h)))
+      let gi = 0
       for (const l of lay.lines) {
         const base = l.y + GC.font + 4 // 字的基線
         for (const g of l.glyphs) {
           const it = g.item
+          const start = svg.childNodes.length
+          const tag = gi
+          if (it.t !== 'bar') gi++
           if (it.t === 'note') {
             svg.appendChild(el('text', { x: g.cx, y: base, 'text-anchor': 'middle', 'font-size': GC.font, fill: 'currentColor', 'font-family': FONT }, it.ch))
             // 八度點：高八度在字上方，低八度在字下方（減時線之下）
@@ -51,6 +59,11 @@ export function createGongcheRenderer(): MusicRenderer {
             svg.appendChild(el('line', { x1: x, x2: x, y1, y2, stroke: 'currentColor', 'stroke-width': it.kind === 'end' ? 2.6 : 1.4 }))
             if (it.kind !== 'single') svg.appendChild(el('line', { x1: x + 5, x2: x + 5, y1, y2, stroke: 'currentColor', 'stroke-width': it.kind === 'end' ? 1 : 1.4 }))
           }
+          if (it.t !== 'bar') {
+            const grp = el('g', { 'data-gi': tag })
+            for (const n of [...svg.childNodes].slice(start)) grp.appendChild(n)
+            svg.appendChild(grp)
+          }
         }
         for (const u of l.unders) {
           const y = base + 5 + (u.level - 1) * 5
@@ -58,6 +71,10 @@ export function createGongcheRenderer(): MusicRenderer {
         }
       }
       target.replaceChildren(svg)
+    },
+    async transport() {
+      const events = gongcheEvents(src)
+      return events.length && mount ? { events } : null
     },
     destroy() {
       mount?.replaceChildren()

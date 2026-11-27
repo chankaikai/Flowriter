@@ -8,14 +8,14 @@ import { listAbcParts } from '@/lib/music/abc'
 import { abcEdit, type AbcTool } from '@/lib/music/abcEdit'
 import { MusicError } from '@/lib/music/abcRenderer'
 import { copyElementPng } from '@/lib/copyPng'
-import { createEngine } from '@/lib/music/engines'
+import { createEngine, type Engine } from '@/lib/music/engines'
+import { NotePlayer, fmtTime, markFromEvents, type Mark, type PlayInfo, type Transport } from '@/lib/music/player'
 import { jianpuEdit, type JianpuTool } from '@/lib/music/jianpuEdit'
 import { listScoreParts } from '@/lib/music/scoreParts'
 import { gongcheEdit } from '@/lib/music/gongcheEdit'
 import { GONGCHE_CHARS } from '@/lib/music/gongche'
 import { standaloneSvg, svgFileName } from '@/lib/music/svgExport'
 import { tabEdit, type TabTool } from '@/lib/music/tabEdit'
-import type { MusicRenderer } from '@/lib/music/types'
 import { getLang, tr } from '@/lib/i18n'
 
 /**
@@ -24,8 +24,6 @@ import { getLang, tr } from '@/lib/i18n'
  * 所有樂譜庫都是動態 import：文件裡沒有對應圍欄就不會載入。
  */
 
-type Engine = MusicRenderer & { play?(): Promise<void>; stop?(): void; playing?(): boolean }
-
 interface Block {
   lang: MusicLang
   el: HTMLElement
@@ -33,7 +31,17 @@ interface Block {
   err: HTMLElement
   bar: HTMLElement
   select: HTMLSelectElement
-  playBtn: HTMLButtonElement
+  /** 播放控制：播放／暫停、停止、進度條、狀態文字 */
+  tp: { play: HTMLButtonElement; stop: HTMLButtonElement; range: HTMLInputElement; status: HTMLElement; wrap: HTMLElement }
+  player: NotePlayer | null
+  transport: Transport | null
+  /** 正在高亮的譜面元素與代碼範圍 */
+  lit: Element[]
+  litKey: string
+  ranges: [number, number][]
+  /** 圍欄內文第一個字元在文件中的位置 */
+  base: number
+  loading: boolean
   engine: Engine
   part: string
   source: string
@@ -73,7 +81,7 @@ async function draw(b: Block): Promise<void> {
     b.mount.replaceChildren()
     b.err.textContent = e instanceof MusicError ? e.message : `無法渲染：${String((e as Error)?.message ?? e).split('\n')[0].slice(0, 160)}`
   }
-  b.playBtn.textContent = tr('▶ 播放')
+  resetPlayer(b) // 譜變了：舊的播放內容作廢
 }
 
 function partsOf(b: Block): { id: string; name: string }[] {
@@ -95,6 +103,147 @@ function syncParts(b: Block): void {
   }
 }
 
+
+/* ------------------------------ 播放控制 ------------------------------ */
+
+function makeTransport(): Block['tp'] {
+  const wrap = document.createElement('div')
+  wrap.className = 'music-tp'
+  const mk = (cls: string, text: string, title: string) => {
+    const x = document.createElement('button')
+    x.className = cls
+    x.textContent = text
+    x.title = tr(title)
+    x.addEventListener('mousedown', (e) => e.preventDefault())
+    return x
+  }
+  const play = mk('music-play', '▶', '播放／暫停')
+  const stop = mk('music-stop', '■', '停止並回到開頭')
+  const range = document.createElement('input')
+  range.type = 'range'
+  range.className = 'music-seek'
+  range.min = '0'
+  range.max = '1000'
+  range.value = '0'
+  range.title = tr('拖曳跳到想聽的位置')
+  const status = document.createElement('span')
+  status.className = 'music-status'
+  status.textContent = tr('尚未播放')
+  wrap.append(play, stop, range, status)
+  return { play, stop, range, status, wrap }
+}
+
+function clearMarks(b: Block, reg: Reg): void {
+  for (const e of b.lit) e.classList.remove('mp-on')
+  b.lit = []
+  b.litKey = ''
+  if (b.ranges.length) {
+    b.ranges = []
+    pokeHl(reg)
+  }
+}
+
+function pokeHl(reg: Reg): void {
+  const v = reg.view
+  if (v && !v.isDestroyed) v.dispatch(v.state.tr.setMeta(musicKey, 'hl').setMeta('addToHistory', false))
+}
+
+function resetPlayer(b: Block, reg?: Reg): void {
+  b.player?.destroy()
+  b.player = null
+  b.transport = null
+  for (const e of b.lit) e.classList.remove('mp-on')
+  b.lit = []
+  b.litKey = ''
+  b.ranges = []
+  b.tp.play.textContent = '▶'
+  b.tp.range.value = '0'
+  b.tp.status.textContent = tr('尚未播放')
+  if (reg) pokeHl(reg)
+}
+
+const STATUS: Record<string, string> = { idle: '已停止', loading: '載入中…', playing: '播放中', paused: '已暫停', ended: '播放完畢' }
+
+function wireTransport(b: Block, reg: Reg): void {
+  const { play, stop, range, status } = b.tp
+  let dragging = false
+  const onInfo = (i: PlayInfo) => {
+    play.textContent = i.status === 'playing' ? '⏸' : '▶'
+    status.textContent = `${tr(STATUS[i.status] ?? '')}  ${fmtTime(i.cur)} / ${fmtTime(i.total)}`
+    if (!dragging && i.total > 0) range.value = String(Math.round((i.cur / i.total) * 1000))
+  }
+  const apply = (m: Mark) => {
+    if (m.key === b.litKey) return
+    b.litKey = m.key
+    for (const e of b.lit) e.classList.remove('mp-on')
+    b.lit = m.els
+    for (const e of m.els) e.classList.add('mp-on')
+    const same = m.ranges.length === b.ranges.length && m.ranges.every((r, i) => r[0] === b.ranges[i][0] && r[1] === b.ranges[i][1])
+    b.ranges = m.ranges
+    if (!same) pokeHl(reg)
+  }
+  const ensure = async (): Promise<boolean> => {
+    if (b.player) return true
+    if (b.loading) return false
+    if (!b.engine.transport) {
+      status.textContent = tr('這種譜暫不支援播放')
+      return false
+    }
+    b.loading = true
+    status.textContent = tr('載入中…')
+    try {
+      const t = await b.engine.transport()
+      if (b.dead) return false
+      if (!t) {
+        status.textContent = tr('這份譜沒有可播放的音符（先確認譜面能正常顯示）')
+        return false
+      }
+      b.transport = t
+      b.player = new NotePlayer(t.events, {
+        onInfo,
+        onActive: () => undefined,
+        onTime: (sec) => apply(t.mark ? t.mark(sec) : markFromEvents(t.events, b.mount, sec))
+      })
+      return true
+    } catch (e) {
+      status.textContent = e instanceof MusicError ? e.message : `${tr('無法播放')}：${String((e as Error)?.message ?? e).slice(0, 100)}`
+      return false
+    } finally {
+      b.loading = false
+    }
+  }
+  play.addEventListener('click', async () => {
+    if (b.player?.state === 'playing') {
+      b.player.pause()
+      return
+    }
+    if (!(await ensure())) return
+    try {
+      await b.player!.play()
+    } catch (e) {
+      status.textContent = `${tr('無法播放')}：${String((e as Error)?.message ?? e).slice(0, 100)}`
+    }
+  })
+  stop.addEventListener('click', () => {
+    b.player?.stop()
+    clearMarks(b, reg)
+    range.value = '0'
+    status.textContent = tr('已停止')
+  })
+  range.addEventListener('pointerdown', () => (dragging = true))
+  range.addEventListener('change', () => (dragging = false))
+  range.addEventListener('input', async () => {
+    dragging = true
+    if (!(await ensure())) {
+      range.value = '0'
+      dragging = false
+      return
+    }
+    b.player!.seek(+range.value / 1000)
+  })
+  range.addEventListener('pointerup', () => (dragging = false))
+}
+
 function create(lang: MusicLang, source: string, key: string, reg: Reg): Block {
   const el = document.createElement('div')
   el.className = 'music-block'
@@ -105,10 +254,6 @@ function create(lang: MusicLang, source: string, key: string, reg: Reg): Block {
   const select = document.createElement('select')
   select.className = 'music-part'
   select.title = tr('聲部')
-  const playBtn = document.createElement('button')
-  playBtn.className = 'music-play'
-  playBtn.textContent = tr('▶ 播放')
-  // 只有 abc 有聲部與播放；其他譜種這一階段不做播放
   const hideBtn = document.createElement('button')
   hideBtn.className = 'music-hide'
   const hideScoreBtn = document.createElement('button')
@@ -133,7 +278,8 @@ function create(lang: MusicLang, source: string, key: string, reg: Reg): Block {
     btn.addEventListener('click', () => toggle(what))
   }
   if (lang === 'abc' || lang === 'mei' || lang === 'xml') bar.append(select)
-  if (lang === 'abc' || lang === 'tab') bar.append(playBtn)
+  const tp = makeTransport()
+  bar.append(tp.wrap)
   const dlBtn = document.createElement('button')
   dlBtn.className = 'music-dl'
   dlBtn.textContent = tr('下載 SVG')
@@ -185,27 +331,12 @@ function create(lang: MusicLang, source: string, key: string, reg: Reg): Block {
   const err = document.createElement('div')
   err.className = 'music-err'
   el.append(bar, mount, err)
-  const b: Block = { lang, el, mount, err, bar, select, playBtn, engine: createEngine(lang), part: 'all', source, timer: 0, seq: 0, dead: false }
+  const b: Block = { lang, el, mount, err, bar, select, tp, player: null, transport: null, lit: [], litKey: '', ranges: [], base: 0, loading: false, engine: createEngine(lang), part: 'all', source, timer: 0, seq: 0, dead: false }
   select.addEventListener('change', () => {
     b.part = select.value
     schedule(b, true)
   })
-  playBtn.addEventListener('mousedown', (e) => e.preventDefault())
-  playBtn.addEventListener('click', async () => {
-    if (b.engine.playing?.()) {
-      b.engine.stop?.()
-      playBtn.textContent = tr('▶ 播放')
-      return
-    }
-    playBtn.textContent = tr('載入音源…')
-    try {
-      await b.engine.play?.()
-      playBtn.textContent = b.engine.playing?.() ? tr('■ 停止') : tr('▶ 播放')
-    } catch (e) {
-      playBtn.textContent = tr('▶ 播放')
-      err.textContent = e instanceof MusicError ? e.message : `無法播放：${String((e as Error)?.message ?? e).slice(0, 120)}`
-    }
-  })
+  wireTransport(b, reg)
   syncParts(b)
   schedule(b)
   return b
@@ -228,6 +359,7 @@ function build(doc: PMNode, reg: Reg): DecorationSet {
     alive.add(key)
     const code = node.textContent
     const existing = reg.blocks.get(key)
+    if (existing) existing.base = pos + 1
     if (existing && existing.source !== code) {
       existing.source = code
       syncParts(existing)
@@ -241,6 +373,7 @@ function build(doc: PMNode, reg: Reg): DecorationSet {
           let b = reg.blocks.get(key)
           if (!b || b.dead) {
             b = create(lang, code, key, reg)
+            b.base = pos + 1
             reg.blocks.set(key, b)
           }
           return b.el
@@ -258,6 +391,7 @@ function build(doc: PMNode, reg: Reg): DecorationSet {
               if (reg.live.has(key) || reg.blocks.get(key) !== b) return
               b.dead = true
               window.clearTimeout(b.timer)
+              b.player?.destroy()
               b.engine.destroy()
               reg.blocks.delete(key)
             }, 0)
@@ -352,7 +486,19 @@ export const musicPlugin = $prose(() => {
         apply: (tr, old) => (tr.docChanged || tr.getMeta(musicKey) === 'rebuild' ? build(tr.doc, reg) : old)
       },
       props: {
-        decorations: (st) => musicKey.getState(st)
+        decorations: (st) => {
+          const set = musicKey.getState(st)!
+          const extra: Decoration[] = []
+          const size = st.doc.content.size
+          for (const b of reg.blocks.values()) {
+            for (const [a, z] of b.ranges) {
+              const from = b.base + a
+              const to = b.base + z
+              if (from >= 1 && to <= size && from < to) extra.push(Decoration.inline(from, to, { class: 'music-play-hl' }))
+            }
+          }
+          return extra.length ? set.add(st.doc, extra) : set
+        }
       },
       view(v) {
         reg.view = v
@@ -417,6 +563,7 @@ export const musicPlugin = $prose(() => {
             for (const [k, b] of reg.blocks) {
               b.dead = true
               window.clearTimeout(b.timer)
+              b.player?.destroy()
               b.engine.destroy()
               reg.blocks.delete(k)
             }

@@ -4,6 +4,18 @@
  * 其他非中文語言查不到時退回英文；簡體中文用逐字轉換。
  */
 export const UI: Record<string, string> = {
+  '播放／暫停': 'Play / pause',
+  '停止並回到開頭': 'Stop and rewind',
+  '拖曳跳到想聽的位置': 'Drag to seek',
+  '尚未播放': 'Not played yet',
+  '已停止': 'Stopped',
+  '載入中…': 'Loading…',
+  '播放中': 'Playing',
+  '已暫停': 'Paused',
+  '播放完畢': 'Finished',
+  '無法播放': 'Cannot play',
+  '這種譜暫不支援播放': 'Playback is not supported for this notation',
+  '這份譜沒有可播放的音符（先確認譜面能正常顯示）': 'Nothing playable in this score (make sure it renders first)',
   '介面與外觀': 'Interface & appearance', '寫作與儲存': 'Writing & saving', 'AI 與自訂': 'AI & customization', '語言': 'Language', '更新、快捷鍵與關於': 'Updates, shortcuts & about',
   '除了寫作區的文字（你的文件內容）以外，選單、功能區、面板與提示訊息都會切換成所選語言。': 'Everything except the writing area (your document content) — menus, ribbon, panels and messages — switches to the chosen language.',
   '隱藏代碼': 'Hide code', '顯示代碼': 'Show code', '隱藏圖表': 'Hide diagram', '顯示圖表': 'Show diagram', '只留圖、收起代碼（不影響 Markdown 內容）': 'Show only the diagram (Markdown unchanged)', '只留代碼、收起圖表': 'Show only the code',

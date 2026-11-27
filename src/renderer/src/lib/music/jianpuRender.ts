@@ -2,6 +2,8 @@ import type { MusicRenderer, MusicRenderOptions } from './types'
 import { parseJianpu } from './jianpu'
 import { layoutJianpu, NOTE_W } from './jianpuLayout'
 import { MusicError } from './abcRenderer'
+import { jianpuEvents } from './scoreEvents'
+import type { Transport } from './player'
 
 const NS = 'http://www.w3.org/2000/svg'
 const el = (name: string, attrs: Record<string, string | number> = {}, text?: string): SVGElement => {
@@ -12,11 +14,13 @@ const el = (name: string, attrs: Record<string, string | number> = {}, text?: st
 }
 
 /** 簡譜渲染器：自寫的 SVG，不依賴任何樂譜庫。所有顏色用 currentColor，跟著主題走。 */
-export function createJianpuRenderer(): MusicRenderer {
+export function createJianpuRenderer(): MusicRenderer & { transport(): Promise<Transport | null> } {
   let mount: HTMLElement | null = null
+  let src = ''
   return {
     async render(source: string, target: HTMLElement, _options: MusicRenderOptions) {
       mount = target
+      src = source
       const r = parseJianpu(source)
       target.replaceChildren()
       if (!r.ok) {
@@ -40,22 +44,24 @@ export function createJianpuRenderer(): MusicRenderer {
           g.appendChild(el('text', { x: (f.x1 + f.x2) / 2, y: line.funcY, 'font-size': 12, 'text-anchor': 'middle', opacity: 0.8 }, f.text))
         }
         for (const gl of line.glyphs) {
+          const gg = el('g', { 'data-gi': gl.gi })
+          g.appendChild(gg)
           if (gl.kind === 'dash') {
-            g.appendChild(el('line', { x1: gl.x - 8, x2: gl.x + 8, y1: line.base - 7, y2: line.base - 7, stroke: 'currentColor', 'stroke-width': 1.6 }))
+            gg.appendChild(el('line', { x1: gl.x - 8, x2: gl.x + 8, y1: line.base - 7, y2: line.base - 7, stroke: 'currentColor', 'stroke-width': 1.6 }))
             continue
           }
           const n = gl.notes.length
           gl.notes.forEach((note, i) => {
             const y = line.base - i * 22
-            g.appendChild(el('text', { x: gl.x, y, 'font-size': 22, 'text-anchor': 'middle', 'font-family': 'ui-sans-serif, system-ui, sans-serif' }, String(note.deg)))
+            gg.appendChild(el('text', { x: gl.x, y, 'font-size': 22, 'text-anchor': 'middle', 'font-family': 'ui-sans-serif, system-ui, sans-serif' }, String(note.deg)))
             if (note.oct > 0 && (gl.kind === 'note' || i === n - 1)) {
-              for (let k = 0; k < note.oct; k++) g.appendChild(el('circle', { cx: gl.x, cy: y - 20 - k * 5, r: 1.7 }))
+              for (let k = 0; k < note.oct; k++) gg.appendChild(el('circle', { cx: gl.x, cy: y - 20 - k * 5, r: 1.7 }))
             }
             if (note.oct < 0 && (gl.kind === 'note' || i === 0)) {
-              for (let k = 0; k < -note.oct; k++) g.appendChild(el('circle', { cx: gl.x, cy: y + 6 + gl.under * 4 + 4 + k * 5, r: 1.7 }))
+              for (let k = 0; k < -note.oct; k++) gg.appendChild(el('circle', { cx: gl.x, cy: y + 6 + gl.under * 4 + 4 + k * 5, r: 1.7 }))
             }
           })
-          if (gl.dot) g.appendChild(el('circle', { cx: gl.x + 11, cy: line.base - 2, r: 1.8 }))
+          if (gl.dot) gg.appendChild(el('circle', { cx: gl.x + 11, cy: line.base - 2, r: 1.8 }))
         }
         for (const u of line.under) {
           const y = line.base + 3 + (u.level - 1) * 4
@@ -83,6 +89,10 @@ export function createJianpuRenderer(): MusicRenderer {
       }
       void NOTE_W
       target.appendChild(svg)
+    },
+    async transport() {
+      const events = jianpuEvents(src)
+      return events.length && mount ? { events } : null
     },
     destroy() {
       mount?.replaceChildren()

@@ -325,3 +325,12 @@ html[data-tone='dark'] .music-block[data-lang='lilypond'] .music-mount svg { fil
 .mm-bar { display: flex; justify-content: flex-end; gap: 6px; margin: 2px 0; }
 .mm-bar button { font-size: 11.5px; padding: 1px 9px; border-radius: 10px; color: var(--fg-muted); background: var(--hover); border: 0; opacity: .75; }
 .mm-bar button:hover { opacity: 1; color: var(--accent); }
+
+/* 樂譜播放控制與高亮 */
+.music-tp { display: flex; align-items: center; gap: 6px; flex: 1 1 auto; min-width: 0; }
+.music-tp button { font-size: 12px; min-width: 28px; padding: 2px 8px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
+.music-tp .music-seek { flex: 1 1 120px; min-width: 60px; max-width: 360px; accent-color: var(--accent, #4a8cff); cursor: pointer; }
+.music-tp .music-status { font-size: 11px; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.music-block .mp-on, .music-block .mp-on * { fill: var(--accent, #4a8cff) !important; }
+.music-block .mp-on line, .music-block .mp-on path, .music-block .mp-on rect { stroke: var(--accent, #4a8cff) !important; }
+.music-play-hl { background: color-mix(in srgb, var(--accent, #4a8cff) 30%, transparent); border-radius: 3px; }

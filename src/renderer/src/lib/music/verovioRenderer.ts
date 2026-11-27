@@ -1,4 +1,5 @@
 import type { MusicRenderer, MusicRenderOptions } from './types'
+import { parseMidi, type Mark, type Transport } from './player'
 import { MusicError } from './abcRenderer'
 import { checkScoreSource, filterScoreParts, type ScoreLang } from './scoreParts'
 
@@ -23,8 +24,10 @@ async function getToolkit(): Promise<any> {
   return toolkitPromise
 }
 
-export function createVerovioRenderer(lang: ScoreLang): MusicRenderer {
+export function createVerovioRenderer(lang: ScoreLang): MusicRenderer & { transport(): Promise<Transport | null> } {
   let mount: HTMLElement | null = null
+  let lastText = ''
+  let opts: any = null
   return {
     async render(source: string, el: HTMLElement, options: MusicRenderOptions) {
       mount = el
@@ -39,7 +42,8 @@ export function createVerovioRenderer(lang: ScoreLang): MusicRenderer {
       }
       const width = Math.max(480, Math.round(el.clientWidth || 800))
       const scale = 40
-      tk.setOptions({
+      opts = {
+        xmlIdSeed: 1, // 固定 id 種子：播放時重新載入同一份資料，元素 id 才會和畫面上的一致
         scale,
         pageWidth: Math.round((width * 100) / scale),
         pageHeight: 60000,
@@ -49,7 +53,9 @@ export function createVerovioRenderer(lang: ScoreLang): MusicRenderer {
         header: 'none',
         footer: 'none',
         svgRemoveXlink: true
-      })
+      }
+      tk.setOptions(opts)
+      lastText = text
       const ok = tk.loadData(text)
       const pages: number = ok ? tk.getPageCount() : 0
       if (!ok || pages < 1) {
@@ -71,6 +77,43 @@ export function createVerovioRenderer(lang: ScoreLang): MusicRenderer {
         frag.appendChild(wrap)
       }
       el.replaceChildren(frag)
+    },
+    async transport() {
+      if (!lastText || !mount) return null
+      const tk = await getToolkit()
+      tk.setOptions(opts) // 共用的 toolkit 可能剛渲染過別的譜：重新載入這一份
+      if (!tk.loadData(lastText)) return null
+      const b64: string = tk.renderToMIDI()
+      if (!b64) return null
+      const bin = atob(b64)
+      const bytes = new Uint8Array(bin.length)
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+      const events = parseMidi(bytes)
+      if (!events.length) return null
+      const map: { tstamp: number; on?: string[]; off?: string[] }[] = tk.renderToTimemap({ includeRests: false, includeMeasures: false }) ?? []
+      const span = new Map<string, [number, number]>()
+      for (const m of map) {
+        for (const id of m.on ?? []) span.set(id, [m.tstamp, Infinity])
+        for (const id of m.off ?? []) {
+          const s = span.get(id)
+          if (s) s[1] = m.tstamp
+        }
+      }
+      const root = mount
+      return {
+        events,
+        mark(sec: number): Mark {
+          const ms = sec * 1000
+          const ids: string[] = []
+          for (const [id, [a, b]] of span) if (a <= ms && ms < b) ids.push(id)
+          const els: Element[] = []
+          for (const id of ids) {
+            const n = root.querySelector(`[id="${id}"]`)
+            if (n) els.push(n)
+          }
+          return { key: ids.join(','), els, ranges: [] }
+        }
+      }
     },
     destroy() {
       mount?.replaceChildren()

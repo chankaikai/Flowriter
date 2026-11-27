@@ -1,3 +1,5 @@
+import { lilypondEvents } from './lilypondEvents'
+import type { Transport } from './player'
 import type { MusicRenderer } from './types'
 import { MusicError } from './abcRenderer'
 
@@ -123,13 +125,15 @@ function svgFiles(result: any): string[] {
 
 const mb = (n: number) => (n / 1048576).toFixed(1)
 
-export function createLilypondRenderer(): MusicRenderer {
+export function createLilypondRenderer(): MusicRenderer & { transport(): Promise<Transport | null> } {
   let mount: HTMLElement | null = null
+  let src = ''
   let gen = 0
   let off: (() => void) | null = null
   return {
     async render(source, target) {
       mount = target
+      src = source
       const my = ++gen
       const text = source.replace(/^﻿/, '')
       if (!text.trim()) throw new MusicError('這個 lilypond 圍欄是空的')
@@ -177,6 +181,10 @@ export function createLilypondRenderer(): MusicRenderer {
         if (off === offLocal) off = null
         status.remove()
       }
+    },
+    async transport() {
+      const events = lilypondEvents(src)
+      return events.length ? { events } : null
     },
     destroy() {
       gen++ // 讓還在排隊或編譯中的結果作廢

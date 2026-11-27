@@ -1,6 +1,7 @@
 import type { MusicRenderer, MusicRenderOptions } from './types'
 import { MusicError } from './abcRenderer'
 import { withDefaultTuning } from './tabEdit'
+import type { NoteEv, Transport } from './player'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -34,7 +35,7 @@ function settings(el: HTMLElement, player: boolean): any {
   return s
 }
 
-export function createTabRenderer(): MusicRenderer & { play(): Promise<void>; stop(): void; playing(): boolean } {
+export function createTabRenderer(): MusicRenderer & { transport(): Promise<Transport | null> } {
   let mount: HTMLElement | null = null
   let host: HTMLElement | null = null
   let api: any = null
@@ -98,33 +99,26 @@ export function createTabRenderer(): MusicRenderer & { play(): Promise<void>; st
         throw e
       }
     },
-    async play() {
-      if (!mount || !lastSource) return
-      if (api && withPlayer) {
-        api.playPause()
-        return
-      }
-      // 第一次播放：用啟用播放器的設定重建，這時才會載入音源與 audio worklet
-      await build(mount, lastSource, true)
-      await new Promise<void>((resolve, reject) => {
-        const t = window.setTimeout(() => reject(new MusicError('音源載入逾時')), 60000)
-        const go = () => {
-          window.clearTimeout(t)
-          resolve()
-        }
-        if (api.isReadyForPlayback) go()
-        else api.playerReady.on(go)
-      })
-      api.play()
+    async transport() {
+      const score = api?.score
+      if (!score) return null
+      // 960 ticks = 一個四分音符；只依樂譜起始速度計時（不處理中途變速）
+      const sec = (ticks: number) => (ticks / 960) * (60 / (score.tempo || 120))
+      const events: NoteEv[] = []
+      for (const track of score.tracks ?? [])
+        for (const staff of track.staves ?? [])
+          for (const bar of staff.bars ?? [])
+            for (const voice of bar.voices ?? [])
+              for (const beat of voice.beats ?? []) {
+                if (beat.isRest) continue
+                for (const n of beat.notes ?? []) {
+                  if (n.isTieDestination || n.isDead) continue
+                  const t = sec(beat.absolutePlaybackStart)
+                  events.push({ t, d: Math.max(0.05, sec(beat.playbackDuration)), midi: n.realValue })
+                }
+              }
+      return events.length ? { events } : null
     },
-    stop() {
-      try {
-        if (api && withPlayer) api.stop()
-      } catch {
-        /* ignore */
-      }
-    },
-    playing: () => !!api && withPlayer && api.playerState === 1,
     destroy() {
       gen++
       dispose()
