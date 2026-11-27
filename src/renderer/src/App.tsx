@@ -25,6 +25,7 @@ import { TimeMachine } from '@/components/TimeMachine'
 import { VaultPanel } from '@/components/VaultPanel'
 import { ReversePanel } from '@/components/ReversePanel'
 import { Pomodoro } from '@/components/Pomodoro'
+import { ExportDialog } from '@/components/ExportDialog'
 import { SoundPanel, SpectrumBar } from '@/components/MusicPanel'
 import { VoiceRecorder, type VoiceResult } from '@/components/VoiceRecorder'
 import { addVoice, anchorOf, emptyVoice, parseVoice, removeVoice, serializeVoice, type VoiceFile } from '@/lib/voice'
@@ -856,6 +857,11 @@ export default function App() {
           return
         }
       }
+      if (kind === 'html' || kind === 'pdf' || kind === 'print') {
+        // 這三種有設定與預覽：開對話框，實際輸出在對話框裡進行
+        setExportDlg(kind)
+        return
+      }
       try {
         let out: string | null = null
         if (kind === 'md') {
@@ -1369,6 +1375,7 @@ export default function App() {
     else actionsRef.current.showSidebarTab(tab)
   }
   const [pomoSignal, setPomoSignal] = useState(0)
+  const [exportDlg, setExportDlg] = useState<null | 'html' | 'pdf' | 'print'>(null)
   const [popSlot, setPopSlot] = useState<HTMLElement | null>(null)
   const [cmp, setCmp] = useState<{ current: CompareSource; others: CompareSource[] } | null>(null)
   const wordsRef = useRef(0)
@@ -2166,6 +2173,16 @@ export default function App() {
       </div>
       </div>
       {recAnchor !== null && <VoiceRecorder onDone={(r) => void finishVoice(r)} onCancel={() => setRecAnchor(null)} onError={showToast} />}
+      {exportDlg && (
+        <ExportDialog
+          kind={exportDlg}
+          md={mdRef.current}
+          base={stripExt(docRef.current.name)}
+          dir={docRef.current.path ? dirname(docRef.current.path) : null}
+          onClose={() => setExportDlg(null)}
+          onDone={showToast}
+        />
+      )}
       <Pomodoro getWords={() => wordsRef.current} openSignal={pomoSignal} slot={popSlot} otherPanelOpen={panel !== null} onDockOpen={() => setPanel(null)} />
       <footer className="statusbar">
         <button className="sb-btn gear" onClick={() => setSettingsOpen(true)} title={`偏好設定 (${hint('app.settings') ?? ''})`}>

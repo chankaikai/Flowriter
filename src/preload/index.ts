@@ -26,6 +26,7 @@ const api: InkwellApi = {
   readDataUrl: (p) => inv('file:dataUrl', p),
   exportFile: (o) => inv('export:save', o),
   exportPdf: (o) => inv('export:pdf', o),
+  exportPrint: (o) => inv('export:print', o),
   getLaunchFile: () => inv('app:launchFile'),
   getInitialDoc: () => inv('app:initialDoc'),
   detachTab: (d, pos) => inv('win:detach', d, pos),

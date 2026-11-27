@@ -558,3 +558,21 @@ body.tab-out .tabsbar::after { content: '放開即可在新視窗中開啟'; pos
 .mus-vol input[type=range] { flex: 1; }
 .mus-sb canvas { width: 60px; height: 14px; color: var(--accent, #4a8cff); }
 .mus-sb-title { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+
+/* 匯出／列印設定 */
+.xp-overlay { position: fixed; inset: 0; z-index: 90; background: rgba(20, 18, 14, 0.35); display: flex; align-items: center; justify-content: center; -webkit-app-region: no-drag; }
+.xp-dlg { display: flex; width: min(1080px, 94vw); height: min(720px, 90vh); border-radius: 18px; overflow: hidden; background: var(--glass-bg-strong); border: 1px solid var(--glass-edge); backdrop-filter: var(--glass-blur); box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35); }
+.xp-form { width: 300px; flex: none; padding: 16px 18px; overflow: auto; display: flex; flex-direction: column; gap: 10px; border-right: 1px solid var(--line); font-size: 12.5px; }
+.xp-form h3 { margin: 0; font-size: 15px; }
+.xp-row { display: flex; gap: 10px; }
+.xp-row label, .xp-num { display: flex; flex-direction: column; gap: 3px; flex: 1; font-size: 12px; color: var(--fg-muted); }
+.xp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.xp-form select, .xp-form input[type=number], .xp-css textarea { padding: 4px 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--trough); color: var(--fg); font-size: 12.5px; }
+.xp-check { display: flex; align-items: center; gap: 6px; flex-direction: row !important; }
+.xp-css { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--fg-muted); }
+.xp-css textarea { min-height: 70px; font-family: Consolas, monospace; resize: vertical; }
+.xp-actions { display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 8px; }
+.xp-actions .grow { flex: 1; }
+.xp-prev { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.xp-prev-head { padding: 10px 14px; font-size: 12px; color: var(--fg-muted); border-bottom: 1px solid var(--line); }
+.xp-prev iframe { flex: 1; width: 100%; border: 0; background: #fff; }

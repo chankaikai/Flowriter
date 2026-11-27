@@ -136,14 +136,14 @@ export async function renderHtmlBody(md: string, docDir: string | null, musicHid
   return dom.body.innerHTML
 }
 
-export function buildHtmlDocument(title: string, body: string): string {
+export function buildHtmlDocument(title: string, body: string, extraCss = ''): string {
   return `<!doctype html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
-<style>${EXPORT_CSS}${TOC_CSS}${SYNTAX_CSS}</style>
+<style>${EXPORT_CSS}${TOC_CSS}${SYNTAX_CSS}${extraCss}</style>
 </head>
 <body>
 ${body}

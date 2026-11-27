@@ -464,7 +464,7 @@ function registerIpc(): void {
     }
   )
 
-  ipcMain.handle('export:pdf', async (e, o: { name: string; html: string }) => {
+  ipcMain.handle('export:pdf', async (e, o: { name: string; html: string; header?: string; footer?: string }) => {
     const win = BrowserWindow.fromWebContents(e.sender)!
     const r = await dialog.showSaveDialog(win, {
       defaultPath: `${o.name}.pdf`,
@@ -477,9 +477,30 @@ function registerIpc(): void {
     try {
       await w.loadFile(tmp)
       await w.webContents.executeJavaScript('document.fonts.ready.then(() => true)')
-      const pdf = await w.webContents.printToPDF({ preferCSSPageSize: true, printBackground: true })
+      const pdf = await w.webContents.printToPDF({
+        preferCSSPageSize: true,
+        printBackground: true,
+        ...(o.header !== undefined || o.footer !== undefined ? { displayHeaderFooter: true, headerTemplate: String(o.header ?? '<div></div>'), footerTemplate: String(o.footer ?? '<div></div>') } : {})
+      })
       await fs.writeFile(r.filePath, pdf)
       return r.filePath
+    } finally {
+      w.destroy()
+      fs.unlink(tmp).catch(() => {})
+    }
+  })
+
+  /** 列印：用隱藏視窗載入匯出用 HTML，交給系統列印對話框（印表機、份數、頁範圍在那裡選） */
+  ipcMain.handle('export:print', async (_e, o: { html: string }) => {
+    const tmp = join(tmpdir(), `inkwell-print-${Date.now()}.html`)
+    await fs.writeFile(tmp, String(o.html), 'utf8')
+    const w = new BrowserWindow({ show: false, webPreferences: { sandbox: true } })
+    try {
+      await w.loadFile(tmp)
+      await w.webContents.executeJavaScript('document.fonts.ready.then(() => true)')
+      return await new Promise<{ ok: boolean; reason: string }>((resolve) => {
+        w.webContents.print({ silent: false, printBackground: true }, (ok, reason) => resolve({ ok, reason: reason || '' }))
+      })
     } finally {
       w.destroy()
       fs.unlink(tmp).catch(() => {})

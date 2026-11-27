@@ -2,7 +2,7 @@ import type { FormatName } from '@/editor/MarkdownEditor'
 import type { SidebarTab, ThemeName } from './settings'
 import { THEMES } from './themes'
 
-export type ExportKind = 'html' | 'pdf' | 'docx' | 'md' | 'png'
+export type ExportKind = 'html' | 'pdf' | 'docx' | 'md' | 'png' | 'print'
 export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks' | 'vault' | 'diag' | 'clips' | 'notes' | 'radar' | 'refs' | 'reverse' | 'about' | 'resumes' | 'ambient'
 
 export interface Actions {
@@ -79,6 +79,7 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'file.save', title: '儲存', group: '檔案', keys: ['Mod+S'], run: a.save },
     { id: 'file.saveAs', title: '另存為…', group: '檔案', keys: ['Mod+Shift+S'], run: a.saveAs },
     { id: 'export.html', title: '匯出為 HTML…', group: '匯出', run: () => a.exportAs('html') },
+    { id: 'file.print', title: '列印…', group: '檔案', run: () => a.exportAs('print') },
     { id: 'export.pdf', title: '匯出為 PDF…', group: '匯出', run: () => a.exportAs('pdf') },
     { id: 'export.docx', title: '匯出為 Word…', group: '匯出', run: () => a.exportAs('docx') },
     { id: 'export.png', title: '匯出為分享長圖…', group: '匯出', run: () => a.exportAs('png') },
