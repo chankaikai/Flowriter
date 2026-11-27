@@ -7,10 +7,11 @@
 import { app, BrowserWindow, dialog, ipcMain, session } from 'electron'
 import { basename, join, relative, resolve, sep } from 'node:path'
 import { promises as fs } from 'node:fs'
+import { resetSidecarKey, sidecarKeyPath } from './sidecar'
 
 const MAX_BYTES = 400 * 1024 * 1024
 const DIRS = ['history', 'capsules', 'ambient-user', 'ambient']
-const FILES = ['drawer.enc']
+const FILES = ['drawer.enc', 'sidecar.key']
 const CACHE_DIRS = ['Cache', 'Code Cache', 'GPUCache', 'DawnCache', 'GrShaderCache', 'ShaderCache', 'Service Worker/CacheStorage']
 
 async function walk(dir: string, base: string, out: { rel: string; abs: string; size: number }[]): Promise<void> {
@@ -46,6 +47,9 @@ export function setupDataTools(): void {
     try {
       const list: { rel: string; abs: string; size: number }[] = []
       for (const d of DIRS) await walk(join(ud(), d), ud(), list)
+      const keyFile = sidecarKeyPath()
+      const kst = await fs.stat(keyFile).catch(() => null)
+      if (kst?.isFile()) list.push({ rel: 'sidecar.key', abs: keyFile, size: kst.size })
       for (const f of FILES) {
         const abs = join(ud(), f)
         const st = await fs.stat(abs).catch(() => null)
@@ -89,6 +93,7 @@ export function setupDataTools(): void {
         await fs.writeFile(dest, Buffer.from(f.b, 'base64'))
         n++
       }
+      resetSidecarKey()
       return { ok: true as const, count: n, local: bundle.local ?? {}, name: basename(r.filePaths[0]) }
     } catch (err) {
       return { ok: false as const, reason: err instanceof Error ? err.message : String(err) }

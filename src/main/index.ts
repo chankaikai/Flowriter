@@ -10,6 +10,7 @@ import { setupInbox } from './inbox'
 import { setupUpdater } from './updater'
 import { setupAmbient } from './ambient'
 import { setupDataTools } from './dataTools'
+import { readSidecar, writeSidecar } from './sidecar'
 import { runNative, stopNative } from './nativeRun'
 import type { DirEntry, FileListItem, MaterialSupport, SearchHit } from '../shared/types'
 
@@ -1087,65 +1088,26 @@ function registerIpc(): void {
   })
   // 頁邊便條：存在文件旁的 .inkwell/notes.json，不碰 .md 本身
   const notesFile = (p: string) => join(dirname(p), '.inkwell', 'notes.json')
-  ipcMain.handle('notes:read', async (_e, p: string) => {
-    try {
-      return await fs.readFile(notesFile(p), 'utf8')
-    } catch {
-      return ''
-    }
-  })
+  ipcMain.handle('notes:read', (_e, p: string) => readSidecar(notesFile(p)))
   ipcMain.handle('notes:write', async (_e, p: string, json: string) => {
     if (typeof json !== 'string' || json.length > 2_000_000) return false
-    try {
-      const f = notesFile(p)
-      await fs.mkdir(dirname(f), { recursive: true })
-      await fs.writeFile(f, json, 'utf8')
-      return true
-    } catch {
-      return false
-    }
+    return writeSidecar(notesFile(p), json)
   })
   // 參考資料抽屜：同樣放在文件旁的 .inkwell/refs.json
   const refsFile = (p: string) => join(dirname(p), '.inkwell', 'refs.json')
-  ipcMain.handle('refs:read', async (_e, p: string) => {
-    try {
-      return await fs.readFile(refsFile(p), 'utf8')
-    } catch {
-      return ''
-    }
-  })
+  ipcMain.handle('refs:read', (_e, p: string) => readSidecar(refsFile(p)))
   ipcMain.handle('refs:write', async (_e, p: string, json: string) => {
     if (typeof json !== 'string' || json.length > 4_000_000) return false
-    try {
-      const f = refsFile(p)
-      await fs.mkdir(dirname(f), { recursive: true })
-      await fs.writeFile(f, json, 'utf8')
-      return true
-    } catch {
-      return false
-    }
+    return writeSidecar(refsFile(p), json)
   })
   // 語音便籤：索引 voice.json，音檔 media/<id>.webm（id 嚴格驗證，不能跳出 media 資料夾）
   const voiceFile = (p: string) => join(dirname(p), '.inkwell', 'voice.json')
   const voiceAudio = (p: string, id: string) => join(dirname(p), '.inkwell', 'media', `${id}.webm`)
   const okVoiceId = (id: unknown): id is string => typeof id === 'string' && /^[a-z0-9]{6,32}$/.test(id)
-  ipcMain.handle('voice:read', async (_e, p: string) => {
-    try {
-      return await fs.readFile(voiceFile(p), 'utf8')
-    } catch {
-      return ''
-    }
-  })
+  ipcMain.handle('voice:read', (_e, p: string) => readSidecar(voiceFile(p)))
   ipcMain.handle('voice:write', async (_e, p: string, json: string) => {
     if (typeof json !== 'string' || json.length > 4_000_000) return false
-    try {
-      const f = voiceFile(p)
-      await fs.mkdir(dirname(f), { recursive: true })
-      await fs.writeFile(f, json, 'utf8')
-      return true
-    } catch {
-      return false
-    }
+    return writeSidecar(voiceFile(p), json)
   })
   ipcMain.handle('voice:save', async (_e, p: string, id: string, data: ArrayBuffer) => {
     if (!okVoiceId(id) || !(data instanceof ArrayBuffer) || data.byteLength === 0 || data.byteLength > 20_000_000) return false
@@ -1178,23 +1140,10 @@ function registerIpc(): void {
   })
   // 段落上鎖清單：.inkwell/locks.json
   const locksFile = (p: string) => join(dirname(p), '.inkwell', 'locks.json')
-  ipcMain.handle('locks:read', async (_e, p: string) => {
-    try {
-      return await fs.readFile(locksFile(p), 'utf8')
-    } catch {
-      return ''
-    }
-  })
+  ipcMain.handle('locks:read', (_e, p: string) => readSidecar(locksFile(p)))
   ipcMain.handle('locks:write', async (_e, p: string, json: string) => {
     if (typeof json !== 'string' || json.length > 2_000_000) return false
-    try {
-      const f = locksFile(p)
-      await fs.mkdir(dirname(f), { recursive: true })
-      await fs.writeFile(f, json, 'utf8')
-      return true
-    } catch {
-      return false
-    }
+    return writeSidecar(locksFile(p), json)
   })
   ipcMain.on('win:edit', (e, role: string) => {
     const w = e.sender
