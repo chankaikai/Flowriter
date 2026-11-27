@@ -1,5 +1,6 @@
 /** 面板、側邊欄、對話框與狀態文字的英文翻譯（其他非中文語言退回英文）。 */
 export const PANELS: Record<string, string> = {
+  '引言': 'Quote', '提示框：引言': 'Callout: Quote',
   "排版檢驗、文風與 AI 檢查": "Layout check, style & AI check",
   "AI 檢查": "AI check",
   "沒有可檢查的文字段落": "No text paragraphs to check",

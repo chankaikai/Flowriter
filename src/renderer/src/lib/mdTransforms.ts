@@ -7,7 +7,7 @@
 
 type Node = any
 
-export const CALLOUT_TYPES = ['note', 'tip', 'important', 'warning', 'caution', 'info', 'danger', 'success', 'question', 'summary'] as const
+export const CALLOUT_TYPES = ['note', 'tip', 'important', 'warning', 'caution', 'info', 'danger', 'success', 'question', 'summary', 'quote'] as const
 const CALLOUT_RE = new RegExp(`^\\[!(${CALLOUT_TYPES.join('|')})\\]`, 'i')
 
 /**

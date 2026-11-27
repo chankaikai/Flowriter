@@ -76,7 +76,7 @@ export const MENUS: MenuDef[] = [
       c('fmt.toc'),
       c('fmt.footnote'),
       c('insert.voice'),
-      { sub: '提示框', items: [c('fmt.callout.tip'), c('fmt.callout.warning'), c('fmt.callout.important'), c('fmt.callout.note'), c('fmt.callout.summary')] },
+      { sub: '提示框', items: [c('fmt.callout.tip'), c('fmt.callout.warning'), c('fmt.callout.important'), c('fmt.callout.note'), c('fmt.callout.summary'), c('fmt.callout.quote')] },
       c('fmt.bilingual'),
       c('fmt.frontmatter'),
       c('fmt.frontmatter.remove')
@@ -292,7 +292,8 @@ export const RIBBON: RibbonTab[] = [
               { cmd: 'fmt.callout.warning', label: '警告' },
               { cmd: 'fmt.callout.important', label: '重點' },
               { cmd: 'fmt.callout.note', label: '備註' },
-              { cmd: 'fmt.callout.summary', label: '總結' }
+              { cmd: 'fmt.callout.summary', label: '總結' },
+              { cmd: 'fmt.callout.quote', label: '引言' }
             ]
           })
         ]

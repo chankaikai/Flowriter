@@ -52,7 +52,7 @@ export type FormatName =
   | 'strong' | 'em' | 'strike' | 'code' | 'link'
   | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p'
   | 'quote' | 'ul' | 'ol' | 'task' | 'codeblock' | 'math' | 'table' | 'hr'
-  | 'undo' | 'redo' | 'toc' | 'footnote' | 'frontmatter' | 'bilingual' | 'callout' | 'callout:note' | 'callout:tip' | 'callout:important' | 'callout:warning' | 'callout:summary' | 'frontmatter:remove' | 'sortasc' | 'sortdesc'
+  | 'undo' | 'redo' | 'toc' | 'footnote' | 'frontmatter' | 'bilingual' | 'callout' | 'callout:note' | 'callout:tip' | 'callout:important' | 'callout:warning' | 'callout:summary' | 'callout:quote' | 'frontmatter:remove' | 'sortasc' | 'sortdesc'
 
 export interface EditorHandle {
   getMarkdown(): string
@@ -368,7 +368,7 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
         case 'sortdesc': { const v = view(); if (v && !sortTable(v, 'desc')) return; break }
         case 'bilingual': c.editor.action(insert(BILINGUAL_SNIPPET)); break
         case 'callout': case 'callout:note': { const v = view(); if (v) insertCallout(v, 'note'); break }
-        case 'callout:tip': case 'callout:important': case 'callout:warning': case 'callout:summary': {
+        case 'callout:tip': case 'callout:important': case 'callout:warning': case 'callout:summary': case 'callout:quote': {
           const v = view()
           if (v) insertCallout(v, name.slice('callout:'.length))
           break

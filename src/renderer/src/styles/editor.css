@@ -200,14 +200,21 @@
 .milkdown .ProseMirror .bilingual .bi-col + .bi-col { border-left: 1px solid var(--line); padding-left: 18px; }
 .milkdown .ProseMirror .bilingual .bi-col > :first-child { margin-top: 0; }
 .milkdown .ProseMirror .bilingual .bi-col > :last-child { margin-bottom: 0; }
-/* ---- 提示框 ---- */
-.milkdown .ProseMirror blockquote.glass-callout { --co: var(--accent); border-left: 3px solid var(--co); border-radius: 12px;
-  background: color-mix(in srgb, var(--co) 10%, transparent); padding: 10px 16px 10px 16px; position: relative; }
-.milkdown .ProseMirror blockquote.glass-callout::before { content: attr(data-callout-label); display: block; font-size: 12px;
-  font-weight: 600; letter-spacing: .08em; color: var(--co); margin-bottom: 2px; }
+/* ---- 提示框：五種主題色，左側加寬色條，左上角圖示＋標籤 ---- */
+.milkdown .ProseMirror blockquote.glass-callout { --co: #5b6168; --co-bg: color-mix(in srgb, var(--co) 11%, transparent);
+  border: 0; border-left: 6px solid var(--co); border-radius: 10px; background: var(--co-bg); padding: 8px 16px 10px 16px; margin: 12px 0; position: relative; }
+.milkdown .ProseMirror blockquote.glass-callout::before { content: attr(data-callout-icon) "  " attr(data-callout-label); display: block; font-size: 12.5px;
+  font-weight: 700; letter-spacing: .06em; color: var(--co); margin-bottom: 4px; }
 .milkdown .ProseMirror blockquote.glass-callout .callout-tag { display: none; }
-.callout-tip, .callout-success { --co: #2fa96b; } .callout-warning, .callout-caution { --co: #d8902a; }
-.callout-danger, .callout-important { --co: #d6455d; } .callout-question { --co: #8a63d2; } .callout-info { --co: #3b8fd9; }
+.milkdown .ProseMirror blockquote.glass-callout > p { margin: 4px 0; }
+.callout-tip, .callout-question { --co: #d99a12; }
+.callout-warning, .callout-caution, .callout-danger { --co: #e07a93; --co-bg: color-mix(in srgb, #ffe3ea 62%, transparent); }
+.callout-important, .callout-info { --co: #2f7fe0; }
+.callout-note { --co: #4b5259; }
+.callout-summary, .callout-success { --co: #2fa96b; }
+.callout-quote { --co: #7a6bd6; }
+html[data-theme="dark"] .callout-warning, html[data-theme="dark"] .callout-caution, html[data-theme="dark"] .callout-danger { --co-bg: color-mix(in srgb, #e07a93 16%, transparent); }
+html[data-theme="dark"] .callout-note { --co: #9aa3ad; }
 /* ---- 算式結果 / 腳註預覽 ---- */
 .calc-result { color: var(--accent); font-variant-numeric: tabular-nums; margin-left: 4px; opacity: .9; user-select: none; }
 .calc-result::before { content: ''; }
@@ -238,7 +245,6 @@ body.show-weight .milkdown .ProseMirror p.pw-5 { border-left-color: var(--accent
 /* 選取時的層級標籤：貼在該段落左側邊界外 */
 .editor-col .milkdown .level-tag { position: absolute; transform: translate(calc(-100% - 14px), 0); padding: 0 6px; height: 1.4em; line-height: 1.4em; border-radius: 6px; font: 600 11px var(--font-ui, system-ui); letter-spacing: 0.02em; color: var(--accent); background: var(--accent-soft); user-select: none; pointer-events: none; white-space: nowrap; }
 
-.callout-summary { --co: #5b7fd6; }
 .fm-del { margin-left: 6px; padding: 1px 8px; border-radius: 999px; font: 12px var(--font-ui, system-ui); color: var(--fg-muted); border: 1px solid var(--line); background: transparent; cursor: pointer; }
 .fm-del:hover { color: #d0463a; border-color: #d0463a; }
 .flash-hit { background: color-mix(in srgb, var(--accent) 38%, transparent); border-radius: 3px; animation: flash-hit 2.5s ease-out forwards; }

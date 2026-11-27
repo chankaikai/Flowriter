@@ -392,7 +392,10 @@ export const BILINGUAL_SNIPPET = ':::bilingual\n\n原文\n\n---\n\n譯文\n\n:::
 
 const CALLOUT_LABEL: Record<string, string> = {
   note: '備註', tip: '提醒', important: '重點', warning: '警告', caution: '注意',
-  info: '資訊', danger: '危險', success: '成功', question: '疑問', summary: '總結'
+  info: '資訊', danger: '危險', success: '成功', question: '疑問', summary: '總結', quote: '引言'
+}
+const CALLOUT_ICON: Record<string, string> = {
+  note: '📝', tip: '💡', important: '📌', warning: '⚠️', caution: '⚠️', info: 'ℹ️', danger: '⛔', success: '✅', question: '❓', summary: '📋', quote: '❝'
 }
 
 /**
@@ -424,6 +427,26 @@ export function insertCallout(view: EditorView, type: string): boolean {
       return true
     }
     break
+  }
+
+  // 有選取內容：把選取涉及的最外層區塊整個包進提示框
+  if (!selection.empty && $from.depth >= 1) {
+    const start = $from.before(1)
+    const end = selection.$to.after(1)
+    const blocks: any[] = []
+    state.doc.nodesBetween(start, end, (n, pos) => {
+      if (pos >= start && pos < end && n.isBlock) { blocks.push(n); return false }
+      return false
+    })
+    const inner = blocks.filter((b) => b.type.name !== 'inkwell_front_matter')
+    if (inner.length && inner.length === blocks.length) {
+      const wrapped = bq.create(null, [para.create(null, html.create({ value })), ...inner])
+      const tr2 = state.tr.replaceWith(start, end, wrapped)
+      tr2.setSelection(TextSelection.near(tr2.doc.resolve(start + 1 + wrapped.firstChild!.nodeSize + 1))).scrollIntoView()
+      view.dispatch(tr2)
+      view.focus()
+      return true
+    }
   }
 
   const callout = bq.create(null, [para.create(null, html.create({ value })), para.create()])
@@ -481,7 +504,8 @@ export const calloutPlugin = $prose(() => {
         decos.push(
           Decoration.node(pos, pos + node.nodeSize, {
             class: `glass-callout callout-${type}`,
-            'data-callout-label': CALLOUT_LABEL[type] || type
+            'data-callout-label': CALLOUT_LABEL[type] || type,
+            'data-callout-icon': CALLOUT_ICON[type] || '💬'
           })
         )
         decos.push(Decoration.node(pos + 1 + 1, pos + 1 + 1 + atom.nodeSize, { class: 'callout-tag' }))
