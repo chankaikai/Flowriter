@@ -535,3 +535,26 @@ body.tab-out .tabsbar::after { content: '放開即可在新視窗中開啟'; pos
 /* 番茄鐘停靠在右側欄時：沿用側欄面板外觀，編輯區讓出空間 */
 .pomo-docked { overflow: auto; padding: 8px 14px 14px; }
 .stage:has(.pomo-docked) .editor-scroll { right: min(380px, 60%); }
+
+/* 音樂庫 */
+.mus-dir { word-break: break-all; }
+.pop-actions.wrap { flex-wrap: wrap; }
+.mus-chip { display: inline-flex; align-items: center; gap: 4px; }
+.mus-cover { width: 18px; height: 18px; border-radius: 5px; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; }
+.mus-cover img { width: 100%; height: 100%; object-fit: cover; }
+.mus-pl-edit { display: flex; flex-direction: column; gap: 8px; }
+.mus-name { padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--fg); font-size: 13px; }
+.mus-icons { display: flex; flex-wrap: wrap; gap: 6px; }
+.mus-list { display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow: auto; }
+.mus-row { display: flex; align-items: center; gap: 6px; padding: 3px 4px; border-radius: 8px; font-size: 12.5px; }
+.mus-row.on { background: color-mix(in srgb, var(--accent, #4a8cff) 16%, transparent); }
+.mus-row.missing { opacity: 0.5; }
+.mus-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mus-play, .mus-x { border: none; background: transparent; color: var(--fg); cursor: pointer; font-size: 12px; padding: 2px 6px; }
+.mus-add, .mus-mode { font-size: 12px; max-width: 90px; background: transparent; color: var(--fg); border: 1px solid var(--line); border-radius: 8px; }
+.mus-transport { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.mus-now { font-size: 12px; opacity: 0.8; }
+.mus-vol { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.mus-vol input[type=range] { flex: 1; }
+.mus-sb canvas { width: 60px; height: 14px; color: var(--accent, #4a8cff); }
+.mus-sb-title { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }

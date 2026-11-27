@@ -58,6 +58,10 @@ export type AiBalance =
   | { ok: false; unsupported: true }
   | { ok: false; error: string; unsupported?: undefined }
 
+export interface MusicTrack { id: string; file: string; title: string; added: number; missing?: boolean }
+export interface MusicPlaylist { id: string; name: string; icon: string; cover?: string; trackIds: string[] }
+export interface MusicLibState { dir: string; isDefault: boolean; tracks: MusicTrack[]; playlists: MusicPlaylist[] }
+
 export interface InkwellApi {
   platform: string
   openFile(): Promise<FileResult | null>
@@ -104,6 +108,15 @@ export interface InkwellApi {
   ambientRead(kind: string): Promise<Uint8Array | null>
   ambientImport(kind: string): Promise<boolean>
   ambientRemove(kind: string): Promise<boolean>
+  musicState(): Promise<MusicLibState>
+  musicSetDir(): Promise<MusicLibState | null>
+  musicImport(): Promise<MusicLibState | null>
+  musicScan(): Promise<MusicLibState & { added: number; removed: number }>
+  musicRead(id: string): Promise<Uint8Array | null>
+  musicSavePlaylists(p: MusicPlaylist[]): Promise<MusicLibState>
+  musicRemoveTrack(id: string): Promise<MusicLibState>
+  musicCover(): Promise<string | null>
+  musicCoverData(rel: string): Promise<string | null>
   /** 略過未儲存提示，直接關閉視窗（儲存完成後使用） */
   forceClose(): void
   /** 原生確認對話框（不要用 window.confirm，它會讓編輯器失去焦點） */

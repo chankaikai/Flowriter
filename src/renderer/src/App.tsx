@@ -25,6 +25,7 @@ import { TimeMachine } from '@/components/TimeMachine'
 import { VaultPanel } from '@/components/VaultPanel'
 import { ReversePanel } from '@/components/ReversePanel'
 import { Pomodoro } from '@/components/Pomodoro'
+import { SoundPanel, SpectrumBar } from '@/components/MusicPanel'
 import { VoiceRecorder, type VoiceResult } from '@/components/VoiceRecorder'
 import { addVoice, anchorOf, emptyVoice, parseVoice, removeVoice, serializeVoice, type VoiceFile } from '@/lib/voice'
 import { type AmbientKind, setAmbient } from '@/lib/ambient'
@@ -2157,7 +2158,7 @@ export default function App() {
             )}
           </Popover>
           <Popover open={panel === 'ambient'} icon="timer" title={tr('氛圍音')} onClose={() => setPanel(null)}>
-            <AmbientPanel ambient={ambient} setAmbientKind={setAmbientKind} />
+            <SoundPanel ambient={ambient} setAmbientKind={setAmbientKind} />
           </Popover>
           <div ref={setPopSlot} style={{ display: 'contents' }} />
         </div>
@@ -2177,6 +2178,7 @@ export default function App() {
         <span className="sb-text">{stats.words.toLocaleString()} {tr('字')}</span>
         <span className="sb-text">{tr('閱讀')} {minutes}</span>
         <span className="grow" />
+        <SpectrumBar onClick={() => setPanel('ambient')} />
         <span className={`save-state${dirty ? ' unsaved' : ''}`}>
           {doc.path ? (dirty ? (settings.autosave ? tr('自動儲存中…') : tr('未儲存')) : tr('已儲存')) : dirty ? tr('未儲存') : ''}
         </span>
