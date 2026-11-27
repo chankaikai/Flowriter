@@ -463,13 +463,13 @@ body.mode-sticky .editor-col { --maxw: 100%; padding-left: 10px; padding-right: 
 .dash-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* 番茄鐘（獨立浮動模組） */
-.pomo-chip { position: fixed; right: 18px; bottom: 44px; z-index: 60; display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; font-size: 13px; color: var(--fg); background: color-mix(in srgb, var(--bg) 62%, transparent); border: 1px solid var(--line-strong); backdrop-filter: blur(18px) saturate(1.4); box-shadow: 0 6px 22px rgba(0, 0, 0, 0.18); font-variant-numeric: tabular-nums; }
+.pomo-chip { position: fixed; right: 18px; bottom: 44px; z-index: 60; display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; font-size: 13px; color: var(--fg); background: color-mix(in srgb, var(--bg) 62%, transparent); border: 1px solid var(--line-strong); backdrop-filter: blur(18px) saturate(1.4); box-shadow: 0 6px 22px rgba(0, 0, 0, 0.18); font-variant-numeric: tabular-nums; -webkit-app-region: no-drag; }
 .pomo-chip span { color: var(--fg-muted); font-size: 12px; }
 .pomo-chip.rest { border-color: #2fa96b; }
 .pomo-chip.pending { border-color: var(--accent); animation: chip-pulse 1.6s ease-in-out infinite; }
 @keyframes chip-pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 25%, transparent); } }
-.pomo-panel { position: fixed; right: 18px; bottom: 44px; z-index: 61; width: 288px; padding: 8px 14px 14px; border-radius: 18px; background: color-mix(in srgb, var(--bg) 66%, transparent); border: 1px solid var(--line-strong); backdrop-filter: blur(24px) saturate(1.5); box-shadow: 0 14px 44px rgba(0, 0, 0, 0.26); }
-.pomo-head { display: flex; align-items: center; gap: 8px; padding: 4px 0 8px; cursor: grab; user-select: none; font-size: 13px; }
+.pomo-panel { position: fixed; right: 18px; bottom: 44px; z-index: 61; width: 288px; padding: 8px 14px 14px; border-radius: 18px; background: color-mix(in srgb, var(--bg) 66%, transparent); border: 1px solid var(--line-strong); backdrop-filter: blur(24px) saturate(1.5); box-shadow: 0 14px 44px rgba(0, 0, 0, 0.26); -webkit-app-region: no-drag; }
+.pomo-head { touch-action: none; display: flex; align-items: center; gap: 8px; padding: 4px 0 8px; cursor: grab; user-select: none; font-size: 13px; }
 .pomo-head.pinned { cursor: default; }
 .pomo-head .icon-btn.on { color: var(--accent); }
 .pomo-done { display: flex; flex-direction: column; align-items: center; gap: 8px; }

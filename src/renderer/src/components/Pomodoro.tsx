@@ -81,20 +81,25 @@ export function Pomodoro({ getWords, openSignal }: { getWords(): number; openSig
       const dx = e.clientX - r.left
       const dy = e.clientY - r.top
       let last = { x: r.left, y: r.top }
+      try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) } catch { /* ignore */ }
       const move = (ev: PointerEvent) => {
         last = {
           x: Math.min(window.innerWidth - 60, Math.max(0, ev.clientX - dx)),
-          y: Math.min(window.innerHeight - 40, Math.max(0, ev.clientY - dy))
+          y: Math.min(window.innerHeight - 40, Math.max(36, ev.clientY - dy))
         }
         setPos((p) => ({ ...p, ...last }))
       }
       const up = () => {
         window.removeEventListener('pointermove', move)
         window.removeEventListener('pointerup', up)
+        window.removeEventListener('pointercancel', up)
+        window.removeEventListener('blur', up)
         savePos({ ...pos, ...last })
       }
       window.addEventListener('pointermove', move)
       window.addEventListener('pointerup', up)
+      window.addEventListener('pointercancel', up)
+      window.addEventListener('blur', up)
     },
     [pos]
   )
