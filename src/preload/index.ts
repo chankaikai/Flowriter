@@ -6,6 +6,10 @@ const inv = <T>(channel: string, ...args: unknown[]) =>
 
 const api: InkwellApi = {
   platform: process.platform,
+  dataBackup: (local) => inv('data:backup', local),
+  dataRestore: () => inv('data:restore'),
+  cacheSize: () => inv('cache:size'),
+  cacheClear: () => inv('cache:clear'),
   openFile: () => inv('file:open'),
   readFile: (p) => inv('file:read', p),
   saveFile: (p, c) => inv('file:save', p, c),

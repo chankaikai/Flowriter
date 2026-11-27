@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto'
 import { setupInbox } from './inbox'
 import { setupUpdater } from './updater'
 import { setupAmbient } from './ambient'
+import { setupDataTools } from './dataTools'
 import { runNative, stopNative } from './nativeRun'
 import type { DirEntry, FileListItem, MaterialSupport, SearchHit } from '../shared/types'
 
@@ -1241,6 +1242,7 @@ function registerIpc(): void {
 app.whenReady().then(() => {
   setupInbox()
   setupAmbient()
+  setupDataTools()
   setupUpdater(() => {
     // 有未儲存內容時先確認，避免重啟更新把更改丟掉
     if (anyDirty()) {

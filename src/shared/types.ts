@@ -94,6 +94,12 @@ export interface InkwellApi {
   nativeRun(req: import('./native').NativeRunRequest): Promise<import('./native').NativeRunResult>
   nativeStop(id: string): void
   /** 氛圍音錄音檔：種類 → 來源 */
+  /** 備份使用者資料（歷史版本、膠囊、抽屜、環境音）與前端設定到一個檔 */
+  dataBackup(local: Record<string, string>): Promise<{ ok: true; path: string; count: number; bytes: number } | { ok: false; reason: string }>
+  /** 從備份檔還原；成功時回傳要寫回 localStorage 的設定 */
+  dataRestore(): Promise<{ ok: true; count: number; local: Record<string, string>; name: string } | { ok: false; reason: string }>
+  cacheSize(): Promise<number>
+  cacheClear(): Promise<{ ok: boolean; freed: number; before: number; reason?: string }>
   ambientList(): Promise<Record<string, 'user' | 'bundled'>>
   ambientRead(kind: string): Promise<Uint8Array | null>
   ambientImport(kind: string): Promise<boolean>

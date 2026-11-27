@@ -4,6 +4,12 @@
  * 其他非中文語言查不到時退回英文；簡體中文用逐字轉換。
  */
 export const UI: Record<string, string> = {
+  '資料與維護': 'Data & maintenance', '備份／匯入、清除快取': 'Backup / import, clear cache', '備份使用者資料…': 'Back up user data…', '匯入備份…': 'Import backup…', '清除快取': 'Clear cache', '匯入': 'Import',
+  '備份包含：歷史版本（時光機）、時間膠囊、加密抽屜、環境音檔與所有設定。文件本身不在其中，請照平常方式保管。': 'The backup contains version history (Time Machine), time capsules, the encrypted drawer, ambient audio files and all settings. Your documents are not included — keep them as usual.',
+  '清除快取只會刪除瀏覽器引擎的暫存檔，絕不會動你的文件、歷史版本、設定或音檔。': 'Clearing the cache only deletes the browser engine\'s temporary files; it never touches your documents, version history, settings or audio.',
+  '已備份 {0} 個檔案（{1}）到 {2}': 'Backed up {0} file(s) ({1}) to {2}', '備份失敗：{0}': 'Backup failed: {0}', '匯入失敗：{0}': 'Import failed: {0}', '已匯入 {0} 個檔案，即將重新載入…': 'Imported {0} file(s); reloading…',
+  '已清除快取，釋放 {0}': 'Cache cleared; freed {0}', '清除失敗：{0}': 'Clear failed: {0}', '目前約 {0}': 'Currently about {0}',
+  '匯入備份會覆蓋同名的歷史版本、膠囊與設定。\n你的文件檔案不會被動到。要繼續嗎？': 'Importing a backup overwrites version history, capsules and settings with the same name.\nYour document files are not touched. Continue?',
   '自動儲存間隔（與時光機同步）': 'Autosave interval (synced with Time Machine)', '即時（每次輸入後立即儲存）': 'Real-time (save right after each edit)', '30 秒': '30 seconds', '1 分鐘': '1 minute', '2 分鐘': '2 minutes', '5 分鐘': '5 minutes', '10 分鐘': '10 minutes', '30 分鐘': '30 minutes', '1 小時': '1 hour', '3 小時': '3 hours', '6 小時': '6 hours',
   '開啟後，你在任何程式裡複製的文字都會收進來（最多 30 則，只存在記憶體，關閉程式就清掉）。': 'When on, text you copy in any program is collected here (up to 30 items, memory only, cleared when the app closes).', '複製密碼或機密內容前請先關閉。': 'Turn this off before copying passwords or confidential content.',
   // —— 提示訊息 / 對話框（App）——

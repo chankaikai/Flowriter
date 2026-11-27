@@ -10,6 +10,7 @@ import { AiSetup } from './AiSetup'
 import { resolveAi } from '@/lib/ai'
 import { Segmented } from './Segmented'
 import { AboutPanel } from './AboutPanel'
+import { DataPanel } from './DataPanel'
 import { LANGS, tr, trf } from '@/lib/i18n'
 import { importThemeCss, listImported, removeImported, MAX_THEME_CSS } from '@/lib/themeImport'
 import type { UpdateStatus } from '../../../shared/update'
@@ -290,6 +291,10 @@ export function SettingsPanel({
                   </button>
                 ))}
               </div>
+            </ExpandCard>
+
+            <ExpandCard active={open} icon="folder" title={tr('資料與維護')} summary={tr('備份／匯入、清除快取')}>
+              <DataPanel />
             </ExpandCard>
 
             <ExpandCard
