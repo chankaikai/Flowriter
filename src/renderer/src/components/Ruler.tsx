@@ -10,6 +10,7 @@ interface Tick {
 /** 頂部極細的章節進度線：顯示捲動進度，標題位置是刻度，點擊跳轉。 */
 export function Ruler({ scrollRef, rev }: { scrollRef: RefObject<HTMLDivElement | null>; rev: unknown }) {
   const [ticks, setTicks] = useState<Tick[]>([])
+  const [hover, setHover] = useState<number | null>(null)
   const fillRef = useRef<HTMLDivElement>(null)
 
   // 進度：只改 transform，不觸發 React 重繪
@@ -73,10 +74,17 @@ export function Ruler({ scrollRef, rev }: { scrollRef: RefObject<HTMLDivElement 
           key={`${i}-${t.text}`}
           className={`ruler-tick l${t.level}`}
           style={{ left: `${t.frac * 100}%` }}
-          title={t.text}
+          aria-label={t.text}
+          onMouseEnter={() => setHover(i)}
+          onMouseLeave={() => setHover(null)}
           onClick={() => scrollRef.current?.scrollTo({ top: Math.max(0, t.top - 24), behavior: 'smooth' })}
         />
       ))}
+      {hover != null && ticks[hover] && (
+        <div className="ruler-tip" style={{ left: `${Math.min(92, Math.max(8, ticks[hover].frac * 100))}%` }}>
+          <i>H{ticks[hover].level}</i> {ticks[hover].text}
+        </div>
+      )}
     </div>
   )
 }
