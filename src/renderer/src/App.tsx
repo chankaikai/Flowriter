@@ -1289,10 +1289,10 @@ export default function App() {
       const bm = getBookmark(path)
       const pos = latest ? latest.pos : bm && bm.pos > 20 ? bm.pos : 0
       if (pos > 0 && editorRef.current.setCaret(pos)) {
-        requestAnimationFrame(() => {
+        window.setTimeout(() => {
           const rect = editorRef.current?.caretRect()
           if (rect) setResume({ hint: latest?.hint || null, rect })
-        })
+        }, 800)
       }
     }
   }, [])

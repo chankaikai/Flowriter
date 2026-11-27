@@ -328,6 +328,24 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       const p = Math.max(1, Math.min(pos, v.state.doc.content.size))
       try {
         v.dispatch(v.state.tr.setSelection(TextSelection.near(v.state.doc.resolve(p))).scrollIntoView())
+        v.focus()
+        // 剛開啟時版面（圖片、代碼塊、樂譜）還在撐開，一次捲動常常不準：
+        // 依序在下一幀與 250ms、700ms 後把游標所在行重新置於視窗上三分之一處
+        const settle = () => {
+          try {
+            const sc = v.dom.closest('.editor-scroll') as HTMLElement | null
+            if (!sc) return
+            const c = v.coordsAtPos(v.state.selection.head)
+            const box = sc.getBoundingClientRect()
+            const want = box.top + box.height / 3
+            sc.scrollTop += c.top - want
+          } catch {
+            /* 視圖已銷毀 */
+          }
+        }
+        requestAnimationFrame(settle)
+        window.setTimeout(settle, 250)
+        window.setTimeout(settle, 700)
         return true
       } catch {
         return false
