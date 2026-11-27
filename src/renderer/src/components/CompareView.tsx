@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { diffBlocks, mergeHunks, splitBlocks, type Hunk } from '@/lib/diff'
 import { diffInline, type Seg } from '@/lib/inlineDiff'
 import { Icon } from './Icon'
@@ -30,10 +30,31 @@ export function CompareView({ current, others, onPickFile, onApply, onClose }: P
   const [other, setOther] = useState<CompareSource | null>(others[0] ?? null)
   const [accept, setAccept] = useState<Set<number>>(new Set())
   const [cursor, setCursor] = useState(0)
-  const [showSame, setShowSame] = useState(false)
+  const [showSame, setShowSame] = useState(true)
+  // 使用者直接在兩側文字上修改的內容：鍵為「區段:段落:a|b」
+  const [edits, setEdits] = useState<Record<string, string>>({})
   const body = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape' && !(e.target as HTMLElement).isContentEditable) onClose() }
+    window.addEventListener('keydown', k)
+    return () => window.removeEventListener('keydown', k)
+  }, [onClose])
 
-  const hunks: Hunk[] = useMemo(() => (other ? diffBlocks(splitBlocks(current.md), splitBlocks(other.md)) : []), [current.md, other])
+  const baseHunks: Hunk[] = useMemo(() => (other ? diffBlocks(splitBlocks(current.md), splitBlocks(other.md)) : []), [current.md, other])
+  // 套用使用者的手動修改後的區段（用於顯示與合併）
+  const hunks: Hunk[] = useMemo(
+    () => baseHunks.map((h, i) => ({ ...h, cur: h.cur.map((t, k) => edits[`${i}:${k}:a`] ?? t), old: h.old.map((t, k) => edits[`${i}:${k}:b`] ?? t) })),
+    [baseHunks, edits]
+  )
+  const editCount = Object.keys(edits).length
+  const commit = (i: number, k: number, side: 'a' | 'b', orig: string, el: HTMLElement) => {
+    const text = el.innerText.replace(/\u00a0/g, ' ').replace(/\n+$/, '')
+    const key = `${i}:${k}:${side}`
+    setEdits((e) => {
+      if (text === orig) { if (!(key in e)) return e; const n = { ...e }; delete n[key]; return n }
+      return e[key] === text ? e : { ...e, [key]: text }
+    })
+  }
   const changes = useMemo(() => hunks.map((h, i) => (h.kind === 'change' ? i : -1)).filter((i) => i >= 0), [hunks])
 
   const go = (dir: 1 | -1) => {
@@ -45,11 +66,12 @@ export function CompareView({ current, others, onPickFile, onApply, onClose }: P
   const toggle = (i: number) => setAccept((s) => { const n = new Set(s); n.has(i) ? n.delete(i) : n.add(i); return n })
 
   return (
-    <div className="prompt-scrim" onMouseDown={onClose}>
-      <div className="cmp-box" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="cmp-full">
+      <div className="cmp-box">
         <div className="cmp-head">
           <Icon name="diag" size={16} />
           <h3>{tr('文件比對')}</h3>
+          <span className="hist-hint">{tr('整頁對照：兩側文字都可以直接修改、選取與複製')}</span>
           <span className="grow" />
           <button className="icon-btn sm" onClick={onClose} title={tr('關閉')}><Icon name="close" size={14} /></button>
         </div>
@@ -59,12 +81,12 @@ export function CompareView({ current, others, onPickFile, onApply, onClose }: P
           <span className="cmp-vs">{tr('比對')}</span>
           <select
             className="tm-select" value={other && others.some((o) => o === other) ? others.indexOf(other) : -1}
-            onChange={(e) => { setOther(others[+e.target.value] ?? null); setAccept(new Set()); setCursor(0) }}
+            onChange={(e) => { setOther(others[+e.target.value] ?? null); setAccept(new Set()); setEdits({}); setCursor(0) }}
           >
             {!others.includes(other as CompareSource) && <option value={-1}>{other ? `B　${other.label}` : '選擇要比對的文件…'}</option>}
             {others.map((o, i) => <option key={i} value={i}>B　{o.label}</option>)}
           </select>
-          <button className="btn ghost sm" onClick={async () => { const f = await onPickFile(); if (f) { setOther(f); setAccept(new Set()); setCursor(0) } }}>{tr('選擇檔案…')}</button>
+          <button className="btn ghost sm" onClick={async () => { const f = await onPickFile(); if (f) { setOther(f); setAccept(new Set()); setEdits({}); setCursor(0) } }}>{tr('選擇檔案…')}</button>
         </div>
 
         {!other ? (
@@ -77,7 +99,7 @@ export function CompareView({ current, others, onPickFile, onApply, onClose }: P
               <button className="btn ghost sm" disabled={!changes.length} onClick={() => go(-1)}>{tr('↑ 上一處')}</button>
               <button className="btn ghost sm" disabled={!changes.length} onClick={() => go(1)}>{tr('↓ 下一處')}</button>
               <label className="check-row"><input type="checkbox" checked={showSame} onChange={(e) => setShowSame(e.target.checked)} />{tr('顯示相同段落')}</label>
-              <button className="btn sm" disabled={!accept.size} onClick={() => onApply(mergeHunks(hunks, accept))}>套用勾選的 {accept.size} 處</button>
+              <button className="btn sm" disabled={!accept.size && !editCount} onClick={() => onApply(mergeHunks(hunks, accept))}>套用到目前文件（勾選 {accept.size} 處、手動修改 {editCount} 處）</button>
               <button className="btn ghost sm" disabled={!changes.length} onClick={() => setAccept(new Set(changes))}>{tr('全選')}</button>
             </div>
             <div className="cmp-cols"><b>{tr('A（目前）')}</b><b>B（{other.label}）</b></div>
@@ -86,8 +108,14 @@ export function CompareView({ current, others, onPickFile, onApply, onClose }: P
                 if (h.kind === 'same') {
                   return showSame ? (
                     <div key={i} className="cmp-row same">
-                      <pre>{h.cur.join('\n\n')}</pre>
-                      <pre>{h.old.join('\n\n')}</pre>
+                      <div className="cmp-pair">
+                        {h.cur.map((a, k) => (
+                          <div key={k} className="cmp-line">
+                            <pre key={`a${edits[`${i}:${k}:a`] ?? ''}`} contentEditable suppressContentEditableWarning spellCheck={false} onBlur={(e) => commit(i, k, 'a', baseHunks[i].cur[k], e.currentTarget)}>{a}</pre>
+                            <pre key={`b${edits[`${i}:${k}:b`] ?? ''}`} contentEditable suppressContentEditableWarning spellCheck={false} onBlur={(e) => commit(i, k, 'b', baseHunks[i].old[k] ?? a, e.currentTarget)}>{h.old[k] ?? a}</pre>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ) : (
                     <div key={i} className="cmp-fold">⋯ {h.cur.length} 段相同</div>
@@ -103,11 +131,13 @@ export function CompareView({ current, others, onPickFile, onApply, onClose }: P
                       {Array.from({ length: rows }, (_, k) => {
                         const a = h.cur[k]
                         const b = h.old[k]
-                        const segs = a != null && b != null ? diffInline(a, b) : null
+                        const ea = edits[`${i}:${k}:a`]
+                        const eb = edits[`${i}:${k}:b`]
+                        const segs = a != null && b != null && ea == null && eb == null ? diffInline(a, b) : null
                         return (
                           <div key={k} className="cmp-line">
-                            <pre className={a == null ? 'empty' : ''}>{a == null ? '（A 沒有這段）' : segs ? <Inline segs={segs} side="a" /> : <mark className="cmp-del">{a}</mark>}</pre>
-                            <pre className={b == null ? 'empty' : ''}>{b == null ? '（B 沒有這段）' : segs ? <Inline segs={segs} side="b" /> : <mark className="cmp-add">{b}</mark>}</pre>
+                            <pre key={`a${ea ?? ''}`} className={a == null ? 'empty' : ''} contentEditable={a != null} suppressContentEditableWarning spellCheck={false} onBlur={(e) => a != null && commit(i, k, 'a', baseHunks[i].cur[k], e.currentTarget)}>{a == null ? '（A 沒有這段）' : segs ? <Inline segs={segs} side="a" /> : ea != null ? a : <mark className="cmp-del">{a}</mark>}</pre>
+                            <pre key={`b${eb ?? ''}`} className={b == null ? 'empty' : ''} contentEditable={b != null} suppressContentEditableWarning spellCheck={false} onBlur={(e) => b != null && commit(i, k, 'b', baseHunks[i].old[k], e.currentTarget)}>{b == null ? '（B 沒有這段）' : segs ? <Inline segs={segs} side="b" /> : eb != null ? b : <mark className="cmp-add">{b}</mark>}</pre>
                           </div>
                         )
                       })}

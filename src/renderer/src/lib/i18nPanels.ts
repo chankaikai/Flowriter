@@ -1,5 +1,6 @@
 /** 面板、側邊欄、對話框與狀態文字的英文翻譯（其他非中文語言退回英文）。 */
 export const PANELS: Record<string, string> = {
+  '整頁對照：兩側文字都可以直接修改、選取與複製': 'Full-page compare: both sides are editable, selectable and copyable',
   '未命名': 'Untitled',
   '停止朗讀': 'Stop reading',
   '引言': 'Quote', '提示框：引言': 'Callout: Quote',
