@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { applyFixes, styleIssues, typographyIssues, type Issue } from '@/lib/lint'
 import { checkImages, healthCheck, type HealthIssue } from '@/lib/health'
 import { toAbsolutePath } from '@/lib/path'
-import { buildIndex, queryIndex, type RadarIndex } from '@/lib/radar'
+import { cachedIndex, loadIndex, queryIndex, type RadarIndex } from '@/lib/radar'
 import { buildStitch, type StitchStyle } from '@/lib/stitch'
 import { resolveAi, type AiPrefs } from '@/lib/ai'
 import { recordUsage } from '@/lib/aiUsage'
@@ -240,14 +240,10 @@ export function ClipPanel({
 
 /* ------------------------------ 本地知識雷達 ------------------------------ */
 
-const radarCache = new Map<string, RadarIndex>()
-const RADAR_MAX_FILES = 500
-const RADAR_MAX_BYTES = 200_000
-
 export function RadarPanel({
   folder, docPath, query, onOpen
 }: { folder: string | null; docPath: string | null; query: string; onOpen(path: string): void }) {
-  const [idx, setIdx] = useState<RadarIndex | null>(() => (folder ? radarCache.get(folder) ?? null : null))
+  const [idx, setIdx] = useState<RadarIndex | null>(() => (folder ? cachedIndex(folder) : null))
   const [building, setBuilding] = useState(false)
   const [q, setQ] = useState(query)
   useEffect(() => setQ(query), [query])
@@ -255,15 +251,7 @@ export function RadarPanel({
   const build = async () => {
     if (!folder || building) return
     setBuilding(true)
-    const list = (await window.api.listAll(folder)).filter((f) => /\.(md|markdown|txt)$/i.test(f.name)).slice(0, RADAR_MAX_FILES)
-    const docs = []
-    for (const f of list) {
-      const r = await window.api.readFile(f.path)
-      if (r) docs.push({ path: f.path, name: f.name, rel: f.rel, content: r.content.slice(0, RADAR_MAX_BYTES) })
-    }
-    const built = buildIndex(docs)
-    radarCache.set(folder, built)
-    setIdx(built)
+    setIdx(await loadIndex(folder, true))
     setBuilding(false)
   }
   useEffect(() => {

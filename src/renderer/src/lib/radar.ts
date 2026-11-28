@@ -104,3 +104,26 @@ function bestParagraph(paras: string[], terms: Set<string>): string {
   }
   return best.replace(/\s+/g, ' ').slice(0, 140)
 }
+
+/* ---------------------- 索引載入（雷達與知識庫共用） ---------------------- */
+
+const idxCache = new Map<string, RadarIndex>()
+const MAX_FILES = 500
+const MAX_BYTES = 200_000
+
+export const cachedIndex = (folder: string): RadarIndex | null => idxCache.get(folder) ?? null
+
+/** 讀取資料夾內的 md／txt 建立索引（唯讀，只存在記憶體） */
+export async function loadIndex(folder: string, force = false): Promise<RadarIndex> {
+  const hit = idxCache.get(folder)
+  if (hit && !force) return hit
+  const list = (await window.api.listAll(folder)).filter((f) => /\.(md|markdown|txt)$/i.test(f.name)).slice(0, MAX_FILES)
+  const docs: RadarDoc[] = []
+  for (const f of list) {
+    const r = await window.api.readFile(f.path)
+    if (r) docs.push({ path: f.path, name: f.name, rel: f.rel, content: r.content.slice(0, MAX_BYTES) })
+  }
+  const built = buildIndex(docs)
+  idxCache.set(folder, built)
+  return built
+}
