@@ -4,7 +4,7 @@ import type { MaterialSupport } from '../../../shared/types'
 import type { Cmd } from '@/lib/commands'
 import { formatKeys } from '@/lib/keys'
 import type { Settings } from '@/lib/settings'
-import { THEMES } from '@/lib/themes'
+import { THEMES, CUSTOM_THEME_ID, DEFAULT_CUSTOM, themeById, type CustomTheme } from '@/lib/themes'
 import { ExpandCard } from './ExpandCard'
 import { Icon } from './Icon'
 import { AiSetup } from './AiSetup'
@@ -76,7 +76,7 @@ export function SettingsPanel({
   onClose(): void
 }) {
   const keyed = commands.filter((c) => c.keys?.length)
-  const themeLabel = [...THEMES, SYSTEM_CARD].find((t) => ('value' in t ? false : t.id === settings.theme))?.label ?? ''
+  const themeLabel = [...THEMES, SYSTEM_CARD, { id: CUSTOM_THEME_ID, label: '自訂' }].find((t) => ('value' in t ? false : t.id === settings.theme))?.label ?? ''
   const on = (v: boolean) => (v ? '開' : '關')
 
   return (
@@ -114,7 +114,7 @@ export function SettingsPanel({
               {[
                 ['淺色主題', themeCards(THEMES.filter((t) => !t.dark))],
                 ['深色主題', themeCards(THEMES.filter((t) => t.dark))],
-                ['', [SYSTEM_CARD]]
+                ['', [SYSTEM_CARD, { id: CUSTOM_THEME_ID, label: '自訂', bg: settings.customTheme.bg, fg: settings.customTheme.fg, accent: settings.customTheme.accent }]]
               ].map(([title, list]) => (
                 <div key={title as string}>
                   {title && <div className="theme-title">{title as string}</div>}
@@ -136,6 +136,7 @@ export function SettingsPanel({
                 </div>
               ))}
 
+              <CustomThemeEditor settings={settings} update={update} />
               <div className="set-sep" />
               <Row label={tr('依時段自動換主題（日間淺色、傍晚護眼、夜間深色）')}>
                 <Toggle on={settings.autoTheme} onChange={(v) => update({ autoTheme: v })} />
@@ -398,5 +399,58 @@ function CssSettings({ settings, update }: { settings: Settings; update(p: Parti
         onChange={(e) => update({ customCss: e.target.value })}
       />
     </>
+  )
+}
+
+
+const CUSTOM_FIELDS: [keyof Omit<CustomTheme, 'dark'>, string][] = [
+  ['bg', '背景色'],
+  ['side', '側欄色'],
+  ['elev', '面板／彈窗色'],
+  ['fg', '文字色'],
+  ['accent', '按鈕／強調色'],
+  ['alt', '光暈輔色']
+]
+
+/** 自訂主題：調色盤＋背景不透明度；選用任一內建主題當起點 */
+function CustomThemeEditor({ settings, update }: { settings: Settings; update: (p: Partial<Settings>) => void }): JSX.Element {
+  const c = settings.customTheme ?? DEFAULT_CUSTOM
+  const set = (p: Partial<CustomTheme>) => update({ customTheme: { ...c, ...p }, theme: CUSTOM_THEME_ID })
+  const from = (id: string) => {
+    const t = themeById(id)
+    update({ customTheme: { dark: t.dark, bg: t.bg, side: t.side, elev: t.elev, fg: t.fg, accent: t.accent, alt: t.alt ?? t.accent }, theme: CUSTOM_THEME_ID })
+  }
+  return (
+    <div className="custom-theme">
+      <div className="theme-title">{tr('自訂主題')}</div>
+      <Row label={tr('以現有主題為起點')}>
+        <select className="sel" value="" onChange={(e) => e.target.value && from(e.target.value)}>
+          <option value="">{tr('選擇…')}</option>
+          {THEMES.map((t) => (
+            <option key={t.id} value={t.id}>
+              {tr(t.label)}
+            </option>
+          ))}
+        </select>
+      </Row>
+      <Row label={tr('深色基調')}>
+        <Toggle on={c.dark} onChange={(v) => set({ dark: v })} />
+      </Row>
+      <div className="ct-grid">
+        {CUSTOM_FIELDS.map(([k, label]) => (
+          <label key={k} className="ct-item">
+            <input type="color" value={c[k]} onChange={(e) => set({ [k]: e.target.value })} />
+            <span>{tr(label)}</span>
+            <code>{c[k]}</code>
+          </label>
+        ))}
+      </div>
+      <Row label={`${tr('背景不透明度')} ${Math.round(settings.surfaceOpacity * 100)}%`}>
+        <input type="range" min={0.3} max={1} step={0.01} value={settings.surfaceOpacity} onChange={(e) => update({ surfaceOpacity: Number(e.target.value) })} />
+      </Row>
+      <button className="btn ghost" onClick={() => update({ customTheme: DEFAULT_CUSTOM })}>
+        {tr('重設自訂顏色')}
+      </button>
+    </div>
   )
 }

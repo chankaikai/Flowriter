@@ -505,3 +505,10 @@ body .cm-editor .cm-activeLineGutter { color: var(--accent) !important; font-wei
 .rb-body.compact .rb-drop { top: calc(100% + 2px); }
 
 .sp-drop { min-width: 270px; z-index: 40; }
+
+/* 自訂主題編輯器 */
+.custom-theme { margin-top: 10px; }
+.ct-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 8px 0; }
+.ct-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: var(--hover); font-size: 12px; cursor: pointer; }
+.ct-item input[type='color'] { width: 28px; height: 28px; border: 0; padding: 0; background: none; cursor: pointer; }
+.ct-item code { margin-left: auto; color: var(--fg-faint); font-size: 11px; }

@@ -1,6 +1,6 @@
 import { safeSpacing } from './spacing'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { THEMES, applyThemeVars, isDarkTheme } from './themes'
+import { THEMES, applyThemeVars, isDarkTheme, CUSTOM_THEME_ID, DEFAULT_CUSTOM, setCustomTheme, type CustomTheme } from './themes'
 import { setLang } from './i18n'
 
 export type ThemeName = 'system' | (string & {})
@@ -48,6 +48,8 @@ export interface Settings {
   surfaceOpacity: number
   winMaterial: 'acrylic' | 'mica'
   customCss: string
+  /** 自訂主題的顏色 */
+  customTheme: CustomTheme
   autoTheme: boolean
   inkRipple: boolean
   dailyGoal: number
@@ -94,6 +96,7 @@ export const DEFAULT_SETTINGS: Settings = {
   surfaceOpacity: 0.72,
   winMaterial: 'acrylic',
   customCss: '',
+  customTheme: DEFAULT_CUSTOM,
   autoTheme: false,
   inkRipple: true,
   dailyGoal: 800,
@@ -177,7 +180,7 @@ export function useApplySettings(s: Settings, materialSupported: boolean): Resol
       ? systemDark
         ? 'dark'
         : 'light'
-      : THEMES.some((t) => t.id === s.theme)
+      : s.theme === CUSTOM_THEME_ID || THEMES.some((t) => t.id === s.theme)
         ? s.theme
         : 'light'
   const prevTheme = useRef<ResolvedTheme | null>(null)
@@ -192,6 +195,7 @@ export function useApplySettings(s: Settings, materialSupported: boolean): Resol
     }
     prevTheme.current = resolved
     root.dataset.theme = resolved
+    setCustomTheme(s.customTheme ?? DEFAULT_CUSTOM)
     applyThemeVars(root, resolved)
     document.documentElement.classList.toggle('translucent', translucentActive)
     requestAnimationFrame(() => {
@@ -203,7 +207,7 @@ export function useApplySettings(s: Settings, materialSupported: boolean): Resol
         themeSource: s.theme === 'system' && !s.autoTheme ? 'system' : isDarkTheme(resolved) ? 'dark' : 'light'
       })
     })
-  }, [resolved, translucentActive, s.theme, s.autoTheme])
+  }, [resolved, translucentActive, s.theme, s.autoTheme, s.customTheme])
 
   useEffect(() => {
     if (!materialSupported) return
