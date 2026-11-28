@@ -1024,8 +1024,14 @@ function registerIpc(): void {
     return { path: o.mode === 'zip' ? target : join(target, files[0].name), count: files.length, overflow }
   })
 
+  ipcMain.handle('app:takeExternal', (e) => {
+    const l = queuedExternal.get(e.sender.id) ?? []
+    queuedExternal.delete(e.sender.id)
+    return l
+  })
+
   ipcMain.handle('app:launchFile', async () => {
-    const args = process.argv.slice(app.isPackaged ? 1 : 2)
+    const args = [...earlyOpen.splice(0), ...process.argv.slice(app.isPackaged ? 1 : 2)]
     for (const a of args) {
       if (a.startsWith('-') || !MD_RE.test(a)) continue
       try {
@@ -1251,7 +1257,49 @@ function registerIpc(): void {
   ipcMain.on('shell:reveal', (_e, p: string) => shell.showItemInFolder(p))
 }
 
+/* ---------- 單一實例：已經開著時，雙擊 .md 直接在現有視窗開成分頁 ---------- */
+const gotLock = app.requestSingleInstanceLock()
+/** 已載入完成的視窗直接推送；還在載入的先排隊，等它的前端來領 */
+const queuedExternal = new Map<number, string[]>()
+const earlyOpen: string[] = [] // macOS 在 app ready 之前就收到的 open-file
+
+function deliverExternal(file: string): void {
+  let w = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows().find((x) => !x.isDestroyed()) ?? null
+  if (!w) w = createWindow()
+  if (w.isMinimized()) w.restore()
+  w.show()
+  w.focus()
+  const wc = w.webContents
+  if (wc.isLoading()) queuedExternal.set(wc.id, [...(queuedExternal.get(wc.id) ?? []), file])
+  else wc.send('app:external', file)
+}
+
+if (gotLock) {
+  app.on('second-instance', (_e, argv, cwd) => {
+    for (const a of argv) {
+      if (a.startsWith('-') || !MD_RE.test(a)) continue
+      const p = resolve(cwd || process.cwd(), a)
+      if (existsSync(p)) deliverExternal(p)
+    }
+    // 沒帶檔案（例如又點了一次捷徑）：只把視窗拉到前面
+    const w = BrowserWindow.getAllWindows().find((x) => !x.isDestroyed())
+    if (w) {
+      if (w.isMinimized()) w.restore()
+      w.show()
+      w.focus()
+    }
+  })
+  app.on('open-file', (e, p) => {
+    e.preventDefault()
+    if (app.isReady()) deliverExternal(p)
+    else earlyOpen.push(p)
+  })
+} else {
+  app.quit() // 第二個實例：把任務交給第一個之後立刻結束，不再啟動整套介面
+}
+
 app.whenReady().then(() => {
+  if (!gotLock) return
   setupInbox()
   setupAmbient()
   setupMusicLib()

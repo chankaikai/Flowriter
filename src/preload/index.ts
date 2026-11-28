@@ -35,6 +35,12 @@ const api: InkwellApi = {
   exportPdf: (o) => inv('export:pdf', o),
   exportPrint: (o) => inv('export:print', o),
   getLaunchFile: () => inv('app:launchFile'),
+  takeExternalOpen: () => inv('app:takeExternal'),
+  onExternalOpen: (cb) => {
+    const handler = (_e: unknown, p: string) => cb(p)
+    ipcRenderer.on('app:external', handler)
+    return () => ipcRenderer.removeListener('app:external', handler)
+  },
   getInitialDoc: () => inv('app:initialDoc'),
   detachTab: (d, pos) => inv('win:detach', d, pos),
   newWindow: () => ipcRenderer.send('win:new'),

@@ -99,6 +99,8 @@ export interface InkwellApi {
   exportPdf(opts: { name: string; html: string; header?: string; footer?: string }): Promise<string | null>
   exportPrint(opts: { html: string }): Promise<{ ok: boolean; reason: string }>
   getLaunchFile(): Promise<string | null>
+  takeExternalOpen(): Promise<string[]>
+  onExternalOpen(cb: (path: string) => void): () => void
   /** 這個視窗是由「分頁拖出」建立的：領取要帶過來的文件（只會領到一次） */
   getInitialDoc(): Promise<{ path: string | null; name: string; md: string; saved: string } | null>
   /** 把分頁內容交給新視窗；回傳是否成功 */

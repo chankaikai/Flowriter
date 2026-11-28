@@ -1258,6 +1258,17 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // 程式已經開著時，在檔案總管雙擊 .md：由主程序轉來，在這個視窗開成分頁
+  useEffect(() => {
+    const run = async (p: string) => {
+      for (let i = 0; i < 50 && !restored.current; i++) await new Promise((r) => setTimeout(r, 100)) // 等啟動時的分頁還原完成
+      await openPath(p)
+    }
+    const off = window.api.onExternalOpen((p) => void run(p))
+    void window.api.takeExternalOpen().then((l) => l.forEach((p) => void run(p)))
+    return off
+  }, [openPath])
+
   // 關閉前保存工作狀態；回到視窗時檢查外部修改
   useEffect(() => {
     const onUnload = () => {
