@@ -1022,6 +1022,23 @@ export default function App() {
     [folder, openPath, showToast]
   )
 
+  /** 寬度大幅改變後讓長文件重新量高度，避免文末出現一大片空白（看起來像內容不見了） */
+  const reflowBigDoc = useCallback(() => {
+    const sc = document.querySelector<HTMLElement>('.editor-col.big-doc') ?? document.querySelector<HTMLElement>('.editor-col:not([hidden])')
+    const fromBottom = sc ? sc.scrollHeight - sc.scrollTop - sc.clientHeight : 0
+    const top = sc?.scrollTop ?? 0
+    const b = document.body.classList
+    b.add('cv-reset')
+    window.requestAnimationFrame(() =>
+      window.requestAnimationFrame(() => {
+        b.remove('cv-reset')
+        if (!sc) return
+        const max = Math.max(0, sc.scrollHeight - sc.clientHeight)
+        sc.scrollTop = fromBottom < 60 ? max : Math.min(top, max)
+      })
+    )
+  }, [])
+
   const toggleSticky = useCallback(() => {
     const next = !sticky
     if (next) {
@@ -1032,7 +1049,24 @@ export default function App() {
     setSticky(next)
     document.body.classList.toggle('mode-sticky', next)
     void window.api.setSticky(next)
-  }, [sticky, update])
+    // 視窗還原需要一點時間（動畫），等尺寸穩定後重新量版
+    window.setTimeout(reflowBigDoc, 120)
+    window.setTimeout(reflowBigDoc, 700)
+  }, [sticky, update, reflowBigDoc])
+
+  // 拉動視窗大小也一樣：停手後重新量一次
+  useEffect(() => {
+    let t = 0
+    const onResize = () => {
+      window.clearTimeout(t)
+      t = window.setTimeout(() => document.querySelector('.editor-col.big-doc') && reflowBigDoc(), 400)
+    }
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      window.clearTimeout(t)
+    }
+  }, [reflowBigDoc])
 
   const [resumeTick, setResumeTick] = useState(0)
   const setResumeHintCmd = useCallback(async () => {

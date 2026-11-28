@@ -149,6 +149,8 @@
 
 /* ============ 大型文件：離屏區塊跳過版面與繪製 ============ */
 .big-doc .milkdown .ProseMirror > * { content-visibility: auto; contain-intrinsic-size: auto 56px; }
+/* 版面寬度改變（退出迷你便籤、拉動視窗）後，auto 會沿用舊寬度記下的高度而撐出大片空白；短暫關掉再還原，讓瀏覽器重新量一次 */
+body.cv-reset .big-doc .milkdown .ProseMirror > * { content-visibility: visible !important; }
 
 .loading-veil {
   position: absolute; inset: 0; z-index: 25; display: grid; place-items: center; align-content: center; gap: 14px;
