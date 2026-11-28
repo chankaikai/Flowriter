@@ -27,6 +27,7 @@ import { ReversePanel } from '@/components/ReversePanel'
 import { Pomodoro } from '@/components/Pomodoro'
 import { uploadToHost } from '@/lib/imageHost'
 import { findLocalImages, replaceImageUrls } from '../../shared/imageHost'
+import { GraphDialog } from '@/components/GraphDialog'
 import { GitDialog } from '@/components/GitDialog'
 import { ExportDialog } from '@/components/ExportDialog'
 import { SoundPanel, SpectrumBar } from '@/components/MusicPanel'
@@ -1160,6 +1161,10 @@ export default function App() {
     recordVoice: () => recordVoice(),
     toggleSpeak: () => toggleSpeak(),
     uploadLocalImages: () => void uploadLocalImages(),
+    openGraph: () => {
+      if (folder) setGraphOpen(true)
+      else showToast(tr('請先開啟資料夾，才能畫出關係圖'))
+    },
     openGit: () => {
       const d = folder ?? (docRef.current.path ? dirname(docRef.current.path) : null)
       if (d) setGitDir(d)
@@ -1418,6 +1423,7 @@ export default function App() {
     else actionsRef.current.showSidebarTab(tab)
   }
   const [pomoSignal, setPomoSignal] = useState(0)
+  const [graphOpen, setGraphOpen] = useState(false)
   const [gitDir, setGitDir] = useState<string | null>(null)
   const [exportDlg, setExportDlg] = useState<null | 'html' | 'pdf' | 'print'>(null)
   const [popSlot, setPopSlot] = useState<HTMLElement | null>(null)
@@ -2166,6 +2172,7 @@ export default function App() {
                 md={mdRef.current}
                 onOpenLink={(n) => void openWikiLink(n)}
                 onOpenHit={(p) => void openPath(p)}
+                onGraph={() => (folder ? setGraphOpen(true) : showToast(tr('請先開啟資料夾，才能畫出關係圖')))}
               />
             )}
           </Popover>
@@ -2217,6 +2224,15 @@ export default function App() {
       </div>
       </div>
       {recAnchor !== null && <VoiceRecorder onDone={(r) => void finishVoice(r)} onCancel={() => setRecAnchor(null)} onError={showToast} />}
+      {graphOpen && folder && (
+        <GraphDialog
+          folder={folder}
+          current={doc.path}
+          onOpen={(p) => void openPath(p)}
+          onOpenGhost={(n) => void openWikiLink(n)}
+          onClose={() => setGraphOpen(false)}
+        />
+      )}
       {gitDir && <GitDialog dir={gitDir} onClose={() => setGitDir(null)} onDone={showToast} />}
       {exportDlg && (
         <ExportDialog

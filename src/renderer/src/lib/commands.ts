@@ -43,6 +43,7 @@ export interface Actions {
   toggleSpeak(): void
   uploadLocalImages(): void
   openGit(): void
+  openGraph(): void
   editRole(r: 'cut' | 'copy' | 'paste' | 'selectAll'): void
   quit(): void
   toggleLock(): void
@@ -131,6 +132,7 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'view.lens', title: '讀者視角（標出未解釋的縮寫與跳躍的轉折）', group: '檢視', keys: ['Mod+Alt+X'], run: a.toggleLens },
     { id: 'insert.voice', title: '錄製語音便籤（釘在游標所在段落）', group: '插入', keys: ['Mod+Alt+Z'], run: a.recordVoice },
     { id: 'view.weight', title: '顯示／隱藏段落權重', group: '檢視', keys: ['Mod+Alt+W'], run: a.toggleWeight },
+    { id: 'nav.graph', title: '連結關係圖', group: '導航', run: a.openGraph },
     { id: 'file.git', title: '發佈到 Git（GitHub／Gitee…）…', group: '檔案', run: a.openGit },
     { id: 'image.uploadAll', title: '上傳本文的本地圖片到圖床', group: '檔案', run: a.uploadLocalImages },
     { id: 'doc.speak', title: '朗讀校對（選取處或從游標開始）', group: '檔案', keys: ['Mod+Alt+Y'], run: a.toggleSpeak },

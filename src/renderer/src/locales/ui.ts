@@ -4,6 +4,20 @@
  * 其他非中文語言查不到時退回英文；簡體中文用逐字轉換。
  */
 export const UI: Record<string, string> = {
+  '連結關係圖': 'Link graph',
+  '開啟關係圖': 'Open graph',
+  '請先開啟資料夾，才能畫出關係圖': 'Open a folder first to draw the graph',
+  '本文周邊': 'Around this note',
+  '全部筆記': 'All notes',
+  '層數': 'Depth',
+  '隱藏沒有連結的筆記': 'Hide notes without links',
+  '{0} 篇筆記、{1} 條連結': '{0} notes, {1} links',
+  '掃描中…': 'Scanning…',
+  '掃描資料夾中…': 'Scanning folder…',
+  '本文還沒有連結，也沒有其他筆記連到這裡。用 [[筆記名稱]] 建立連結。': 'This note has no links and nothing links to it. Use [[note name]] to create links.',
+  '資料夾裡還沒有互相連結的筆記。': 'No linked notes in this folder yet.',
+  '點節點開啟；虛線空心＝連結了但還不存在的筆記（點一下就建立）。滾輪縮放，拖曳平移。': 'Click a node to open it; dashed hollow = linked but not yet existing (click to create). Wheel to zoom, drag to pan.',
+  '筆記太多，只顯示連結最多的部分。': 'Too many notes; showing only the most linked.',
   '發佈到 Git': 'Publish to Git',
   '發佈到 Git（GitHub／Gitee…）…': 'Publish to Git (GitHub/Gitee…)…',
   '資料夾': 'Folder',

@@ -109,6 +109,7 @@ export const MENUS: MenuDef[] = [
       { sub: '文件樹', items: [c('tree.open', '開啟'), c('tree.close', '關閉'), c('tree.change', '更換資料夾')] },
       c('nav.files'),
       c('nav.outline'),
+      c('nav.graph'),
       SEP,
       c('view.source', undefined, 'source'),
       c('view.focus', undefined, 'focus'),

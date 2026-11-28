@@ -310,13 +310,14 @@ export function AiPanel({
 /* ------------------------------ 連結與反向連結 ------------------------------ */
 
 export function LinksPanel({
-  folder, docPath, md, onOpenLink, onOpenHit
+  folder, docPath, md, onOpenLink, onOpenHit, onGraph
 }: {
   folder: string | null
   docPath: string | null
   md: string
   onOpenLink(name: string): void
   onOpenHit(path: string): void
+  onGraph(): void
 }) {
   const [hits, setHits] = useState<SearchHit[] | null>(null)
   const [hop, setHop] = useState<{ shared: RelatedNote[]; out: RelatedNote[] } | null>(null)
@@ -369,6 +370,9 @@ export function LinksPanel({
 
   return (
     <>
+      <div className="pop-actions">
+        <button className="btn" onClick={onGraph}>{tr('開啟關係圖')}</button>
+      </div>
       <div className="hist-hint">{tr('本文連出（點擊開啟，不存在則建立）')}</div>
       <div className="link-list">
         {outgoing.length ? (

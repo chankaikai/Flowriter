@@ -23,6 +23,7 @@ const api: InkwellApi = {
   listAll: (r) => inv('folder:listAll', r),
   searchFolder: (r, q) => inv('folder:search', r, q),
   saveImage: (d, n, data) => inv('image:save', d, n, data),
+  graphBuild: (f) => inv('graph:build', f),
   gitStatus: (d) => inv('git:status', d),
   gitInit: (d) => inv('git:init', d),
   gitRemote: (r, u) => inv('git:remote', r, u),

@@ -64,6 +64,7 @@ export interface MusicLibState { dir: string; isDefault: boolean; tracks: MusicT
 
 import type { ImageHostCfg } from './imageHost'
 import type { GitStatus } from './gitSync'
+import type { LinkGraph } from './linkGraph'
 
 export interface InkwellApi {
   platform: string
@@ -81,6 +82,7 @@ export interface InkwellApi {
   listAll(root: string): Promise<FileListItem[]>
   searchFolder(root: string, query: string): Promise<SearchHit[]>
   saveImage(docPath: string, fileName: string, data: ArrayBuffer): Promise<string | null>
+  graphBuild(folder: string): Promise<LinkGraph & { files: number }>
   gitStatus(dir: string): Promise<GitStatus>
   gitInit(dir: string): Promise<{ ok: boolean; out: string }>
   gitRemote(root: string, url: string): Promise<{ ok: boolean; out: string }>
