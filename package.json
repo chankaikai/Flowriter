@@ -75,7 +75,9 @@
     "productName": "Flowiter",
     "files": [
       "out/**",
-      "build/icon.png"
+      "build/icon.png",
+      "!**/*.map",
+      "!**/node_modules/*/{test,tests,__tests__,docs,example,examples}/**"
     ],
     "extraResources": [
       {
@@ -128,6 +130,12 @@
         "owner": "chankaikai",
         "repo": "Flowriter"
       }
+    ],
+    "compression": "maximum",
+    "electronLanguages": [
+      "zh-CN",
+      "zh-TW",
+      "en-US"
     ]
   },
   "author": "Flowiter <kaikai122148@163.com>",
