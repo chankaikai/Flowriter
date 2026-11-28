@@ -4,6 +4,7 @@
  * 其他非中文語言查不到時退回英文；簡體中文用逐字轉換。
  */
 export const UI: Record<string, string> = {
+  '{0} 行 × {1} 列': '{0} rows × {1} columns',
   '先開啟一個資料夾，知識庫才有範圍可以讀取。': 'Open a folder first so the knowledge base has something to read.',
   '問知識庫': 'Ask knowledge base',
   '查重': 'Duplicate check',

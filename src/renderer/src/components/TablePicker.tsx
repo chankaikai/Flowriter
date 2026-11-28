@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { tr, trf } from '@/lib/i18n'
 
 const MAX_R = 12
 const MAX_C = 16
@@ -23,7 +24,7 @@ export function TablePicker({ onPick }: { onPick(rows: number, cols: number): vo
   }
   return (
     <div className="tp" onMouseLeave={() => setHov({ r: 0, c: 0 })}>
-      <div className="tp-title">{hov.r ? `${hov.r} 行 × ${hov.c} 列` : '插入表格'}</div>
+      <div className="tp-title">{hov.r ? trf('{0} 行 × {1} 列', hov.r, hov.c) : tr('插入表格')}</div>
       <div
         className="tp-grid"
         style={{ gridTemplateColumns: `repeat(${showC}, ${CELL}px)`, gridAutoRows: `${CELL}px`, gap: GAP }}
