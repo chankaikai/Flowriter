@@ -27,6 +27,7 @@ import { ReversePanel } from '@/components/ReversePanel'
 import { Pomodoro } from '@/components/Pomodoro'
 import { uploadToHost } from '@/lib/imageHost'
 import { findLocalImages, replaceImageUrls } from '../../shared/imageHost'
+import { GitDialog } from '@/components/GitDialog'
 import { ExportDialog } from '@/components/ExportDialog'
 import { SoundPanel, SpectrumBar } from '@/components/MusicPanel'
 import { VoiceRecorder, type VoiceResult } from '@/components/VoiceRecorder'
@@ -1159,6 +1160,11 @@ export default function App() {
     recordVoice: () => recordVoice(),
     toggleSpeak: () => toggleSpeak(),
     uploadLocalImages: () => void uploadLocalImages(),
+    openGit: () => {
+      const d = folder ?? (docRef.current.path ? dirname(docRef.current.path) : null)
+      if (d) setGitDir(d)
+      else showToast(tr('請先開啟資料夾，或先儲存文件'))
+    },
     openPanel: (p) => openPanel(p),
     cycleTab: (d) => {
       const l = tabsRef.current
@@ -1412,6 +1418,7 @@ export default function App() {
     else actionsRef.current.showSidebarTab(tab)
   }
   const [pomoSignal, setPomoSignal] = useState(0)
+  const [gitDir, setGitDir] = useState<string | null>(null)
   const [exportDlg, setExportDlg] = useState<null | 'html' | 'pdf' | 'print'>(null)
   const [popSlot, setPopSlot] = useState<HTMLElement | null>(null)
   const [cmp, setCmp] = useState<{ current: CompareSource; others: CompareSource[] } | null>(null)
@@ -2210,6 +2217,7 @@ export default function App() {
       </div>
       </div>
       {recAnchor !== null && <VoiceRecorder onDone={(r) => void finishVoice(r)} onCancel={() => setRecAnchor(null)} onError={showToast} />}
+      {gitDir && <GitDialog dir={gitDir} onClose={() => setGitDir(null)} onDone={showToast} />}
       {exportDlg && (
         <ExportDialog
           kind={exportDlg}

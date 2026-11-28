@@ -10,6 +10,7 @@ import { setupInbox } from './inbox'
 import { setupUpdater } from './updater'
 import { setupAmbient } from './ambient'
 import { setupMusicLib } from './musicLib'
+import { setupGitSync } from './gitSync'
 import { isHttpUrl, normalizeHost, parseHeaders, pickUrl, type ImageHostCfg } from '../shared/imageHost'
 
 const data2buf = (d: ArrayBuffer): Uint8Array => new Uint8Array(d)
@@ -1253,6 +1254,7 @@ app.whenReady().then(() => {
   setupInbox()
   setupAmbient()
   setupMusicLib()
+  setupGitSync()
   setupDataTools()
   setupUpdater(() => {
     // 有未儲存內容時先確認，避免重啟更新把更改丟掉

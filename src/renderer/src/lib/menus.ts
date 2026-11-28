@@ -37,6 +37,7 @@ export const MENUS: MenuDef[] = [
       SEP,
       c('file.print'),
       c('image.uploadAll'),
+      c('file.git'),
       { sub: '匯出', items: [c('export.pdf'), c('export.docx'), c('export.html'), c('export.png'), c('export.cards'), c('export.cards45'), c('export.cardsPng'), c('export.md')] },
       SEP,
       c('tab.close'),

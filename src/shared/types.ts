@@ -63,6 +63,7 @@ export interface MusicPlaylist { id: string; name: string; icon: string; cover?:
 export interface MusicLibState { dir: string; isDefault: boolean; tracks: MusicTrack[]; playlists: MusicPlaylist[] }
 
 import type { ImageHostCfg } from './imageHost'
+import type { GitStatus } from './gitSync'
 
 export interface InkwellApi {
   platform: string
@@ -80,6 +81,11 @@ export interface InkwellApi {
   listAll(root: string): Promise<FileListItem[]>
   searchFolder(root: string, query: string): Promise<SearchHit[]>
   saveImage(docPath: string, fileName: string, data: ArrayBuffer): Promise<string | null>
+  gitStatus(dir: string): Promise<GitStatus>
+  gitInit(dir: string): Promise<{ ok: boolean; out: string }>
+  gitRemote(root: string, url: string): Promise<{ ok: boolean; out: string }>
+  gitPull(root: string): Promise<{ ok: boolean; out: string }>
+  gitSync(root: string, message: string, onlyDocs: boolean): Promise<{ ok: boolean; out: string }>
   imageHostUpload(o: { cfg: ImageHostCfg; name: string; data: ArrayBuffer }): Promise<{ ok: true; url: string } | { ok: false; error: string }>
   readDataUrl(path: string): Promise<string | null>
   exportFile(opts: {
