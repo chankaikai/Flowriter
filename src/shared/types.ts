@@ -62,6 +62,8 @@ export interface MusicTrack { id: string; file: string; title: string; added: nu
 export interface MusicPlaylist { id: string; name: string; icon: string; cover?: string; trackIds: string[] }
 export interface MusicLibState { dir: string; isDefault: boolean; tracks: MusicTrack[]; playlists: MusicPlaylist[] }
 
+import type { ImageHostCfg } from './imageHost'
+
 export interface InkwellApi {
   platform: string
   openFile(): Promise<FileResult | null>
@@ -78,6 +80,7 @@ export interface InkwellApi {
   listAll(root: string): Promise<FileListItem[]>
   searchFolder(root: string, query: string): Promise<SearchHit[]>
   saveImage(docPath: string, fileName: string, data: ArrayBuffer): Promise<string | null>
+  imageHostUpload(o: { cfg: ImageHostCfg; name: string; data: ArrayBuffer }): Promise<{ ok: true; url: string } | { ok: false; error: string }>
   readDataUrl(path: string): Promise<string | null>
   exportFile(opts: {
     name: string

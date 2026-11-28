@@ -10,6 +10,9 @@ import { setupInbox } from './inbox'
 import { setupUpdater } from './updater'
 import { setupAmbient } from './ambient'
 import { setupMusicLib } from './musicLib'
+import { isHttpUrl, normalizeHost, parseHeaders, pickUrl, type ImageHostCfg } from '../shared/imageHost'
+
+const data2buf = (d: ArrayBuffer): Uint8Array => new Uint8Array(d)
 import { setupDataTools } from './dataTools'
 import { readSidecar, writeSidecar } from './sidecar'
 import { runNative, stopNative } from './nativeRun'
@@ -433,6 +436,42 @@ function registerIpc(): void {
       return `assets/${name}`
     } catch {
       return null
+    }
+  })
+
+  /** 圖床上傳：PicGo／PicList 本機介面，或自訂 HTTP（multipart）。在主程序發請求，避開前端的跨來源限制。 */
+  ipcMain.handle('imagehost:upload', async (_e, o: { cfg: ImageHostCfg; name: string; data: ArrayBuffer }): Promise<{ ok: true; url: string } | { ok: false; error: string }> => {
+    const cfg = normalizeHost(o.cfg)
+    const safe = basename(String(o.name || 'image.png')).replace(/[\\/:*?"<>|\s]+/g, '-') || 'image.png'
+    try {
+      if (cfg.kind === 'picgo') {
+        if (!isHttpUrl(cfg.picgoUrl)) return { ok: false, error: 'PicGo 網址不正確' }
+        // PicGo 的介面吃「本機檔案路徑」，所以先寫一個暫存檔，用完就刪
+        const tmp = join(tmpdir(), `flowriter-${Date.now()}-${safe}`)
+        await fs.writeFile(tmp, Buffer.from(o.data))
+        try {
+          const r = await fetch(cfg.picgoUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ list: [tmp] }), signal: AbortSignal.timeout(60_000) })
+          const j: any = await r.json().catch(() => ({}))
+          const url = Array.isArray(j?.result) ? j.result[0] : undefined
+          if (j?.success && typeof url === 'string' && isHttpUrl(url)) return { ok: true, url }
+          return { ok: false, error: String(j?.message || `PicGo 回應 ${r.status}`).slice(0, 160) }
+        } finally {
+          fs.unlink(tmp).catch(() => {})
+        }
+      }
+      if (cfg.kind === 'custom') {
+        if (!isHttpUrl(cfg.customUrl)) return { ok: false, error: '上傳網址不正確' }
+        const fd = new FormData()
+        fd.append(cfg.customField, new Blob([data2buf(o.data)]), safe)
+        const r = await fetch(cfg.customUrl, { method: 'POST', headers: parseHeaders(cfg.customHeaders), body: fd, signal: AbortSignal.timeout(60_000) })
+        const text = await r.text()
+        const url = pickUrl(text, cfg.customPath)
+        if (r.ok && url) return { ok: true, url }
+        return { ok: false, error: r.ok ? '回應裡找不到圖片網址（檢查「網址路徑」）' : `伺服器回應 ${r.status}` }
+      }
+      return { ok: false, error: '未啟用圖床' }
+    } catch (err) {
+      return { ok: false, error: String((err as Error)?.message ?? err).slice(0, 160) }
     }
   })
 

@@ -23,6 +23,7 @@ const api: InkwellApi = {
   listAll: (r) => inv('folder:listAll', r),
   searchFolder: (r, q) => inv('folder:search', r, q),
   saveImage: (d, n, data) => inv('image:save', d, n, data),
+  imageHostUpload: (o) => inv('imagehost:upload', o),
   readDataUrl: (p) => inv('file:dataUrl', p),
   exportFile: (o) => inv('export:save', o),
   exportPdf: (o) => inv('export:pdf', o),

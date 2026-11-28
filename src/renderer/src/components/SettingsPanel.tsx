@@ -11,6 +11,7 @@ import { resolveAi } from '@/lib/ai'
 import { Segmented } from './Segmented'
 import { AboutPanel } from './AboutPanel'
 import { DataPanel } from './DataPanel'
+import { ImageHostPanel } from './ImageHostPanel'
 import { LANGS, tr, trf } from '@/lib/i18n'
 import { importThemeCss, listImported, removeImported, MAX_THEME_CSS } from '@/lib/themeImport'
 import type { UpdateStatus } from '../../../shared/update'
@@ -251,6 +252,10 @@ export function SettingsPanel({
                 <input type="range" min={100} max={5000} step={100} value={settings.dailyGoal}
                   onChange={(e) => update({ dailyGoal: +e.target.value })} />
               </Row>
+            </ExpandCard>
+
+            <ExpandCard wide active={open} icon="image" title={tr('圖片與圖床')} summary={tr('PicGo、自訂 HTTP 圖床')}>
+              <ImageHostPanel />
             </ExpandCard>
 
             <div className="xgroup">{tr('AI 與自訂')}</div>

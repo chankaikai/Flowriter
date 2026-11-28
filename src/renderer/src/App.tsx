@@ -25,6 +25,8 @@ import { TimeMachine } from '@/components/TimeMachine'
 import { VaultPanel } from '@/components/VaultPanel'
 import { ReversePanel } from '@/components/ReversePanel'
 import { Pomodoro } from '@/components/Pomodoro'
+import { uploadToHost } from '@/lib/imageHost'
+import { findLocalImages, replaceImageUrls } from '../../shared/imageHost'
 import { ExportDialog } from '@/components/ExportDialog'
 import { SoundPanel, SpectrumBar } from '@/components/MusicPanel'
 import { VoiceRecorder, type VoiceResult } from '@/components/VoiceRecorder'
@@ -757,13 +759,16 @@ export default function App() {
   /* ------------------------------ 圖片 ------------------------------ */
 
   const uploadImage = useCallback(async (file: File): Promise<string> => {
+    const hosted = await uploadToHost(file.name || `image-${Date.now()}.png`, await file.arrayBuffer())
+    if (hosted && 'url' in hosted) return hosted.url
+    if (hosted) showToast(`${tr('圖床上傳失敗，已改存本機')}：${hosted.error}`)
     const p = docRef.current.path
     if (p) {
       const rel = await window.api.saveImage(p, file.name || `image-${Date.now()}.png`, await file.arrayBuffer())
       if (rel) return encodeURI(rel)
     }
     return readAsDataUrl(file) // 尚未儲存的文件：以內嵌 base64 保存
-  }, [])
+  }, [showToast])
 
   const resolveImageUrl = useCallback(
     (src: string) => toDisplayUrl(docRef.current.path ? dirname(docRef.current.path) : null, src),
@@ -912,6 +917,37 @@ export default function App() {
     },
     [activate, scheduleAutosave, snapshotActive, syncFromEditor]
   )
+
+  /** 把本文裡指向本機檔案的圖片全部傳到圖床，並把連結換成網址（可從時光機還原） */
+  const uploadLocalImages = useCallback(async () => {
+    syncFromEditor()
+    const base = docRef.current.path ? dirname(docRef.current.path) : null
+    const imgs = findLocalImages(mdRef.current)
+    if (!imgs.length) return showToast(tr('本文沒有本地圖片'))
+    if (!base) return showToast(tr('請先儲存文件，才能找到圖片檔'))
+    const map = new Map<string, string>()
+    let fail = ''
+    for (const [i, im] of imgs.entries()) {
+      showToast(`${tr('上傳中')} ${i + 1}/${imgs.length}…`)
+      try {
+        const abs = toAbsolutePath(base, im.url)
+        const du = abs ? await window.api.readDataUrl(abs) : null
+        if (!du) {
+          fail = `${im.url}：${tr('找不到檔案')}`
+          continue
+        }
+        const blob = await (await fetch(du)).blob()
+        const r = await uploadToHost(basename(abs ?? '') || 'image.png', await blob.arrayBuffer())
+        if (!r) return showToast(tr('請先到設定啟用圖床'))
+        if ('url' in r) map.set(im.url, r.url)
+        else fail = `${im.url}：${r.error}`
+      } catch (e) {
+        fail = `${im.url}：${String((e as Error)?.message ?? e).slice(0, 80)}`
+      }
+    }
+    if (map.size) replaceContent(replaceImageUrls(mdRef.current, map))
+    showToast(`${trf('已上傳 {0}／{1} 張', String(map.size), String(imgs.length))}${fail ? `；${fail}` : ''}`)
+  }, [replaceContent, showToast, syncFromEditor])
 
   const onMoveSection = useCallback(
     (from: number, to: number) => {
@@ -1122,6 +1158,7 @@ export default function App() {
     toggleLens: () => toggleLens(),
     recordVoice: () => recordVoice(),
     toggleSpeak: () => toggleSpeak(),
+    uploadLocalImages: () => void uploadLocalImages(),
     openPanel: (p) => openPanel(p),
     cycleTab: (d) => {
       const l = tabsRef.current
