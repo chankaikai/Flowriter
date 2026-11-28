@@ -554,10 +554,13 @@ export default function App() {
     [activate, publishTabs, save, syncFromEditor]
   )
 
-  /** 把分頁拖出成新視窗：內容（含未儲存的更改）交給新視窗，這邊的分頁直接移除。 */
-  const detachTab = useCallback(
+  /**
+   * 分頁拖放（像 WPS）：拖到別的視窗的分頁列上就併進去，拖到空白處就變成新視窗。
+   * 只剩一個分頁時也能拖去併到別的視窗（併完這個視窗會自動關閉）。
+   */
+  const dropTab = useCallback(
     async (id: number, at: { x: number; y: number }) => {
-      if (tabsRef.current.length < 2) return
+      const only = tabsRef.current.length < 2
       const isActive = id === activeIdRef.current
       if (isActive) syncFromEditor()
       const t = tabsRef.current.find((x) => x.id === id)
@@ -567,8 +570,9 @@ export default function App() {
       const name = isActive ? docRef.current.name : t.name
       const path = isActive ? docRef.current.path : t.path
       if (path && md === saved) saveCaretNow()
-      const ok = await window.api.detachTab({ path, name, md, saved }, at)
-      if (!ok) return showToast(tr('無法開啟新視窗'))
+      const r = await window.api.dropTab({ path, name, md, saved }, at, only)
+      if (r === 'none') return
+      if (only) return // 主程序會關閉這個視窗
       const idx = tabsRef.current.findIndex((x) => x.id === id)
       const rest = tabsRef.current.filter((x) => x.id !== id)
       tabsRef.current = rest
@@ -576,13 +580,41 @@ export default function App() {
       if (isActive) activate(rest[Math.min(idx, rest.length - 1)])
       else publishTabs()
     },
-    [activate, publishTabs, saveCaretNow, showToast, syncFromEditor]
+    [activate, publishTabs, saveCaretNow, syncFromEditor]
   )
 
-  /** 拖曳分頁：拖到分頁列外面（下方或視窗外）放開，就變成新視窗。 */
+  /** 別的視窗把分頁拖到這個視窗的分頁列：收下它（連同未儲存的更改） */
+  const adoptTab = useCallback(
+    async (d: { path: string | null; name: string; md: string; saved: string }) => {
+      await flushActive()
+      snapshotActive()
+      if (d.path) {
+        const ex = tabsRef.current.find((x) => x.path === d.path)
+        if (ex) {
+          if (d.md !== d.saved) Object.assign(ex, { md: d.md, saved: d.saved })
+          activate(ex)
+          return
+        }
+      }
+      const mt = d.path ? ((await window.api.statFile(d.path)) ?? 0) : 0
+      const cur = tabsRef.current.find((x) => x.id === activeIdRef.current)
+      const pristine = !!cur && !cur.path && cur.md === cur.saved && cur.md.trim() === '' && tabsRef.current.length === 1
+      if (cur && pristine) {
+        Object.assign(cur, { path: d.path, name: d.name, md: d.md, saved: d.saved, scroll: 0, mtime: mt })
+        activate(cur)
+        return
+      }
+      const t: Tab = { id: nextTabId.current++, path: d.path, name: d.name, md: d.md, saved: d.saved, scroll: 0, mtime: mt }
+      tabsRef.current = [...tabsRef.current, t]
+      activate(t)
+    },
+    [activate, flushActive, snapshotActive]
+  )
+  useEffect(() => window.api.onTabAdopt((d) => void adoptTab(d)), [adoptTab])
+
+  /** 拖曳分頁：拖到分頁列外面（下方或視窗外）放開，併到別的視窗或變成新視窗。 */
   const startTabDrag = useCallback(
     (e: React.MouseEvent, id: number) => {
-      if (tabsRef.current.length < 2) return
       const sx = e.clientX
       const sy = e.clientY
       let dragging = false
@@ -603,12 +635,12 @@ export default function App() {
         window.removeEventListener('mousemove', move)
         window.removeEventListener('mouseup', up)
         document.body.classList.remove('tab-dragging', 'tab-out')
-        if (dragging && outside(ev.clientX, ev.clientY)) void detachTab(id, { x: ev.screenX, y: ev.screenY })
+        if (dragging && outside(ev.clientX, ev.clientY)) void dropTab(id, { x: ev.screenX, y: ev.screenY })
       }
       window.addEventListener('mousemove', move)
       window.addEventListener('mouseup', up)
     },
-    [detachTab]
+    [dropTab]
   )
 
   const openPath = useCallback(

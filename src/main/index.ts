@@ -1096,6 +1096,39 @@ function registerIpc(): void {
     createWindow({ initial: init, at })
     return true
   })
+  // 分頁拖放：放在另一個視窗的分頁列上就併進去（像 WPS，可以拖來拖去）；放在空白處就開新視窗
+  ipcMain.handle('win:dropTab', (e, doc: InitialDoc, pos: { x: number; y: number } | undefined, onlyTab: boolean) => {
+    if (!doc || typeof doc.md !== 'string' || typeof doc.name !== 'string') return 'none'
+    const init: InitialDoc = { path: typeof doc.path === 'string' ? doc.path : null, name: doc.name.slice(0, 260), md: doc.md, saved: typeof doc.saved === 'string' ? doc.saved : doc.md }
+    const from = BrowserWindow.fromWebContents(e.sender)
+    const okPos = pos && Number.isFinite(pos.x) && Number.isFinite(pos.y)
+    if (okPos) {
+      const target = BrowserWindow.getAllWindows().find((w) => {
+        if (w === from || w.isDestroyed() || !w.isVisible() || w.isMinimized() || !wstates.has(w)) return false
+        const b = w.getBounds()
+        return pos!.x >= b.x && pos!.x <= b.x + b.width && pos!.y >= b.y && pos!.y <= b.y + 120 // 標題列＋分頁列的範圍
+      })
+      if (target) {
+        target.webContents.send('tab:adopt', init)
+        target.show()
+        target.focus()
+        if (onlyTab && from) {
+          const st = wstates.get(from)
+          if (st) {
+            st.dirty = false // 內容已經交給對方，這個視窗直接關掉
+            st.forceClose = true
+          }
+          setImmediate(() => !from.isDestroyed() && from.close())
+        }
+        return 'moved'
+      }
+    }
+    if (onlyTab) return 'none'
+    const b = from?.getBounds()
+    const at = okPos ? { x: pos!.x - 120, y: pos!.y - 18 } : b ? { x: b.x + 40, y: b.y + 40 } : undefined
+    createWindow({ initial: init, at })
+    return 'detached'
+  })
   ipcMain.handle('app:initialDoc', (e) => {
     const d = pendingInitial.get(e.sender.id) ?? null
     pendingInitial.delete(e.sender.id)

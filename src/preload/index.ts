@@ -46,6 +46,12 @@ const api: InkwellApi = {
   },
   getInitialDoc: () => inv('app:initialDoc'),
   detachTab: (d, pos) => inv('win:detach', d, pos),
+  dropTab: (d, pos, onlyTab) => inv('win:dropTab', d, pos, onlyTab),
+  onTabAdopt: (cb) => {
+    const handler = (_e: unknown, d: { path: string | null; name: string; md: string; saved: string }) => cb(d)
+    ipcRenderer.on('tab:adopt', handler)
+    return () => ipcRenderer.removeListener('tab:adopt', handler)
+  },
   newWindow: () => ipcRenderer.send('win:new'),
   pathForFile: (f) => webUtils.getPathForFile(f),
   setSticky: (on) => inv('window:sticky', on),

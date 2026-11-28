@@ -105,6 +105,8 @@ export interface InkwellApi {
   getInitialDoc(): Promise<{ path: string | null; name: string; md: string; saved: string } | null>
   /** 把分頁內容交給新視窗；回傳是否成功 */
   detachTab(doc: { path: string | null; name: string; md: string; saved: string }, pos?: { x: number; y: number }): Promise<boolean>
+  dropTab(doc: { path: string | null; name: string; md: string; saved: string }, pos: { x: number; y: number }, onlyTab: boolean): Promise<'moved' | 'detached' | 'none'>
+  onTabAdopt(cb: (doc: { path: string | null; name: string; md: string; saved: string }) => void): () => void
   newWindow(): void
   pathForFile(file: File): string
   setDirty(dirty: boolean): void
