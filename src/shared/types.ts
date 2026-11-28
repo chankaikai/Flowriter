@@ -117,6 +117,9 @@ export interface InkwellApi {
   /** 從備份檔還原；成功時回傳要寫回 localStorage 的設定 */
   dataRestore(): Promise<{ ok: true; count: number; local: Record<string, string>; name: string } | { ok: false; reason: string }>
   cacheSize(): Promise<number>
+  dataLocation(): Promise<{ dir: string }>
+  dataMoveDir(): Promise<{ ok: true; path: string } | { ok: false; reason: string }>
+  appRelaunch(): Promise<void>
   cacheClear(): Promise<{ ok: boolean; freed: number; before: number; reason?: string }>
   ambientList(): Promise<Record<string, 'user' | 'bundled'>>
   ambientRead(kind: string): Promise<Uint8Array | null>

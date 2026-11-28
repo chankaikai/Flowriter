@@ -122,7 +122,14 @@
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh",
+      "createDesktopShortcut": true,
+      "shortcutName": "Flowriter",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
     },
     "publish": [
       {

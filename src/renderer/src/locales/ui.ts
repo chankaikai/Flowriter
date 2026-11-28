@@ -4,6 +4,12 @@
  * 其他非中文語言查不到時退回英文；簡體中文用逐字轉換。
  */
 export const UI: Record<string, string> = {
+  '會把歷史版本、膠囊、抽屜與音樂複製到新資料夾（舊資料不會被刪除），然後重新啟動。要繼續嗎？': 'History, capsules, drawer and music will be copied to the new folder (old data is kept), then the app restarts. Continue?',
+  '搬家': 'Move',
+  '已複製到 {0}，即將重新啟動…': 'Copied to {0}, restarting...',
+  '搬家失敗：{0}': 'Move failed: {0}',
+  '資料位置：{0}': 'Data location: {0}',
+  '更改資料位置…': 'Change data location...',
   '連結關係圖': 'Link graph',
   '開啟關係圖': 'Open graph',
   '請先開啟資料夾，才能畫出關係圖': 'Open a folder first to draw the graph',

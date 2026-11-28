@@ -6,7 +6,7 @@
  */
 import { app, BrowserWindow, dialog, ipcMain, session } from 'electron'
 import { basename, join, relative, resolve, sep } from 'node:path'
-import { promises as fs } from 'node:fs'
+import { existsSync, promises as fs } from 'node:fs'
 import { resetSidecarKey, sidecarKeyPath } from './sidecar'
 
 const MAX_BYTES = 400 * 1024 * 1024
@@ -34,6 +34,40 @@ async function dirSize(dir: string): Promise<number> {
 
 export function setupDataTools(): void {
   const ud = () => app.getPath('userData')
+  const bootFile = () => join(app.getPath('appData'), 'Flowriter-boot.json')
+
+  ipcMain.handle('data:location', () => ({ dir: ud() }))
+
+  // 搬家：把資料複製到新資料夾（不覆蓋已存在的檔案、不刪舊資料），寫入指標檔，重新啟動後生效
+  ipcMain.handle('data:moveDir', async (e) => {
+    const win = BrowserWindow.fromWebContents(e.sender)!
+    const r = await dialog.showOpenDialog(win, { title: '選擇新的資料資料夾', properties: ['openDirectory', 'createDirectory'] })
+    if (r.canceled || !r.filePaths[0]) return { ok: false as const, reason: 'cancel' }
+    const target = join(r.filePaths[0], 'Flowriter-data')
+    const from = ud()
+    if (resolve(target) === resolve(from)) return { ok: false as const, reason: '已經是這個位置' }
+    if (resolve(target).startsWith(resolve(from) + sep)) return { ok: false as const, reason: '新位置不能在目前資料夾裡面' }
+    try {
+      await fs.mkdir(target, { recursive: true })
+      for (const n of [...DIRS, 'music', 'ambient']) {
+        const src = join(from, n)
+        if (existsSync(src)) await fs.cp(src, join(target, n), { recursive: true, force: false, errorOnExist: false })
+      }
+      for (const f of [...FILES, 'music-config.json']) {
+        const src = join(from, f)
+        if (existsSync(src)) await fs.cp(src, join(target, f), { force: false, errorOnExist: false })
+      }
+      await fs.writeFile(bootFile(), JSON.stringify({ dataDir: target }), 'utf8')
+      return { ok: true as const, path: target }
+    } catch (err) {
+      return { ok: false as const, reason: String((err as Error).message ?? err) }
+    }
+  })
+
+  ipcMain.handle('data:relaunch', () => {
+    app.relaunch()
+    app.exit(0)
+  })
 
   ipcMain.handle('data:backup', async (e, local: Record<string, string>) => {
     const win = BrowserWindow.fromWebContents(e.sender)!

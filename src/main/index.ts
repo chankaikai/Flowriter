@@ -2,7 +2,7 @@ import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, net,
 import { balanceKind } from '../shared/aiHosts'
 import { zipStore } from '../shared/zip'
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path'
-import { existsSync, promises as fs } from 'node:fs'
+import { existsSync, readFileSync, promises as fs } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { release, tmpdir } from 'node:os'
 import { createHash } from 'node:crypto'
@@ -25,6 +25,13 @@ app.setName('Flowiter')
 {
   const legacy = ['inkwell', 'Inkwell'].map((n) => join(app.getPath('appData'), n)).find((p) => existsSync(p))
   if (legacy) app.setPath('userData', legacy)
+  // 使用者自選的資料夾（安裝時或設定裡指定）：指標檔放在 appData，避免 C 槽被塞滿
+  try {
+    const boot = JSON.parse(readFileSync(join(app.getPath('appData'), 'Flowriter-boot.json'), 'utf8')) as { dataDir?: string }
+    if (boot.dataDir && existsSync(boot.dataDir)) app.setPath('userData', boot.dataDir)
+  } catch {
+    /* 沒有指標檔就用預設位置 */
+  }
 }
 
 // 自訂協議：讓編輯器能顯示相對路徑的本機圖片（開發模式下 http 頁面無法直接載入 file://）

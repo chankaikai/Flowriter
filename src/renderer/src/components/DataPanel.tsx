@@ -9,9 +9,11 @@ export function DataPanel() {
   const [msg, setMsg] = useState('')
   const [cache, setCache] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
+  const [dir, setDir] = useState('')
 
   useEffect(() => {
     void window.api.cacheSize().then(setCache).catch(() => setCache(null))
+    void window.api.dataLocation().then((r) => setDir(r.dir)).catch(() => undefined)
   }, [])
 
   async function backup() {
@@ -49,6 +51,20 @@ export function DataPanel() {
     }
   }
 
+  async function moveDir() {
+    if (!(await confirmBox('會把歷史版本、膠囊、抽屜與音樂複製到新資料夾（舊資料不會被刪除），然後重新啟動。要繼續嗎？', '搬家'))) return
+    setBusy(true)
+    try {
+      const r = await window.api.dataMoveDir()
+      if (r.ok) {
+        setMsg(trf('已複製到 {0}，即將重新啟動…', r.path))
+        window.setTimeout(() => void window.api.appRelaunch(), 1200)
+      } else if (r.reason !== 'cancel') setMsg(trf('搬家失敗：{0}', r.reason))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function clear() {
     setBusy(true)
     try {
@@ -66,6 +82,12 @@ export function DataPanel() {
       <div className="pop-actions" style={{ justifyContent: 'flex-start' }}>
         <button className="btn" disabled={busy} onClick={() => void backup()}>{tr('備份使用者資料…')}</button>
         <button className="btn" disabled={busy} onClick={() => void restore()}>{tr('匯入備份…')}</button>
+      </div>
+      <div className="hist-hint" style={{ marginTop: 10 }}>
+        {trf('資料位置：{0}', dir)}
+      </div>
+      <div className="pop-actions" style={{ justifyContent: 'flex-start' }}>
+        <button className="btn" disabled={busy} onClick={() => void moveDir()}>{tr('更改資料位置…')}</button>
       </div>
       <div className="hist-hint" style={{ marginTop: 10 }}>
         {tr('清除快取只會刪除瀏覽器引擎的暫存檔，絕不會動你的文件、歷史版本、設定或音檔。')}
