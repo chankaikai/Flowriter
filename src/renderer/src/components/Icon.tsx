@@ -2,6 +2,7 @@ const PATHS = {
   check: 'M4.5 10.5l3.5 3.5 7.5-8',
   pin: 'M7 3.5h6l-1 4.5 2.5 2.5H5.5L8 8 7 3.5ZM10 10.5v6',
   expand: 'M4 8V4h4M16 8V4h-4M4 12v4h4M16 12v4h-4',
+  lineHeight: 'M5 4v12M2.5 6.5L5 4l2.5 2.5M2.5 13.5L5 16l2.5-2.5M11 5h6M11 10h6M11 15h6',
   compress: 'M8 4v4H4M12 4v4h4M8 16v-4H4M12 16v-4h4',
   speaker: 'M4 8h2.5L10 5v10l-3.5-3H4V8ZM13 7.5a3.5 3.5 0 0 1 0 5M15 5.5a6.5 6.5 0 0 1 0 9',
   flag: 'M5 17V3.5M5 4.5h9l-2 3 2 3H5',

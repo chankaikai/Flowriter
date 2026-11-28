@@ -1,3 +1,4 @@
+import { SpacingControl } from './SpacingControl'
 import { useState } from 'react'
 import type { MaterialSupport } from '../../../shared/types'
 import type { Cmd } from '@/lib/commands'
@@ -188,10 +189,7 @@ export function SettingsPanel({
                 <input type="range" min={14} max={24} step={1} value={settings.fontSize}
                   onChange={(e) => update({ fontSize: +e.target.value })} />
               </Row>
-              <Row label={tr('行高')} value={settings.lineHeight.toFixed(2)}>
-                <input type="range" min={1.4} max={2.3} step={0.05} value={settings.lineHeight}
-                  onChange={(e) => update({ lineHeight: +e.target.value })} />
-              </Row>
+              <SpacingControl settings={settings} update={update} />
               <Row label={tr('行號：代碼塊')}>
                 <Toggle on={settings.lnCode} onChange={(v) => update({ lnCode: v })} />
               </Row>

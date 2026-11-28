@@ -3,6 +3,8 @@ import { formatKeys } from '@/lib/keys'
 import { RIBBON } from '@/lib/menus'
 import { useEffect, useState } from 'react'
 import { Icon, type IconName } from './Icon'
+import { SpacingControl } from './SpacingControl'
+import type { Settings } from '@/lib/settings'
 import { TablePicker } from './TablePicker'
 import { tr } from '@/lib/i18n'
 
@@ -16,10 +18,12 @@ interface Props {
   overrides?: Record<string, { label?: string; icon?: IconName; glyph?: string }>
   /** 從行列選擇器插入表格 */
   onInsertTable?(rows: number, cols: number): void
+  /** 行高滑桿用的設定 */
+  spacing?: { settings: Pick<Settings, 'lineHeight' | 'paraGap' | 'listLineHeight'>; update(p: Partial<Settings>): void }
 }
 
 /** 仿 Word 的功能區：上方分頁，下方依群組排列按鈕；可收合。 */
-export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse, overrides, onInsertTable }: Props) {
+export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse, overrides, onInsertTable, spacing }: Props) {
   const [subOpen, setSubOpen] = useState<string | null>(null)
   useEffect(() => {
     if (!subOpen) return
@@ -93,6 +97,26 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse,
                                 window.setTimeout(() => onInsertTable?.(r, c), 0)
                               }}
                             />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  }
+                  if (it.lh) {
+                    return (
+                      <div key={it.cmd} className="rb-split" onMouseDown={(e) => e.stopPropagation()}>
+                        <button
+                          className={`rb-btn ${sm ? 'sm' : 'lg'}${subOpen === it.cmd ? ' on' : ''}`}
+                          title={tr('行高：段落內／段落間／清單，與設定同步')}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => setSubOpen(subOpen === it.cmd ? null : it.cmd)}
+                        >
+                          <span className={gl}>{icon ? <Icon name={icon} size={sm ? 20 : 22} /> : null}</span>
+                          {sm ? <span className="rb-caret">▾</span> : <span className="rb-lbl">{label} ▾</span>}
+                        </button>
+                        {subOpen === it.cmd && spacing && (
+                          <div className="rb-drop sp-drop">
+                            <SpacingControl settings={spacing.settings} update={spacing.update} />
                           </div>
                         )}
                       </div>

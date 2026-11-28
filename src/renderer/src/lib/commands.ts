@@ -140,6 +140,7 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'panel.links', title: '連結與反向連結', group: '面板', keys: ['Mod+Alt+L'], run: () => a.openPanel('links') },
     { id: 'app.about', title: '關於 Flowiter／說明與回饋', group: '檢視', run: () => a.openPanel('about') },
     { id: 'app.checkUpdate', title: '檢查更新', group: '檢視', run: a.checkUpdate },
+    { id: 'view.lineHeight', title: '行高設定（段落內／段落間／清單）', group: '檢視', run: a.openSettings },
     { id: 'app.settings', title: '偏好設定', group: '檢視', keys: ['Mod+Comma'], run: a.openSettings },
 
     // 編輯

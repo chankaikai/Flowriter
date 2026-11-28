@@ -24,4 +24,18 @@ describe('i18n 匯入', () => {
     }
     expect(bad).toEqual([])
   })
+
+  it('JSX 裡用到的自訂元件（<Foo />）都要匯入或在同檔定義', () => {
+    const bad: string[] = []
+    for (const f of walk('src/renderer/src').filter((x) => x.endsWith('.tsx'))) {
+      const s = readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+      const used = new Set([...s.matchAll(/(?<![\w$])<([A-Z][A-Za-z0-9]*)(?=[\s/>])/g)].map((m) => m[1]))
+      for (const name of used) {
+        if (['Fragment', 'Suspense'].includes(name)) continue
+        const ok = new RegExp(`import[^;]*\\b${name}\\b[^;]*from`).test(s) || new RegExp(`(function|const|class)\\s+${name}\\b`).test(s) || new RegExp(`default:\\s*${name}\\b`).test(s)
+        if (!ok) bad.push(`${name}: ${f}`)
+      }
+    }
+    expect(bad).toEqual([])
+  })
 })

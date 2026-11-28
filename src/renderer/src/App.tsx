@@ -1916,6 +1916,7 @@ export default function App() {
         collapsed={ribbonFold}
         onCollapse={foldRibbon}
         onInsertTable={(r, c) => editorRef.current?.insertTable(r, c)}
+        spacing={{ settings, update }}
         overrides={{ ...(caretLocked ? { 'edit.lock': { label: '段落解鎖', icon: 'unlock' } } : {}), ...(speaking ? { 'doc.speak': { label: '停止朗讀' } } : {}), ...(isFull ? { 'view.fullscreen': { label: '退出全螢幕', icon: 'compress' as const } } : {}), ...(hasFront ? { 'fmt.frontmatter': { label: '移除前置資料', glyph: '✕' } } : {}) }}
       />
       <div className="shell">

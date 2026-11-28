@@ -490,8 +490,8 @@ body .cm-editor .cm-activeLineGutter { color: var(--accent) !important; font-wei
 .note.jumpable { cursor: pointer; } .note.jumpable:hover { background: var(--hover); }
 
 /* 功能區精簡模式（常用分頁）：兩列圖示、無文字；整體高度與其他分頁一致（84px） */
-.rb-body { min-height: 84px; box-sizing: border-box; }
-.rb-body.compact { flex-wrap: nowrap; height: 84px; padding: 6px 10px 4px; gap: 0; align-items: center; }
+.rb-body { height: 92px; min-height: 92px; box-sizing: border-box; }
+.rb-body.compact { flex-wrap: nowrap; height: 92px; padding: 6px 10px 4px; gap: 0; align-items: center; }
 .rb-body.compact .rb-group { padding: 0 12px; justify-content: center; height: 100%; }
 .rb-body.compact .rb-glabel { display: none; }
 .rb-body.compact .rb-items { gap: 4px 5px; }
@@ -503,3 +503,5 @@ body .cm-editor .cm-activeLineGutter { color: var(--accent) !important; font-wei
 .rb-caret { font-size: 8px; opacity: .6; }
 .rb-body.compact .gap-l { margin-left: 12px; }
 .rb-body.compact .rb-drop { top: calc(100% + 2px); }
+
+.sp-drop { min-width: 270px; z-index: 40; }

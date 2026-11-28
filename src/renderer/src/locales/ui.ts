@@ -4,6 +4,13 @@
  * 其他非中文語言查不到時退回英文；簡體中文用逐字轉換。
  */
 export const UI: Record<string, string> = {
+  '預設值': 'Default value',
+  '段落內行高': 'In-paragraph line height',
+  '段落間行高': 'Paragraph spacing',
+  '列表行高': 'List line height',
+  '三項各自獨立；行高太小時，段落間距會自動保持最低值，避免文字擠在一起。': 'The three are independent; when line height is small, paragraph spacing keeps a minimum so text never crowds together.',
+  '行高：段落內／段落間／清單，與設定同步': 'Line height: in-paragraph / paragraph spacing / list, synced with Settings',
+  '行高設定（段落內／段落間／清單）': 'Line height settings (paragraph / spacing / list)',
   '轉文字': 'Transcribe',
   '查看文字': 'Show text',
   '隱藏文字': 'Hide text',

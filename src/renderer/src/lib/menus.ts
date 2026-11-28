@@ -120,6 +120,7 @@ export const MENUS: MenuDef[] = [
       c('view.lens', undefined, 'lens'),
       c('view.fullscreen', undefined, 'fullscreen'),
       SEP,
+      c('view.lineHeight'),
       c('view.zoomIn'),
       c('view.zoomOut'),
       SEP,
@@ -188,6 +189,8 @@ export interface RibbonItem {
   sub?: { cmd: string; label: string }[]
   /** 懸浮展開「行列選擇器」（像 Word 的插入表格） */
   grid?: boolean
+  /** 點擊後在按鈕下方展開行高滑桿（與設定共用） */
+  lh?: boolean
   /** 精簡模式下的字形樣式（斜體／刪除線） */
   gcls?: 'i' | 's'
   /** 精簡模式下，在這一欄左邊多留一點空隙 */
@@ -254,17 +257,20 @@ export const RIBBON: RibbonTab[] = [
       },
       {
         label: '段落',
-        cols: 5,
+        cols: 6,
         items: [
           r('fmt.p', '正文', { glyph: '¶' }),
           r('fmt.h1', '標題 1', { glyph: 'H1' }),
           r('fmt.h2', '標題 2', { glyph: 'H2' }),
           r('fmt.h3', '標題 3', { glyph: 'H3' }),
           r('fmt.h4', '更多標題', { glyph: 'H▾', sub: [{ cmd: 'fmt.h4', label: '標題 4' }, { cmd: 'fmt.h5', label: '標題 5' }, { cmd: 'fmt.h6', label: '標題 6' }] }),
+          r('view.lineHeight', '行高', { icon: 'lineHeight', lh: true }),
           r('fmt.strong', '粗體', { glyph: 'B' }),
           r('fmt.em', '斜體', { glyph: 'I', gcls: 'i' }),
           r('fmt.strike', '刪除線', { glyph: 'S', gcls: 's' }),
-          r('fmt.code', '行內代碼', { icon: 'code' })
+          r('fmt.code', '行內代碼', { icon: 'code' }),
+          r('view.zoomIn', '放大字體', { glyph: 'A+' }),
+          r('view.zoomOut', '縮小字體', { glyph: 'A−' })
         ]
       },
       {

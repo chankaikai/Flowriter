@@ -1,3 +1,4 @@
+import { safeSpacing } from './spacing'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { THEMES, applyThemeVars, isDarkTheme } from './themes'
 import { setLang } from './i18n'
@@ -11,6 +12,9 @@ export interface Settings {
   fontFamily: 'sans' | 'serif' | 'mono'
   fontSize: number
   lineHeight: number
+  /** 段落間距（em）、清單行高（倍數）；lineHeight 是段落內（正文）行高 */
+  paraGap: number
+  listLineHeight: number
   maxWidth: number
   sidebarOpen: boolean
   sidebarTab: SidebarTab
@@ -65,6 +69,8 @@ export const DEFAULT_SETTINGS: Settings = {
   fontFamily: 'sans',
   fontSize: 17,
   lineHeight: 1.85,
+  paraGap: 0.85,
+  listLineHeight: 1.85,
   maxWidth: 760,
   sidebarOpen: true,
   sidebarTab: 'files',
@@ -207,11 +213,14 @@ export function useApplySettings(s: Settings, materialSupported: boolean): Resol
   useEffect(() => {
     const root = document.documentElement
     root.style.setProperty('--fs', `${s.fontSize}px`)
-    root.style.setProperty('--lh', String(s.lineHeight))
+    const sp = safeSpacing(s)
+    root.style.setProperty('--lh', String(sp.lineHeight))
+    root.style.setProperty('--pgap', `${sp.paraGap}em`)
+    root.style.setProperty('--lh-list', String(sp.listLineHeight))
     root.style.setProperty('--maxw', `${s.maxWidth}px`)
     root.style.setProperty('--font-body', FONTS[s.fontFamily])
     root.style.setProperty('--tl', String(s.surfaceOpacity))
-  }, [s.fontSize, s.lineHeight, s.maxWidth, s.fontFamily, s.surfaceOpacity])
+  }, [s.fontSize, s.lineHeight, s.paraGap, s.listLineHeight, s.maxWidth, s.fontFamily, s.surfaceOpacity])
 
   setLang(s.uiLang) // 同步設定，讓這一輪渲染就用新語言
   useEffect(() => {
