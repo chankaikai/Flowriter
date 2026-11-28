@@ -336,3 +336,24 @@ html[data-tone='dark'] .music-block[data-lang='lilypond'] .music-mount svg { fil
 .music-block .mp-on, .music-block .mp-on * { fill: var(--accent, #4a8cff) !important; }
 .music-block .mp-on line, .music-block .mp-on path, .music-block .mp-on rect { stroke: var(--accent, #4a8cff) !important; }
 .music-play-hl { background: color-mix(in srgb, var(--accent, #4a8cff) 30%, transparent); border-radius: 3px; }
+
+/* ---- 樂譜與代碼塊合成同一個區塊（和數學公式一樣）：右上角 Copy／Hide，滑過譜面出現 PNG 按鈕 ---- */
+.editor-col .milkdown .music-joined { margin-bottom: 0 !important; border-bottom-left-radius: 0 !important; border-bottom-right-radius: 0 !important; }
+.music-block { position: relative; margin: 0 0 14px; border: 1px solid var(--line); border-top: 1px dashed var(--line); border-radius: 0 0 10px 10px; padding: 14px 18px 16px; }
+.music-block.code-off { border-top: 1px solid var(--line); border-radius: 10px; }
+.music-block.code-off .music-bar { padding-right: 150px; }
+.music-tools { position: absolute; top: calc(var(--code-h, 0px) * -1 + 6px); right: 10px; z-index: 5; display: flex; align-items: center; gap: 4px; }
+.music-block.code-off .music-tools { top: 8px; }
+.music-tools > button { font: 500 12px/1.4 var(--font-ui, system-ui); padding: 2px 9px; border-radius: 7px; border: 1px solid var(--line); background: color-mix(in srgb, var(--elev, var(--bg)) 85%, transparent); color: var(--fg-muted, var(--fg)); cursor: pointer; }
+.music-tools > button:hover { color: var(--fg); background: var(--hover); }
+.music-hide-menu { display: none; position: absolute; top: calc(100% + 4px); right: 0; min-width: 120px; padding: 5px; flex-direction: column; gap: 2px; border-radius: 10px; border: 1px solid var(--line); background: color-mix(in srgb, var(--elev, var(--bg)) 92%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: 0 10px 30px -12px rgba(0,0,0,.35); }
+.music-hide-menu.open { display: flex; }
+.music-hide-menu button { text-align: left; font-size: 12.5px; padding: 6px 10px; border-radius: 7px; border: 0; background: transparent; color: var(--fg); cursor: pointer; }
+.music-hide-menu button:hover:not(:disabled) { background: var(--hover); }
+.music-hide-menu button:disabled { opacity: .4; cursor: not-allowed; }
+.music-stage { position: relative; }
+.music-hoverbtns { position: absolute; top: 2px; right: 2px; z-index: 4; display: flex; gap: 4px; opacity: 0; transition: opacity .15s; pointer-events: none; }
+.music-stage:hover .music-hoverbtns { opacity: 1; pointer-events: auto; }
+.music-hoverbtns button { font: 500 12px/1.4 var(--font-ui, system-ui); padding: 2px 9px; border-radius: 7px; border: 1px solid var(--line); background: color-mix(in srgb, var(--elev, var(--bg)) 90%, transparent); color: var(--fg); cursor: pointer; }
+.music-hoverbtns button:hover { background: var(--hover); }
+.music-block.score-hidden .music-stage { display: none; }

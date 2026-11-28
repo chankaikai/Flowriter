@@ -4,6 +4,11 @@
  * 其他非中文語言查不到時退回英文；簡體中文用逐字轉換。
  */
 export const UI: Record<string, string> = {
+  '隱藏': 'Hide',
+  '複製這份譜的 Markdown 文字': 'Copy the Markdown text of this score',
+  '隱藏代碼或譜面（不影響 Markdown 內容；匯出時以目前看到的為準）': 'Hide code or score (Markdown unchanged; exports follow what you see)',
+  '下載 PNG': 'Download PNG',
+  '把這塊譜存成 PNG 檔（不含代碼）': 'Save this score as a PNG (without code)',
   '{0} 行 × {1} 列': '{0} rows × {1} columns',
   '先開啟一個資料夾，知識庫才有範圍可以讀取。': 'Open a folder first so the knowledge base has something to read.',
   '問知識庫': 'Ask knowledge base',

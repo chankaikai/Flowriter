@@ -14,7 +14,8 @@ import { jianpuEdit, type JianpuTool } from '@/lib/music/jianpuEdit'
 import { listScoreParts } from '@/lib/music/scoreParts'
 import { gongcheEdit } from '@/lib/music/gongcheEdit'
 import { GONGCHE_CHARS } from '@/lib/music/gongche'
-import { standaloneSvg, svgFileName } from '@/lib/music/svgExport'
+import { svgFileName } from '@/lib/music/svgExport'
+import { svgToPng } from '@/lib/svgPng'
 import { tabEdit, type TabTool } from '@/lib/music/tabEdit'
 import { getLang, tr } from '@/lib/i18n'
 
@@ -48,6 +49,10 @@ interface Block {
   timer: number
   seq: number
   dead: boolean
+  /** 對應代碼塊的 DOM 與尺寸監看（讓右上角工具列貼在代碼塊的標題列上） */
+  codeDom?: HTMLElement | null
+  ro?: ResizeObserver
+  lay?: () => void
 }
 
 /** 每個編輯器一份登錄表（切換源碼／所見即所得會建新編輯器，舊的銷毀不能動到新的） */
@@ -254,61 +259,79 @@ function create(lang: MusicLang, source: string, key: string, reg: Reg): Block {
   const select = document.createElement('select')
   select.className = 'music-part'
   select.title = tr('聲部')
+  /* ---- 右上角工具：Copy（複製譜的 Markdown 文字）＋ Hide（二級選單：隱藏代碼／隱藏譜面，兩者不能同時隱藏） ---- */
+  const tools = document.createElement('div')
+  tools.className = 'music-tools'
+  const copyBtn = document.createElement('button')
+  copyBtn.textContent = tr('複製')
+  copyBtn.title = tr('複製這份譜的 Markdown 文字')
   const hideBtn = document.createElement('button')
-  hideBtn.className = 'music-hide'
-  const hideScoreBtn = document.createElement('button')
-  hideScoreBtn.className = 'music-hide'
+  const menu = document.createElement('div')
+  menu.className = 'music-hide-menu'
+  const itemCode = document.createElement('button')
+  const itemScore = document.createElement('button')
+  menu.append(itemCode, itemScore)
+  tools.append(copyBtn, hideBtn, menu)
   const paintHide = () => {
     const m = hidden.get(key)
-    hideBtn.textContent = m === 'code' ? tr('顯示代碼') : tr('隱藏代碼')
-    hideBtn.title = tr('只留譜、收起代碼（不影響 Markdown 內容；匯出時也只輸出譜）')
-    hideScoreBtn.textContent = m === 'score' ? tr('顯示譜面') : tr('隱藏譜面')
-    hideScoreBtn.title = tr('只留代碼、收起譜面（匯出時也只輸出代碼文字）')
+    hideBtn.textContent = m ? tr('顯示') : tr('隱藏')
+    hideBtn.title = tr('隱藏代碼或譜面（不影響 Markdown 內容；匯出時以目前看到的為準）')
+    itemCode.textContent = m === 'code' ? tr('顯示代碼') : tr('隱藏代碼')
+    itemScore.textContent = m === 'score' ? tr('顯示譜面') : tr('隱藏譜面')
+    // 一邊收起時，另一邊的「隱藏」不能按（避免兩個都看不到）；已收起的那一邊按了是「顯示」
+    itemCode.disabled = m === 'score'
+    itemScore.disabled = m === 'code'
     el.classList.toggle('score-hidden', m === 'score')
+    el.classList.toggle('code-off', m === 'code')
   }
   const toggle = (what: 'code' | 'score') => {
-    if (hidden.get(key) === what) hidden.delete(key)
-    else hidden.set(key, what) // 收起一個時，另一個自動恢復顯示
+    const cur = hidden.get(key)
+    if (cur && cur !== what) return
+    if (cur === what) hidden.delete(key)
+    else hidden.set(key, what)
     paintHide()
+    menu.classList.remove('open')
     const v = reg.view
     if (v && !v.isDestroyed) v.dispatch(v.state.tr.setMeta(musicKey, 'rebuild'))
   }
-  for (const [btn, what] of [[hideBtn, 'code'], [hideScoreBtn, 'score']] as const) {
-    btn.addEventListener('mousedown', (e) => e.preventDefault())
-    btn.addEventListener('click', () => toggle(what))
-  }
+  for (const btn of [copyBtn, hideBtn, itemCode, itemScore]) btn.addEventListener('mousedown', (e) => e.preventDefault())
+  itemCode.addEventListener('click', () => toggle('code'))
+  itemScore.addEventListener('click', () => toggle('score'))
+  copyBtn.addEventListener('click', async () => {
+    let ok = true
+    try {
+      await navigator.clipboard.writeText(b.source)
+    } catch {
+      ok = false
+    }
+    copyBtn.textContent = ok ? tr('已複製') : tr('複製失敗')
+    window.setTimeout(() => (copyBtn.textContent = tr('複製')), 1400)
+  })
+  hideBtn.addEventListener('click', () => {
+    const m = hidden.get(key)
+    if (m) toggle(m) // 已經有東西收起：直接還原
+    else menu.classList.toggle('open')
+  })
+  document.addEventListener('mousedown', (e) => {
+    if (!tools.contains(e.target as Node)) menu.classList.remove('open')
+  })
   if (lang === 'abc' || lang === 'mei' || lang === 'xml') bar.append(select)
   const tp = makeTransport()
   bar.append(tp.wrap)
-  const dlBtn = document.createElement('button')
-  dlBtn.className = 'music-dl'
-  dlBtn.textContent = tr('下載 SVG')
-  dlBtn.title = tr('把這塊譜存成 SVG 檔（不含代碼）')
-  dlBtn.addEventListener('mousedown', (e) => e.preventDefault())
-  dlBtn.addEventListener('click', () => {
-    const svgs = [...mount.querySelectorAll('svg')]
-    if (!svgs.length) {
-      err.textContent = tr('還沒有可下載的譜面')
-      return
-    }
-    svgs.forEach((svg, i) => {
-      const blob = new Blob([standaloneSvg(new XMLSerializer().serializeToString(svg))], { type: 'image/svg+xml' })
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = svgFileName(lang, i, svgs.length)
-      document.body.appendChild(a)
-      window.setTimeout(() => {
-        a.click()
-        a.remove()
-        window.setTimeout(() => URL.revokeObjectURL(a.href), 2000)
-      }, i * 250) // 多頁時錯開，避免被瀏覽器當成連續彈出而擋掉
-    })
-  })
+
+  /* ---- 滑到譜面上才出現：複製 PNG／下載 PNG（譜面被隱藏時整個不出現） ---- */
+  const stage = document.createElement('div')
+  stage.className = 'music-stage'
+  const hover = document.createElement('div')
+  hover.className = 'music-hoverbtns'
   const pngBtn = document.createElement('button')
-  pngBtn.className = 'music-dl'
   pngBtn.textContent = tr('複製 PNG')
   pngBtn.title = tr('透明底、貼齊譜面外緣的 PNG')
-  pngBtn.addEventListener('mousedown', (e) => e.preventDefault())
+  const dlBtn = document.createElement('button')
+  dlBtn.textContent = tr('下載 PNG')
+  dlBtn.title = tr('把這塊譜存成 PNG 檔（不含代碼）')
+  hover.append(pngBtn, dlBtn)
+  for (const x of [pngBtn, dlBtn]) x.addEventListener('mousedown', (e) => e.preventDefault())
   pngBtn.addEventListener('click', async () => {
     const first = mount.querySelector('svg')
     if (!first) {
@@ -324,18 +347,61 @@ function create(lang: MusicLang, source: string, key: string, reg: Reg): Block {
     pngBtn.textContent = ok ? tr('已複製') : tr('複製失敗')
     window.setTimeout(() => (pngBtn.textContent = tr('複製 PNG')), 1400)
   })
-  bar.append(pngBtn, dlBtn, hideScoreBtn, hideBtn)
+  dlBtn.addEventListener('click', async () => {
+    const svgs = [...mount.querySelectorAll('svg')]
+    if (!svgs.length) {
+      err.textContent = tr('還沒有可下載的譜面')
+      return
+    }
+    for (let i = 0; i < svgs.length; i++) {
+      const c = svgs[i].cloneNode(true) as SVGSVGElement
+      const r = svgs[i].getBoundingClientRect()
+      if (!c.getAttribute('viewBox') && r.width > 0) c.setAttribute('viewBox', `0 0 ${r.width} ${r.height}`)
+      const png = await svgToPng(new XMLSerializer().serializeToString(c), 3)
+      if (!png) continue
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(new Blob([png.data as BlobPart], { type: 'image/png' }))
+      a.download = svgFileName(lang, i, svgs.length).replace(/\.svg$/i, '.png')
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.setTimeout(() => URL.revokeObjectURL(a.href), 2000)
+      await new Promise((res) => window.setTimeout(res, 250)) // 多頁時錯開，避免被當成連續彈出而擋掉
+    }
+  })
   paintHide()
   const mount = document.createElement('div')
   mount.className = 'music-mount'
   const err = document.createElement('div')
   err.className = 'music-err'
-  el.append(bar, mount, err)
+  stage.append(hover, mount)
+  el.append(tools, bar, stage, err)
   const b: Block = { lang, el, mount, err, bar, select, tp, player: null, transport: null, lit: [], litKey: '', ranges: [], base: 0, loading: false, engine: createEngine(lang), part: 'all', source, timer: 0, seq: 0, dead: false }
   select.addEventListener('change', () => {
     b.part = select.value
     schedule(b, true)
   })
+  b.lay = () => {
+    const v = reg.view
+    if (!v || v.isDestroyed || b.dead) return
+    let dom: HTMLElement | null = null
+    try {
+      dom = v.nodeDOM(b.base - 1) as HTMLElement | null
+    } catch {
+      dom = null
+    }
+    if (!dom || dom.nodeType !== 1) return
+    if (dom !== b.codeDom) {
+      b.ro?.disconnect()
+      b.codeDom = dom
+      b.ro = new ResizeObserver(() => b.lay?.())
+      b.ro.observe(dom)
+    }
+    // 內建的 Copy 按鈕由右上角工具列取代（只是藏起來，不動它的功能）
+    dom.querySelectorAll<HTMLElement>('.copy-button, .tools-button-group').forEach((x) => (x.style.visibility = 'hidden'))
+    el.style.setProperty('--code-h', `${dom.offsetHeight}px`)
+  }
+  window.requestAnimationFrame(() => b.lay?.())
   wireTransport(b, reg)
   syncParts(b)
   schedule(b)
@@ -359,13 +425,16 @@ function build(doc: PMNode, reg: Reg): DecorationSet {
     alive.add(key)
     const code = node.textContent
     const existing = reg.blocks.get(key)
-    if (existing) existing.base = pos + 1
+    if (existing) {
+      existing.base = pos + 1
+      window.requestAnimationFrame(() => existing.lay?.())
+    }
     if (existing && existing.source !== code) {
       existing.source = code
       syncParts(existing)
       schedule(existing)
     }
-    if (hidden.get(key) === 'code') decos.push(Decoration.node(pos, pos + node.nodeSize, { class: 'music-code-hidden' }))
+    decos.push(Decoration.node(pos, pos + node.nodeSize, { class: hidden.get(key) === 'code' ? 'music-code-hidden' : 'music-joined' }))
     decos.push(
       Decoration.widget(
         pos + node.nodeSize,
@@ -392,6 +461,7 @@ function build(doc: PMNode, reg: Reg): DecorationSet {
               b.dead = true
               window.clearTimeout(b.timer)
               b.player?.destroy()
+              b.ro?.disconnect()
               b.engine.destroy()
               reg.blocks.delete(key)
             }, 0)
