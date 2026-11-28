@@ -428,9 +428,14 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
 .lang-btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
 body.hide-ln-code .milkdown-code-block .cm-gutters { display: none !important; }
 body.hide-ln-source .source-root .cm-gutters { display: none !important; }
-/* 渲染模式行號：每個頂層區塊在 .md 的起始行（估算） */
-body.show-ln-wys .editor-col .milkdown .ProseMirror > [data-ln] { position: relative; }
-body.show-ln-wys .editor-col .milkdown .ProseMirror > [data-ln]::before { content: attr(data-ln); position: absolute; left: -3.4em; width: 2.6em; text-align: right; top: 0; line-height: calc(var(--fs) * var(--lh)); font: 11px/calc(var(--fs) * var(--lh)) var(--font-mono, monospace); color: var(--fg-faint); user-select: none; pointer-events: none; }
+/* 行號：三種模式共用同一套「徽章」樣式，和有序／無序清單的編號明顯不同（等寬小字＋細分隔線，顏色取自主題強調色） */
+:root { --ln-fg: color-mix(in srgb, var(--accent) 62%, var(--fg-faint)); --ln-line: color-mix(in srgb, var(--accent) 28%, transparent); }
+.wys-gutter { display: none; position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; z-index: 2; }
+body.show-ln-wys .wys-gutter { display: block; }
+.wys-ln { position: absolute; width: 3em; margin-left: -3em; padding-right: 8px; box-sizing: border-box; text-align: right; font: 11px/1 var(--font-mono, ui-monospace, monospace); font-variant-numeric: tabular-nums; color: var(--ln-fg); border-right: 1px solid var(--ln-line); user-select: none; }
+body .cm-editor .cm-lineNumbers .cm-gutterElement { font-family: var(--font-mono, ui-monospace, monospace) !important; font-size: 11px !important; font-variant-numeric: tabular-nums; color: var(--ln-fg) !important; padding: 0 8px 0 10px !important; }
+body .cm-editor .cm-gutters { border-right: 1px solid var(--ln-line) !important; }
+body .cm-editor .cm-activeLineGutter { color: var(--accent) !important; font-weight: 600; }
 
 .rb-split { position: relative; }
 .rb-drop { position: absolute; top: 100%; left: 0; z-index: 70; min-width: 120px; padding: 6px; display: flex; flex-direction: column; gap: 2px; border-radius: 12px; background: color-mix(in srgb, var(--elev, var(--bg)) 82%, transparent); border: 1px solid var(--line); box-shadow: 0 14px 40px -16px rgba(0, 0, 0, 0.35); -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4); }

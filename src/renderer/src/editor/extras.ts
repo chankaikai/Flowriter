@@ -25,7 +25,6 @@ import { firstUnexplained, jumpyBlocks, type BlockInfo } from '@/lib/readerLens'
 import { runUiPlugin } from './runUi'
 import { tableUiPlugin } from './tableUi'
 import { musicPlugin } from './musicUi'
-import { blockStartLines } from '@/lib/blockLines'
 import { copyElementPng } from '@/lib/copyPng'
 import { tr } from '@/lib/i18n'
 import { voicePlugin } from './voiceUi'
@@ -1315,23 +1314,94 @@ export function toggleLockAtCaret(view: EditorView): { locked: boolean; text: st
   return { locked, text: block.textContent, texts: [...texts] }
 }
 
-/** 渲染模式行號：幫每個頂層區塊標上它在 .md 的起始行（data-ln），顯示與否由 body.show-ln-wys 決定 */
+/**
+ * 渲染模式行號：獨立於 .md 原始碼行號，也獨立於程式碼塊自己的行號（程式碼塊內部由 CodeMirror 從 1 起算）。
+ * 規則：依畫面上看到的順序，每個「有字的文字區塊」（段落、標題、清單項目裡的段落…）一個號碼，
+ * 程式碼塊／數學塊／表格／分隔線各算一個；空段落不算、不跳號。號碼畫在疊層裡，不受清單縮排影響。
+ */
 export const blockLinePlugin = $prose(() => {
-  const key = new PluginKey<DecorationSet>('inkwell-block-lines')
-  const build = (doc: any): DecorationSet => {
-    if (doc.content.size > 400_000) return DecorationSet.empty // 超大文件不算，避免卡頓
-    const starts = blockStartLines(doc)
-    const decos: Decoration[] = []
-    doc.forEach((n: any, off: number, i: number) => decos.push(Decoration.node(off, off + n.nodeSize, { 'data-ln': String(starts[i]) })))
-    return DecorationSet.create(doc, decos)
+  const key = new PluginKey('inkwell-block-lines')
+  const SOLID = new Set(['code_block', 'math_block', 'table', 'hr', 'horizontal_rule', 'inkwell_front_matter', 'front_matter', 'toc'])
+  const collect = (doc: any): number[] => {
+    const out: number[] = []
+    doc.descendants((n: any, pos: number) => {
+      if (out.length >= 2500) return false
+      if (SOLID.has(n.type.name)) {
+        out.push(pos)
+        return false
+      }
+      if (n.isTextblock) {
+        if (n.textContent.trim() || n.childCount > 0) out.push(pos)
+        return false
+      }
+      if (n.isLeaf && !n.isInline) out.push(pos)
+      return true
+    })
+    return out
   }
   return new Plugin({
     key,
-    state: {
-      init: (_c, st) => build(st.doc),
-      apply: (tr, old) => (tr.docChanged ? build(tr.doc) : old)
-    },
-    props: { decorations: (st) => key.getState(st) }
+    view(view) {
+      const host = view.dom.parentElement as HTMLElement | null
+      if (!host) return {}
+      if (getComputedStyle(host).position === 'static') host.style.position = 'relative'
+      const gutter = document.createElement('div')
+      gutter.className = 'wys-gutter'
+      gutter.setAttribute('aria-hidden', 'true')
+      host.appendChild(gutter)
+      let positions: number[] = []
+      let doc: any = null
+      let raf = 0
+      const enabled = () => document.body.classList.contains('show-ln-wys')
+      const draw = () => {
+        raf = 0
+        if (!enabled() || view.isDestroyed) {
+          gutter.textContent = ''
+          return
+        }
+        if (doc !== view.state.doc) {
+          doc = view.state.doc
+          positions = doc.content.size > 600_000 ? [] : collect(doc)
+        }
+        const hostRect = host.getBoundingClientRect()
+        const cs = getComputedStyle(view.dom)
+        const x = view.dom.getBoundingClientRect().left + (parseFloat(cs.paddingLeft) || 0) - hostRect.left - 14
+        const frag = document.createDocumentFragment()
+        positions.forEach((pos, i) => {
+          const el = view.nodeDOM(pos) as HTMLElement | null
+          if (!el || el.nodeType !== 1) return
+          const r = el.getBoundingClientRect()
+          if (!r.height) return
+          const lh = parseFloat(getComputedStyle(el).lineHeight) || 24
+          const d = document.createElement('div')
+          d.className = 'wys-ln'
+          d.textContent = String(i + 1)
+          d.style.cssText = `top:${r.top - hostRect.top}px;left:${x}px;height:${Math.min(lh, r.height)}px;line-height:${Math.min(lh, r.height)}px`
+          frag.appendChild(d)
+        })
+        gutter.textContent = ''
+        gutter.appendChild(frag)
+      }
+      const schedule = () => {
+        if (!raf) raf = requestAnimationFrame(draw)
+      }
+      const ro = new ResizeObserver(schedule)
+      ro.observe(view.dom)
+      const mo = new MutationObserver(schedule)
+      mo.observe(document.body, { attributes: true, attributeFilter: ['class'] })
+      window.addEventListener('resize', schedule)
+      schedule()
+      return {
+        update: schedule,
+        destroy() {
+          if (raf) cancelAnimationFrame(raf)
+          ro.disconnect()
+          mo.disconnect()
+          window.removeEventListener('resize', schedule)
+          gutter.remove()
+        }
+      }
+    }
   })
 })
 
