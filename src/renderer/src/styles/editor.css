@@ -294,7 +294,7 @@ html[data-tone='dark'] .music-block[data-lang='lilypond'] .music-mount svg { fil
 .lens-jump { border-left: 3px dashed #d9a400; padding-left: 10px; margin-left: -13px; }
 
 /* 語音便籤 */
-.voice-card { display: flex; align-items: center; gap: 10px; width: fit-content; max-width: 100%; margin: 4px 0 10px; padding: 6px 10px; border-radius: 999px; background: color-mix(in srgb, var(--accent, #4a8cff) 10%, transparent); border: 1px solid color-mix(in srgb, var(--accent, #4a8cff) 30%, transparent); user-select: none; --vp: 0; }
+.voice-card { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; width: fit-content; max-width: 100%; margin: 4px 0 10px; padding: 6px 10px; border-radius: 999px; background: color-mix(in srgb, var(--accent, #4a8cff) 10%, transparent); border: 1px solid color-mix(in srgb, var(--accent, #4a8cff) 30%, transparent); user-select: none; --vp: 0; }
 .voice-card.orphan { opacity: .65; border-style: dashed; }
 .voice-play, .voice-del { all: unset; cursor: pointer; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; font-size: 12px; }
 .voice-play { background: var(--accent, #4a8cff); color: #fff; }
@@ -364,3 +364,10 @@ html[data-tone='dark'] .music-block[data-lang='lilypond'] .music-mount svg { fil
 .music-hoverbtns button { font: 500 12px/1.4 var(--font-ui, system-ui); padding: 2px 9px; border-radius: 7px; border: 1px solid var(--line); background: color-mix(in srgb, var(--elev, var(--bg)) 90%, transparent); color: var(--fg); cursor: pointer; }
 .music-hoverbtns button:hover { background: var(--hover); }
 .music-block.score-hidden .music-stage { display: none; }
+
+/* 語音便籤：轉文字小按鈕（不佔太多位置）與文字框 */
+.voice-tt { font: 500 11px/1.4 var(--font-ui, system-ui); padding: 1px 8px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--accent, #4a8cff) 35%, transparent); background: transparent; color: var(--accent, #4a8cff); cursor: pointer; white-space: nowrap; }
+.voice-tt:hover:not(:disabled) { background: color-mix(in srgb, var(--accent, #4a8cff) 14%, transparent); }
+.voice-tt:disabled { opacity: .6; cursor: progress; }
+.voice-txt { flex: 1 0 100%; margin: 2px 4px 2px 2px; padding: 6px 4px 2px; border-top: 1px dashed color-mix(in srgb, var(--accent, #4a8cff) 30%, transparent); font-size: .92em; line-height: 1.6; white-space: pre-wrap; user-select: text; cursor: text; border-radius: 0; }
+.voice-card:has(.voice-txt) { border-radius: 14px; }

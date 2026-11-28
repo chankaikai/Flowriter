@@ -38,6 +38,8 @@ export interface Settings {
   /** 腳註引用的樣式與是否顯示編號 */
   fnStyle: 'bracket' | 'plain' | 'paren'
   fnNumbers: boolean
+  /** 語音轉文字用的模型名稱（OpenAI 相容 /audio/transcriptions），例如 whisper-1、FunAudioLLM/SenseVoiceSmall */
+  sttModel: string
   translucent: boolean
   surfaceOpacity: number
   winMaterial: 'acrylic' | 'mica'
@@ -81,6 +83,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lnSource: true,
   fnStyle: 'bracket',
   fnNumbers: true,
+  sttModel: 'whisper-1',
   translucent: true,
   surfaceOpacity: 0.72,
   winMaterial: 'acrylic',

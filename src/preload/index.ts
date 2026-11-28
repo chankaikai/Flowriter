@@ -88,6 +88,11 @@ const api: InkwellApi = {
   getMaterialSupport: () => inv('window:materialSupport'),
   setMaterial: (o) => ipcRenderer.send('window:setMaterial', o),
   toggleFullscreen: () => ipcRenderer.send('win:fullscreen'),
+  onFullscreenState: (cb) => {
+    const h = (_e: unknown, v: boolean) => cb(!!v)
+    ipcRenderer.on('win:fullscreen-state', h)
+    return () => ipcRenderer.removeListener('win:fullscreen-state', h)
+  },
   notesRead: (p) => inv('notes:read', p),
   notesWrite: (p, j) => inv('notes:write', p, j),
   inboxSetup: (on) => inv('inbox:setup', on),
@@ -105,6 +110,7 @@ const api: InkwellApi = {
   voiceWrite: (p, j) => inv('voice:write', p, j),
   voiceSave: (p, id, d) => inv('voice:save', p, id, d),
   voiceLoad: (p, id) => inv('voice:load', p, id),
+  voiceTranscribe: (p, id, cfg) => inv('voice:transcribe', p, id, cfg),
   voiceDelete: (p, id) => inv('voice:delete', p, id),
   locksRead: (p) => inv('locks:read', p),
   locksWrite: (p, j) => inv('locks:write', p, j),

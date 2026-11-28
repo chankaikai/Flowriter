@@ -4,6 +4,15 @@
  * 其他非中文語言查不到時退回英文；簡體中文用逐字轉換。
  */
 export const UI: Record<string, string> = {
+  '轉文字': 'Transcribe',
+  '查看文字': 'Show text',
+  '隱藏文字': 'Hide text',
+  '把這段語音轉成文字（只支援中文）': 'Transcribe this recording to text (Chinese only)',
+  '轉換中…': 'Transcribing...',
+  '先儲存檔案': 'Save the file first',
+  '請先在 AI 設定填好服務網址與金鑰（要支援語音轉文字，例如 OpenAI Whisper、矽基流動 SenseVoice）': 'Set up the service URL and key in AI settings first (it must support speech-to-text, e.g. OpenAI Whisper, SiliconFlow SenseVoice)',
+  '目前的 AI 服務不是 OpenAI 相容格式，無法轉文字': 'The current AI service is not OpenAI-compatible, so it cannot transcribe',
+  '退出全螢幕': 'Exit full screen',
   '名稱不能有空白或 ] ，最長 30 字': 'Name cannot contain spaces or ], max 30 characters',
   '目前無法插入腳註': 'Cannot insert a footnote right now',
   '新名稱已被使用，或和原名稱相同': 'That name is already used or unchanged',

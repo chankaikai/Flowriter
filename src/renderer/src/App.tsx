@@ -35,7 +35,8 @@ import { GitDialog } from '@/components/GitDialog'
 import { ExportDialog } from '@/components/ExportDialog'
 import { SoundPanel, SpectrumBar } from '@/components/MusicPanel'
 import { VoiceRecorder, type VoiceResult } from '@/components/VoiceRecorder'
-import { addVoice, anchorOf, emptyVoice, parseVoice, removeVoice, serializeVoice, type VoiceFile } from '@/lib/voice'
+import { resolveAi } from '@/lib/ai'
+import { addVoice, anchorOf, emptyVoice, parseVoice, patchVoice, removeVoice, serializeVoice, type VoiceFile } from '@/lib/voice'
 import { type AmbientKind, setAmbient } from '@/lib/ambient'
 import { addWords, loadWriting } from '@/lib/writing'
 import { moveSection } from '@/lib/markdown'
@@ -1680,8 +1681,36 @@ export default function App() {
   }
   const voiceDeleteRef = useRef(voiceDelete)
   voiceDeleteRef.current = voiceDelete
+  const mutateVoice = (fn: (f: VoiceFile) => VoiceFile) =>
+    setVoiceFile((cur) => {
+      const next = fn(cur)
+      const p = docRef.current.path
+      if (p && voiceLoaded.current === p) void window.api.voiceWrite(p, serializeVoice(next))
+      return next
+    })
+  const voiceTranscribe = async (id: string): Promise<string | null> => {
+    const path = docRef.current.path
+    if (!path) return tr('先儲存檔案')
+    const cfg = resolveAi(settings)
+    if (cfg.missing) return tr('請先在 AI 設定填好服務網址與金鑰（要支援語音轉文字，例如 OpenAI Whisper、矽基流動 SenseVoice）')
+    if (cfg.kind === 'anthropic') return tr('目前的 AI 服務不是 OpenAI 相容格式，無法轉文字')
+    const r = await window.api.voiceTranscribe(path, id, { baseUrl: cfg.baseUrl, apiKey: cfg.apiKey, model: settings.sttModel || 'whisper-1' })
+    if ('error' in r) return r.error
+    const key = basename(path)
+    mutateVoice((f) => patchVoice(f, key, id, { text: r.text, hidden: false }))
+    return null
+  }
+  const voiceHandlersRef = useRef({ voiceTranscribe, mutateVoice })
+  voiceHandlersRef.current = { voiceTranscribe, mutateVoice }
   useEffect(() => {
-    editorReady?.setVoice(voiceList ?? [], doc.path ?? '', (id) => voiceDeleteRef.current(id))
+    editorReady?.setVoice(voiceList ?? [], doc.path ?? '', {
+      onDelete: (id) => voiceDeleteRef.current(id),
+      onPatch: (id, patch) => {
+        const p = docRef.current.path
+        if (p) voiceHandlersRef.current.mutateVoice((f) => patchVoice(f, basename(p), id, patch))
+      },
+      onTranscribe: (id) => voiceHandlersRef.current.voiceTranscribe(id)
+    })
   }, [editorReady, voiceList, doc.path])
   const noteListKey = doc.path ? basename(doc.path) : ''
   const noteList = notesFile.files[noteListKey]
@@ -1713,6 +1742,9 @@ export default function App() {
   }
   const notesKey = doc.path ? basename(doc.path) : ''
 
+  const [isFull, setIsFull] = useState(false)
+  useEffect(() => window.api.onFullscreenState(setIsFull), [])
+  const hasFront = /^---[ \t]*\r?\n/.test(mdRef.current)
   const checks: Record<string, boolean> = {
     sidebar: settings.sidebarOpen,
     source: mode === 'source',
@@ -1722,6 +1754,7 @@ export default function App() {
     sticky,
     weight: weightOn,
     lens: lensOn,
+    fullscreen: isFull,
     [`theme:${settings.theme}`]: true
   }
   const [ribbonFold, setRibbonFold] = useState(() => localStorage.getItem('flowiter.ribbonFold') === '1')
@@ -1849,7 +1882,7 @@ export default function App() {
         collapsed={ribbonFold}
         onCollapse={foldRibbon}
         onInsertTable={(r, c) => editorRef.current?.insertTable(r, c)}
-        overrides={{ ...(caretLocked ? { 'edit.lock': { label: '段落解鎖', icon: 'unlock' } } : {}), ...(speaking ? { 'doc.speak': { label: '停止朗讀' } } : {}) }}
+        overrides={{ ...(caretLocked ? { 'edit.lock': { label: '段落解鎖', icon: 'unlock' } } : {}), ...(speaking ? { 'doc.speak': { label: '停止朗讀' } } : {}), ...(isFull ? { 'view.fullscreen': { label: '退出全螢幕', icon: 'compress' as const } } : {}), ...(hasFront ? { 'fmt.frontmatter': { label: '移除前置資料', glyph: '✕' } } : {}) }}
       />
       <div className="shell">
       <Sidebar

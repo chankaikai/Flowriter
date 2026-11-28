@@ -120,6 +120,9 @@ function createWindow(opts: { initial?: InitialDoc; at?: { x: number; y: number 
   })
   win.once('ready-to-show', () => win.show())
 
+  // 全螢幕狀態通知畫面（按鈕要顯示「退出全螢幕」）
+  win.on('enter-full-screen', () => !win.isDestroyed() && win.webContents.send('win:fullscreen-state', true))
+  win.on('leave-full-screen', () => !win.isDestroyed() && win.webContents.send('win:fullscreen-state', false))
   win.on('close', (e) => {
     if (st.forceClose) return
     e.preventDefault()
@@ -1239,6 +1242,45 @@ function registerIpc(): void {
       return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)
     } catch {
       return null
+    }
+  })
+  // 語音轉文字：把音檔送到使用者自己設定的 OpenAI 相容「/audio/transcriptions」服務（只要中文）。金鑰不寫進日誌。
+  ipcMain.handle('voice:transcribe', async (_e, p: string, id: string, cfg: { baseUrl: string; apiKey: string; model: string }) => {
+    if (!okVoiceId(id)) return { error: '無效的語音編號' }
+    if (!cfg || typeof cfg.baseUrl !== 'string' || !/^https?:\/\//i.test(cfg.baseUrl)) return { error: '請先在設定裡配置支援語音轉文字的服務網址' }
+    const model = typeof cfg.model === 'string' ? cfg.model.trim().slice(0, 120) : ''
+    if (!model) return { error: '請先填語音轉文字的模型名稱' }
+    let audio: Buffer
+    try {
+      audio = await fs.readFile(voiceAudio(p, id))
+    } catch {
+      return { error: '找不到音檔' }
+    }
+    let url = cfg.baseUrl.trim().replace(/\/+$/, '')
+    if (!/\/audio\/transcriptions$/i.test(url)) url += '/audio/transcriptions'
+    const form = new FormData()
+    form.append('file', new Blob([new Uint8Array(audio)], { type: 'audio/webm' }), `${id}.webm`)
+    form.append('model', model)
+    form.append('language', 'zh')
+    form.append('response_format', 'json')
+    const ctl = new AbortController()
+    const timer = setTimeout(() => ctl.abort(), 120_000)
+    try {
+      const res = await fetch(url, { method: 'POST', headers: cfg.apiKey ? { Authorization: `Bearer ${cfg.apiKey}` } : {}, body: form, signal: ctl.signal })
+      const raw = await res.text()
+      if (!res.ok) return { error: `服務回應 ${res.status}：${raw.slice(0, 160)}` }
+      let text = ''
+      try {
+        text = String((JSON.parse(raw) as { text?: unknown }).text ?? '')
+      } catch {
+        text = raw
+      }
+      text = text.trim()
+      return text ? { text: text.slice(0, 20000) } : { error: '沒有辨識出文字' }
+    } catch (err) {
+      return { error: ctl.signal.aborted ? '轉文字逾時' : `連線失敗：${String((err as Error).message ?? err).slice(0, 120)}` }
+    } finally {
+      clearTimeout(timer)
     }
   })
   ipcMain.handle('voice:delete', async (_e, p: string, id: string) => {

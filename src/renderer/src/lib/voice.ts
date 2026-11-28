@@ -8,6 +8,10 @@ export interface VoiceNote {
   /** 波形峰值，0–1，固定 PEAK_COUNT 個 */
   peaks: number[]
   ts: number
+  /** 轉出的文字（只支援中文）；有值代表已經轉過，不會重複轉 */
+  text?: string
+  /** 文字框收起 */
+  hidden?: boolean
 }
 export interface VoiceFile {
   version: 1
@@ -35,7 +39,9 @@ export function parseVoice(raw: string): VoiceFile {
           quote: String(n.quote ?? '').slice(0, 80),
           dur: Math.max(0, Math.min(MAX_SECONDS, Number(n.dur) || 0)),
           peaks: normPeaks(Array.isArray(n.peaks) ? n.peaks : []),
-          ts: Number(n.ts) || 0
+          ts: Number(n.ts) || 0,
+          ...(typeof n.text === 'string' && n.text ? { text: n.text.slice(0, 20000) } : {}),
+          ...(n.hidden === true ? { hidden: true } : {})
         }))
     }
     return { version: 1, files }
@@ -47,6 +53,11 @@ export const serializeVoice = (f: VoiceFile): string => JSON.stringify(f)
 
 export function addVoice(f: VoiceFile, file: string, n: VoiceNote): VoiceFile {
   return { ...f, files: { ...f.files, [file]: [...(f.files[file] ?? []), n] } }
+}
+export function patchVoice(f: VoiceFile, file: string, id: string, patch: Partial<Pick<VoiceNote, 'text' | 'hidden'>>): VoiceFile {
+  const list = f.files[file]
+  if (!list) return f
+  return { ...f, files: { ...f.files, [file]: list.map((n) => (n.id === id ? { ...n, ...patch } : n)) } }
 }
 export function removeVoice(f: VoiceFile, file: string, id: string): VoiceFile {
   const rest = (f.files[file] ?? []).filter((n) => n.id !== id)

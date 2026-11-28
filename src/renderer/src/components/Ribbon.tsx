@@ -13,7 +13,7 @@ interface Props {
   collapsed: boolean
   onCollapse(v: boolean): void
   /** 依狀態改變某個按鈕的名稱／圖示（例如段落已上鎖時顯示「段落解鎖」） */
-  overrides?: Record<string, { label?: string; icon?: IconName }>
+  overrides?: Record<string, { label?: string; icon?: IconName; glyph?: string }>
   /** 從行列選擇器插入表格 */
   onInsertTable?(rows: number, cols: number): void
 }
@@ -69,7 +69,8 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse,
                   const label = it.label || ov?.label ? tr((ov?.label ?? it.label) as string) : undefined
                   const icon = ov?.icon ?? it.icon
                   const sm = !!cur.compact
-                  const gl = `rb-ico${it.glyph ? ' glyph' : ''}${it.gcls ? ` g-${it.gcls}` : ''}`
+                  const glyph = ov?.glyph ?? it.glyph
+                  const gl = `rb-ico${glyph ? ' glyph' : ''}${it.gcls ? ` g-${it.gcls}` : ''}`
                   const k = cmd.keys?.[0] ? ` (${formatKeys(cmd.keys[0]).join(' ')})` : ''
                   if (it.grid) {
                     return (
@@ -107,7 +108,7 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse,
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => setSubOpen(subOpen === it.cmd ? null : it.cmd)}
                         >
-                          <span className={gl}>{it.glyph ? it.glyph : icon ? <Icon name={icon} size={sm ? 20 : 22} /> : null}</span>
+                          <span className={gl}>{glyph ? glyph : icon ? <Icon name={icon} size={sm ? 20 : 22} /> : null}</span>
                           {sm ? <span className="rb-caret">▾</span> : <span className="rb-lbl">{label} ▾</span>}
                         </button>
                         {subOpen === it.cmd && (
@@ -141,7 +142,7 @@ export function Ribbon({ commands, checks, editorEnabled, collapsed, onCollapse,
                       onClick={() => cmd.run()}
                     >
                       <span className={gl}>
-                        {it.glyph ? it.glyph : icon ? <Icon name={icon} size={sm ? 20 : 22} /> : null}
+                        {glyph ? glyph : icon ? <Icon name={icon} size={sm ? 20 : 22} /> : null}
                       </span>
                       {!sm && <span className="rb-lbl">{label}</span>}
                     </button>

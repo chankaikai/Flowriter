@@ -42,7 +42,7 @@ import { TextSelection } from '@milkdown/kit/prose/state'
 import { runBlockAtCaret } from './runUi'
 import { languages } from '@codemirror/language-data'
 import { LanguageDescription, LanguageSupport, StreamLanguage } from '@codemirror/language'
-import { caretAnchor, setVoiceNotes, stopVoicePlayback } from './voiceUi'
+import { caretAnchor, setVoiceNotes, stopVoicePlayback, type VoiceBridge } from './voiceUi'
 import { setNotesMarks, type NoteMark } from './notesUi'
 import { convertList } from './listOps'
 import type { VoiceNote } from '@/lib/voice'
@@ -88,7 +88,7 @@ export interface EditorHandle {
   /** 所有文字區塊（index 與 gotoBlock 一致），逆向大綱用 */
   blockTexts(): { index: number; text: string; skip: boolean }[]
   /** 同步語音便籤清單與刪除回呼 */
-  setVoice(notes: VoiceNote[], docPath: string, onDelete: (id: string) => void): void
+  setVoice(notes: VoiceNote[], docPath: string, handlers: VoiceBridge): void
   stopVoice(): void
   /** 同步頁邊便條圖示 */
   setNoteMarks(notes: NoteMark[], onOpen: (id: string) => void): void
@@ -372,9 +372,9 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       const v = view()
       return v ? caretAnchor(v) : null
     },
-    setVoice: (notes, docPath, onDelete) => {
+    setVoice: (notes, docPath, handlers) => {
       const v = view()
-      if (v) setVoiceNotes(v, notes, docPath, onDelete)
+      if (v) setVoiceNotes(v, notes, docPath, handlers)
     },
     stopVoice: () => stopVoicePlayback(),
     setNoteMarks: (notes, onOpen) => {
@@ -459,8 +459,14 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
         }
         case 'frontmatter:remove': { const v = view(); if (v) removeFrontMatter(v); break }
         case 'toc': c.editor.action(insert('[TOC]')); break
+        case 'frontmatter': {
+          const v = view()
+          if (!v) return
+          if (v.state.doc.firstChild?.type.name === 'inkwell_front_matter') removeFrontMatter(v)
+          else insertFrontMatter(v)
+          return
+        }
         case 'footnote': { const v = view(); if (v) insertFootnote(v); return }
-        case 'frontmatter': { const v = view(); if (v) insertFrontMatter(v); return }
         case 'undo': run(undoCommand.key); break
         case 'redo': run(redoCommand.key); break
       }

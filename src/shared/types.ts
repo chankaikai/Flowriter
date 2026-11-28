@@ -158,6 +158,7 @@ export interface InkwellApi {
   getMaterialSupport(): Promise<MaterialSupport>
   setMaterial(o: { enabled: boolean; kind: 'acrylic' | 'mica' }): void
   toggleFullscreen(): void
+  onFullscreenState(cb: (full: boolean) => void): () => void
   notesRead(docPath: string): Promise<string>
   notesWrite(docPath: string, json: string): Promise<boolean>
   /** 全域快捷鍵 Ctrl/⌘+Alt+Space 叫出收件匣小視窗；回傳是否註冊成功（可能被其他程式占用） */
@@ -181,6 +182,7 @@ export interface InkwellApi {
   voiceWrite(docPath: string, json: string): Promise<boolean>
   voiceSave(docPath: string, id: string, data: ArrayBuffer): Promise<boolean>
   voiceLoad(docPath: string, id: string): Promise<ArrayBuffer | null>
+  voiceTranscribe(docPath: string, id: string, cfg: { baseUrl: string; apiKey: string; model: string }): Promise<{ text: string } | { error: string }>
   voiceDelete(docPath: string, id: string): Promise<boolean>
   locksRead(docPath: string): Promise<string>
   locksWrite(docPath: string, json: string): Promise<boolean>

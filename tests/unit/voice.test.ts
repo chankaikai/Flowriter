@@ -39,3 +39,16 @@ describe('voice notes data', () => {
     expect(fmtDur(65)).toBe('1:05')
   })
 })
+
+describe('語音轉文字的保存', () => {
+  it('text／hidden 會寫進 voice.json 並能讀回；patchVoice 只改指定那則', async () => {
+    const { parseVoice, serializeVoice, patchVoice, addVoice, emptyVoice } = await import('../../src/renderer/src/lib/voice')
+    const base = { id: 'abc123def', quote: '你好', dur: 3, peaks: [], ts: 1 }
+    let f = addVoice(emptyVoice(), 'a.md', base)
+    f = addVoice(f, 'a.md', { ...base, id: 'zzz999yyy' })
+    f = patchVoice(f, 'a.md', 'abc123def', { text: '今天天氣很好', hidden: true })
+    const back = parseVoice(serializeVoice(f))
+    expect(back.files['a.md'][0]).toMatchObject({ text: '今天天氣很好', hidden: true })
+    expect(back.files['a.md'][1].text).toBeUndefined()
+  })
+})

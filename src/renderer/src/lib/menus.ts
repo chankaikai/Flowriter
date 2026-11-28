@@ -314,7 +314,7 @@ export const RIBBON: RibbonTab[] = [
       },
       {
         label: '進階',
-        items: [r('fmt.bilingual', '雙語對照', { glyph: '文A', lg: true }), r('fmt.frontmatter', '前置資料', { glyph: '---', lg: true }), r('fmt.frontmatter.remove', '移除前置資料', { glyph: '✕', lg: true }), r('insert.voice', '語音便籤', { glyph: '🎙', lg: true })]
+        items: [r('fmt.bilingual', '雙語對照', { glyph: '文A', lg: true }), r('fmt.frontmatter', '前置資料', { glyph: '---', lg: true }), r('insert.voice', '語音便籤', { glyph: '🎙', lg: true })]
       },
       {
         label: '表格工具',

@@ -187,7 +187,7 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'fmt.callout.summary', title: '提示框：總結', group: F, editorOnly: true, run: fmt('callout:summary') },
     { id: 'fmt.callout.quote', title: '提示框：引言', group: F, editorOnly: true, run: fmt('callout:quote') },
     { id: 'fmt.frontmatter.remove', title: '移除前置資料', group: F, editorOnly: true, run: fmt('frontmatter:remove') },
-    { id: 'fmt.frontmatter', title: '插入 YAML 前置資料', group: F, editorOnly: true, run: fmt('frontmatter') },
+    { id: 'fmt.frontmatter', title: '前置資料（插入／移除）', group: F, editorOnly: true, run: fmt('frontmatter') },
     { id: 'fmt.hr', title: '分隔線', group: F, editorOnly: true, run: fmt('hr') }
   ]
 }

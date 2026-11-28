@@ -10,7 +10,13 @@ import { anchorIndex, anchorOf, fmtDur, type VoiceNote } from '@/lib/voice'
 import { tr } from '@/lib/i18n'
 
 const key = new PluginKey<{ notes: VoiceNote[]; deco: DecorationSet }>('inkwell-voice')
-const bridge: { docPath: string; onDelete: (id: string) => void } = { docPath: '', onDelete: () => {} }
+export interface VoiceBridge {
+  onDelete: (id: string) => void
+  onPatch: (id: string, patch: { text?: string; hidden?: boolean }) => void
+  /** 轉文字：成功回 null，失敗回錯誤訊息 */
+  onTranscribe: (id: string) => Promise<string | null>
+}
+const bridge: { docPath: string } & VoiceBridge = { docPath: '', onDelete: () => {}, onPatch: () => {}, onTranscribe: async () => '' }
 
 /** 同一時間只播一則；換播另一則或刪除時先停掉前一則。 */
 let current: { id: string; audio: HTMLAudioElement; url: string; stop: () => void } | null = null
@@ -46,7 +52,22 @@ function card(n: VoiceNote, orphan: boolean): HTMLElement {
   del.textContent = '×'
   del.title = tr('刪除這則語音')
   del.setAttribute('aria-label', tr('刪除這則語音'))
-  el.append(play, wave, time, del)
+  // 轉文字（只支援中文）：沒轉過→「轉文字」；轉過→「隱藏文字」；已隱藏→「查看文字」。結果存在 voice.json，關掉文件再開也一樣。
+  const tt = document.createElement('button')
+  tt.type = 'button'
+  tt.className = 'voice-tt'
+  const paintTt = () => {
+    tt.textContent = !n.text ? tr('轉文字') : n.hidden ? tr('查看文字') : tr('隱藏文字')
+    tt.title = !n.text ? tr('把這段語音轉成文字（只支援中文）') : ''
+  }
+  paintTt()
+  el.append(play, wave, time, tt, del)
+  if (n.text && !n.hidden) {
+    const box = document.createElement('div')
+    box.className = 'voice-txt'
+    box.textContent = n.text
+    el.append(box)
+  }
 
   const reset = () => {
     play.textContent = '▶'
@@ -99,6 +120,21 @@ function card(n: VoiceNote, orphan: boolean): HTMLElement {
       stop()
     })
   })
+  tap(tt, async () => {
+    if (!n.text) {
+      tt.disabled = true
+      tt.textContent = tr('轉換中…')
+      const e = await bridge.onTranscribe(n.id)
+      tt.disabled = false
+      if (e) {
+        paintTt()
+        time.textContent = e.slice(0, 60)
+        tt.title = e
+      }
+      return
+    }
+    bridge.onPatch(n.id, { hidden: !n.hidden })
+  })
   tap(del, () => {
     if (current?.id === n.id) stopCurrent()
     bridge.onDelete(n.id)
@@ -113,12 +149,21 @@ function build(doc: any, notes: VoiceNote[]): DecorationSet {
     // 只錨定頂層段落／標題等文字區塊（widget 放在區塊結尾之後，不進文字內容）
     blocks.push({ text: n.isTextblock && !n.type.spec.code ? n.textContent : '', end: off + n.nodeSize })
   })
+  // 清單、引用、表格裡的段落也能掛語音：改成走訪所有文字區塊
+  blocks.length = 0
+  doc.descendants((n: any, pos: number) => {
+    if (n.isTextblock) {
+      if (!n.type.spec.code) blocks.push({ text: n.textContent, end: pos + n.nodeSize })
+      return false
+    }
+    return true
+  })
   const texts = blocks.map((b) => b.text)
   const decos: Decoration[] = []
   for (const n of notes) {
     const i = anchorIndex(texts, n.quote)
     const pos = i >= 0 ? blocks[i].end : doc.content.size
-    decos.push(Decoration.widget(pos, () => card(n, i < 0), { side: 1, key: `voice-${n.id}-${i < 0 ? 'o' : i}`, ignoreSelection: true, stopEvent: () => true }))
+    decos.push(Decoration.widget(pos, () => card(n, i < 0), { side: 1, key: `voice-${n.id}-${i < 0 ? 'o' : i}-${n.text ? 1 : 0}${n.hidden ? 'h' : ''}-${(n.text ?? '').length}`, ignoreSelection: true, stopEvent: () => true }))
   }
   return DecorationSet.create(doc, decos)
 }
@@ -140,9 +185,9 @@ export const voicePlugin = $prose(
     })
 )
 
-export function setVoiceNotes(view: EditorView, notes: VoiceNote[], docPath: string, onDelete: (id: string) => void): void {
+export function setVoiceNotes(view: EditorView, notes: VoiceNote[], docPath: string, handlers: VoiceBridge): void {
   bridge.docPath = docPath
-  bridge.onDelete = onDelete
+  Object.assign(bridge, handlers)
   if (!view.isDestroyed) view.dispatch(view.state.tr.setMeta(key, notes).setMeta('addToHistory', false))
 }
 
@@ -150,7 +195,7 @@ export function setVoiceNotes(view: EditorView, notes: VoiceNote[], docPath: str
 export function caretAnchor(view: EditorView): string | null {
   const { $from } = view.state.selection
   if ($from.depth < 1) return null
-  const n = $from.node(1)
+  const n = $from.parent // 游標所在的最內層文字區塊（清單項目、引用、表格格子裡的段落也行）
   if (!n.isTextblock || n.type.spec.code) return null
   const a = anchorOf(n.textContent)
   return a || null
