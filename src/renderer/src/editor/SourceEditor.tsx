@@ -17,11 +17,15 @@ import { languages } from '@codemirror/language-data'
 import { openSearchPanel, search, selectNextOccurrence } from '@codemirror/search'
 import { tags as t } from '@lezer/highlight'
 
+import { locate, ordinalOf, snippetOf, stripMd, type CaretInfo } from '@/lib/caretMap'
+
 export interface SourceHandle {
   getValue(): string
   focus(): void
   openSearch(): void
   scrollToLine(line: number): void
+  caretInfo(): CaretInfo | null
+  restoreCaretInfo(info: CaretInfo): void
 }
 
 interface Props {
@@ -104,6 +108,40 @@ export const SourceEditor = forwardRef<SourceHandle, Props>(function SourceEdito
     openSearch: () => {
       const v = viewRef.current
       if (v) openSearchPanel(v)
+    },
+    caretInfo() {
+      const v = viewRef.current
+      if (!v) return null
+      const head = v.state.selection.main.head
+      const line = v.state.doc.lineAt(head)
+      const plain = stripMd(line.text)
+      const snippet = snippetOf(plain)
+      const lead = line.text.length - plain.length
+      const items: string[] = []
+      for (let i = 1; i < line.number; i++) items.push(stripMd(v.state.doc.line(i).text))
+      return {
+        snippet,
+        ordinal: snippet ? ordinalOf(items, items.length, snippet) : 0,
+        col: Math.max(0, head - line.from - lead),
+        frac: v.state.doc.length ? head / v.state.doc.length : 0
+      }
+    },
+    restoreCaretInfo(info) {
+      const v = viewRef.current
+      if (!v) return
+      const items: string[] = []
+      for (let i = 1; i <= v.state.doc.lines; i++) items.push(stripMd(v.state.doc.line(i).text))
+      const hit = locate(items, info.snippet, info.ordinal)
+      let pos: number
+      if (hit) {
+        const l = v.state.doc.line(hit.item + 1)
+        const lead = l.text.length - items[hit.item].length
+        pos = Math.min(l.to, l.from + lead + hit.at + info.col)
+      } else {
+        pos = Math.round(info.frac * v.state.doc.length)
+      }
+      v.dispatch({ selection: { anchor: pos }, effects: EditorView.scrollIntoView(pos, { y: 'center' }) })
+      v.focus()
     },
     scrollToLine(line) {
       const v = viewRef.current

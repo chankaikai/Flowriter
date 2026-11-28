@@ -47,6 +47,7 @@ import { setNotesMarks, type NoteMark } from './notesUi'
 import { convertList } from './listOps'
 import type { VoiceNote } from '@/lib/voice'
 import { blockTexts } from './extras'
+import { locate, ordinalOf, snippetOf, type CaretInfo } from '@/lib/caretMap'
 import { refreshLens, gotoBlockOffset, setTaskChecked, insertCallout, removeFrontMatter, isLockedAtCaret, setLockTexts, toggleLockAtCaret, gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
 import { LARGE_DOC } from '@/lib/markdown'
 
@@ -75,6 +76,9 @@ export interface EditorHandle {
   getCaret(): number
   /** 把游標移到指定位置並捲動到可見處；超出範圍會夾住。成功回傳 true */
   setCaret(pos: number): boolean
+  /** 切換所見即所得／源碼時用的游標錨點 */
+  caretInfo(): CaretInfo | null
+  restoreCaretInfo(info: CaretInfo): boolean
   refreshLens(): void
   /** 游標所在段落的語音錨點；不在文字段落回 null */
   voiceAnchor(): string | null
@@ -303,6 +307,44 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       return empty ? '' : v.state.doc.textBetween(from, to, '\n\n')
     },
     getCaret: () => view()?.state.selection.head ?? 0,
+    caretInfo: () => {
+      const v = view()
+      if (!v) return null
+      const { $head, head } = v.state.selection
+      const blocks: { text: string; first: string }[] = []
+      let cur = -1
+      v.state.doc.descendants((n: any, pos: number) => {
+        if (!n.isTextblock) return true
+        if (pos === $head.before($head.depth)) cur = blocks.length
+        blocks.push({ text: n.textContent, first: n.firstChild?.isText ? n.firstChild.text ?? '' : n.textContent })
+        return false
+      })
+      const frac = v.state.doc.content.size ? head / v.state.doc.content.size : 0
+      if (cur < 0) return { snippet: '', ordinal: 0, col: 0, frac }
+      const snippet = snippetOf(blocks[cur].first)
+      const texts = blocks.map((b) => b.text)
+      return { snippet, ordinal: snippet ? ordinalOf(texts, cur, snippet) : 0, col: Math.max(0, $head.parentOffset), frac }
+    },
+    restoreCaretInfo: (info) => {
+      const v = view()
+      if (!v) return false
+      const found: { pos: number; text: string }[] = []
+      v.state.doc.descendants((n: any, pos: number) => {
+        if (!n.isTextblock) return true
+        found.push({ pos, text: n.textContent })
+        return false
+      })
+      const hit = locate(found.map((f) => f.text), info.snippet, info.ordinal)
+      let target: number
+      if (hit) {
+        const f = found[hit.item]
+        target = f.pos + 1 + Math.min(f.text.length, hit.at + info.col)
+      } else {
+        target = Math.round(info.frac * v.state.doc.content.size)
+      }
+      const h = ref && typeof ref === 'object' ? (ref.current as EditorHandle | null) : null
+      return h ? h.setCaret(target) : false
+    },
     refreshLens: () => {
       const v = view()
       if (v) refreshLens(v)

@@ -23,6 +23,7 @@ import { checkImages, healthCheck } from '@/lib/health'
 import { speak, splitSentences, ttsAvailable, warmVoices, type SpeakHandle } from '@/lib/tts'
 import { TimeMachine } from '@/components/TimeMachine'
 import { VaultPanel } from '@/components/VaultPanel'
+import type { CaretInfo } from '@/lib/caretMap'
 import { ReversePanel } from '@/components/ReversePanel'
 import { KnowledgePanel } from '@/components/KnowledgePanel'
 import { Pomodoro } from '@/components/Pomodoro'
@@ -189,6 +190,8 @@ export default function App() {
   const tabsRef = useRef<Tab[]>([{ id: 1, path: null, name: '未命名', md: INITIAL_DOC, saved: INITIAL_DOC, scroll: 0, mtime: 0 }])
   const activeIdRef = useRef(1)
   const nextTabId = useRef(2)
+  /** 切換所見即所得／源碼時暫存的游標錨點，新編輯器就緒後還原 */
+  const modeCaret = useRef<CaretInfo | null>(null)
   const restored = useRef(false)
   const tabsEl = useRef<HTMLDivElement>(null)
   const tabPill = useRef<HTMLSpanElement>(null)
@@ -838,6 +841,7 @@ export default function App() {
   /* ------------------------------ 模式與匯出 ------------------------------ */
 
   const toggleSource = useCallback(() => {
+    modeCaret.current = (modeRef.current === 'wysiwyg' ? editorRef.current?.caretInfo() : sourceRef.current?.caretInfo()) ?? null
     syncFromEditor()
     if (modeRef.current === 'wysiwyg') {
       snapshotActive()
@@ -1397,6 +1401,19 @@ export default function App() {
     }
   }, [markDirty, refreshDerived, scheduleAutosave])
 
+  // 切到源碼模式：源碼編輯器掛好後把游標放回剛才的位置
+  useEffect(() => {
+    if (mode !== 'source' || !modeCaret.current) return
+    const info = modeCaret.current
+    modeCaret.current = null
+    let n = 0
+    const go = () => {
+      if (sourceRef.current) sourceRef.current.restoreCaretInfo(info)
+      else if (n++ < 20) window.requestAnimationFrame(go)
+    }
+    window.requestAnimationFrame(go)
+  }, [mode])
+
   // 切到已存在的實例時不會再觸發 onReady，這裡補上
   useEffect(() => {
     setEditorReady(editorRef.current)
@@ -1405,6 +1422,13 @@ export default function App() {
   const onEditorReady = useCallback(() => {
     setLoading(false)
     setEditorReady(editorRef.current)
+    if (modeCaret.current && editorRef.current) {
+      // 從源碼切回來：游標與畫面回到剛才的位置（不走「回到上次落筆處」）
+      const info = modeCaret.current
+      modeCaret.current = null
+      editorRef.current.restoreCaretInfo(info)
+      return
+    }
     if (pendingFind.current) {
       setFind('find')
       setFindSignal((n) => n + 1)
