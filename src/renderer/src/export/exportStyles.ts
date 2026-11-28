@@ -29,6 +29,16 @@ ul.contains-task-list { list-style: none; padding-left: 1.2em; }
 math { font-size: 1.08em; }
 math[display="block"] { display: block math; margin: 1em 0; }
 .footnotes { margin-top: 3em; font-size: .9em; color: #6f6b62; border-top: 1px solid #e3dfd5; }
+sup > a[data-footnote-ref] { color: var(--accent, #2f7fe0); text-decoration: none; font-weight: 600; font-size: .78em; }
+sup > a[data-footnote-ref]::before { content: '['; opacity: .5; }
+sup > a[data-footnote-ref]::after { content: ']'; opacity: .5; }
+.footnotes h2.sr-only { display: none; }
+.footnotes ol { list-style: none; padding-left: 0; counter-reset: fn; }
+.footnotes li { counter-increment: fn; display: flex; gap: 10px; margin: .4em 0; }
+.footnotes li::before { content: counter(fn) '.'; color: var(--accent, #2f7fe0); font-weight: 600; flex: none; }
+.footnotes li > p { display: inline; margin: 0; }
+.footnotes li > p + p { display: block; }
+.footnotes a[data-footnote-backref] { color: var(--accent, #2f7fe0); text-decoration: none; margin-left: 6px; }
 .hljs-comment,.hljs-quote { color: #8a857a; font-style: italic; }
 .hljs-keyword,.hljs-selector-tag,.hljs-literal,.hljs-built_in { color: #b5412c; }
 .hljs-string,.hljs-attr,.hljs-addition { color: #3d7a5a; }

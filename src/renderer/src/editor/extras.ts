@@ -147,30 +147,127 @@ export const footnoteInputRule = $inputRule(
     })
 )
 
-/** 在游標處插入下一個編號的腳註引用，並在文末補上對應的定義，游標移到定義內。 */
-export function insertFootnote(view: EditorView): void {
+/**
+ * 沒有對應定義的 `[^名稱]` 會被 remark 當成普通文字，切到源碼再切回來就「變回文字」。
+ * 這裡在解析後把它們補回腳註引用節點，所以不論有沒有定義都能來回切換。
+ */
+export const footnoteTextRemark = $remark('inkwellFootnoteText', () => () => (tree: any) => {
+  const RE = /\[\^([^\]\s]{1,30})\]/g
+  const walk = (node: any) => {
+    if (!node || !Array.isArray(node.children)) return
+    if (node.type === 'code' || node.type === 'inlineCode') return
+    const out: any[] = []
+    for (const ch of node.children) {
+      if (ch.type === 'text' && typeof ch.value === 'string' && ch.value.includes('[^')) {
+        let last = 0
+        let m: RegExpExecArray | null
+        RE.lastIndex = 0
+        while ((m = RE.exec(ch.value))) {
+          if (m.index > last) out.push({ type: 'text', value: ch.value.slice(last, m.index) })
+          out.push({ type: 'footnoteReference', identifier: m[1], label: m[1] })
+          last = m.index + m[0].length
+        }
+        if (last === 0) out.push(ch)
+        else if (last < ch.value.length) out.push({ type: 'text', value: ch.value.slice(last) })
+      } else {
+        walk(ch)
+        out.push(ch)
+      }
+    }
+    node.children = out
+  }
+  walk(tree)
+})
+
+export interface FootnoteInfo {
+  label: string
+  /** 定義內容的純文字（可能是空的） */
+  text: string
+  /** 全文有幾處引用 */
+  refs: number
+}
+
+/** 列出全文的腳註（依定義出現順序），含被引用次數；只有引用沒有定義的也列出 */
+export function listFootnotes(view: EditorView): FootnoteInfo[] {
+  const map = new Map<string, FootnoteInfo>()
+  view.state.doc.descendants((n: any) => {
+    if (n.type.name === 'inkwell_fndef') {
+      const k = String(n.attrs.label)
+      const cur = map.get(k)
+      if (cur) cur.text = n.textContent
+      else map.set(k, { label: k, text: n.textContent, refs: 0 })
+      return false
+    }
+    if (n.type.name === 'inkwell_fnref') {
+      const k = String(n.attrs.label)
+      const cur = map.get(k)
+      if (cur) cur.refs++
+      else map.set(k, { label: k, text: '', refs: 1 })
+    }
+    return true
+  })
+  return [...map.values()]
+}
+
+export const validFootnoteLabel = (s: string): boolean => /^[^\]\s[]{1,30}$/.test(s) && !s.includes('^')
+
+/** 下一個沒被用過的數字編號 */
+export function nextFootnoteLabel(view: EditorView): string {
+  const used = new Set(listFootnotes(view).map((f) => f.label))
+  let i = 1
+  while (used.has(String(i))) i++
+  return String(i)
+}
+
+/**
+ * 在游標處插入腳註引用。
+ * - 標籤已經有定義：只插入引用（同一個腳註可以被多處引用，像 Word 的交叉引用）。
+ * - 標籤沒有定義：同時在文末補上定義並把游標移進去。
+ * 不給標籤就用下一個空的數字。
+ */
+export function insertFootnote(view: EditorView, wanted?: string): boolean {
   const { state } = view
   const ref = state.schema.nodes.inkwell_fnref
   const def = state.schema.nodes.inkwell_fndef
   const para = state.schema.nodes.paragraph
-  if (!ref || !def || !para) return
-  let max = 0
+  if (!ref || !def || !para) return false
+  const label = wanted && wanted.trim() ? wanted.trim() : nextFootnoteLabel(view)
+  if (!validFootnoteLabel(label)) return false
+  let hasDef = false
   state.doc.descendants((n) => {
-    if (n.type === def) {
-      const k = Number(n.attrs.label)
-      if (Number.isFinite(k)) max = Math.max(max, k)
-    }
+    if (n.type === def && String(n.attrs.label) === label) hasDef = true
+    return !hasDef
   })
-  const label = String(max + 1)
   let tr = state.tr.replaceSelectionWith(ref.create({ label }), false)
-  const end = tr.doc.content.size
-  tr = tr.insert(end, def.create({ label }, para.create()))
-  // 定義內第一個段落的起點：文末 - 定義結尾(1) - 段落結尾(1)
-  const inside = tr.doc.content.size - 2
-  const $pos = tr.doc.resolve(inside)
-  tr = tr.setSelection((state.selection.constructor as any).near($pos)).scrollIntoView()
-  view.dispatch(tr)
+  if (!hasDef) {
+    const end = tr.doc.content.size
+    tr = tr.insert(end, def.create({ label }, para.create()))
+    // 定義內第一個段落的起點：文末 - 定義結尾(1) - 段落結尾(1)
+    const $pos = tr.doc.resolve(tr.doc.content.size - 2)
+    tr = tr.setSelection((state.selection.constructor as any).near($pos))
+  }
+  view.dispatch(tr.scrollIntoView())
   view.focus()
+  return true
+}
+
+/** 把腳註改名（所有引用與定義一起改）；新名稱已存在或不合法回傳 false。一般 transaction，可復原。 */
+export function renameFootnote(view: EditorView, from: string, to: string): boolean {
+  const next = to.trim()
+  if (!validFootnoteLabel(next) || next === from) return false
+  if (listFootnotes(view).some((f) => f.label === next)) return false
+  let tr = view.state.tr
+  let hit = false
+  view.state.doc.descendants((n: any, pos: number) => {
+    if ((n.type.name === 'inkwell_fnref' || n.type.name === 'inkwell_fndef') && String(n.attrs.label) === from) {
+      tr = tr.setNodeMarkup(pos, undefined, { ...n.attrs, label: next })
+      hit = true
+    }
+    return n.type.name !== 'inkwell_fnref'
+  })
+  if (!hit) return false
+  view.dispatch(tr)
+  return true
 }
 
 /** 點引用跳到定義，點定義的編號跳回第一個引用；找不到回傳 false。 */
@@ -1415,6 +1512,7 @@ export const extraPlugins = [
   footnoteRefNode,
   footnoteDefNode,
   footnoteInputRule,
+  footnoteTextRemark,
   tocNode,
   tocView,
   tocRefreshPlugin,

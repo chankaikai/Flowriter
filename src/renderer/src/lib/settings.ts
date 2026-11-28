@@ -35,6 +35,9 @@ export interface Settings {
   lnCode: boolean
   lnWysiwyg: boolean
   lnSource: boolean
+  /** 腳註引用的樣式與是否顯示編號 */
+  fnStyle: 'bracket' | 'plain' | 'paren'
+  fnNumbers: boolean
   translucent: boolean
   surfaceOpacity: number
   winMaterial: 'acrylic' | 'mica'
@@ -76,6 +79,8 @@ export const DEFAULT_SETTINGS: Settings = {
   lnCode: true,
   lnWysiwyg: false,
   lnSource: true,
+  fnStyle: 'bracket',
+  fnNumbers: true,
   translucent: true,
   surfaceOpacity: 0.72,
   winMaterial: 'acrylic',
@@ -211,6 +216,13 @@ export function useApplySettings(s: Settings, materialSupported: boolean): Resol
     document.body.classList.toggle('hide-ln-source', !s.lnSource)
     document.body.classList.toggle('show-ln-wys', s.lnWysiwyg)
   }, [s.lnCode, s.lnSource, s.lnWysiwyg])
+
+  useEffect(() => {
+    const b = document.body.classList
+    b.remove('fn-bracket', 'fn-plain', 'fn-paren')
+    b.add(`fn-${s.fnStyle}`)
+    b.toggle('fn-nonum', !s.fnNumbers)
+  }, [s.fnStyle, s.fnNumbers])
 
   useEffect(() => {
     document.body.classList.toggle('focus-mode', s.focusMode)

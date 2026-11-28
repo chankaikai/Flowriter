@@ -176,6 +176,13 @@
 }
 .milkdown .ProseMirror sup.fn-ref::before { content: '['; opacity: .5; }
 .milkdown .ProseMirror sup.fn-ref::after { content: ']'; opacity: .5; }
+/* 腳註引用樣式（設定在腳註面板裡）：方括號／純上標／圓括號；不顯示編號時只留一個小符號 */
+body.fn-plain .milkdown .ProseMirror sup.fn-ref::before, body.fn-plain .milkdown .ProseMirror sup.fn-ref::after { content: ''; }
+body.fn-paren .milkdown .ProseMirror sup.fn-ref::before { content: '('; }
+body.fn-paren .milkdown .ProseMirror sup.fn-ref::after { content: ')'; }
+body.fn-nonum .milkdown .ProseMirror sup.fn-ref { font-size: 0; }
+body.fn-nonum .milkdown .ProseMirror sup.fn-ref::before { content: '†'; font-size: 13px; opacity: 1; }
+body.fn-nonum .milkdown .ProseMirror sup.fn-ref::after { content: ''; }
 .milkdown .ProseMirror .fn-def { display: flex; gap: 10px; margin: .4em 0; font-size: .92em; color: var(--fg-muted); }
 .milkdown .ProseMirror .fn-def:first-of-type { margin-top: 2em; padding-top: 1em; border-top: 1px solid var(--line); }
 .milkdown .ProseMirror .fn-label { flex: none; color: var(--accent); cursor: pointer; font-weight: 600; user-select: none; }

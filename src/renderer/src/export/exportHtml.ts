@@ -122,6 +122,13 @@ export async function renderHtmlBody(md: string, docDir: string | null, musicHid
     else pre.parentElement?.insertBefore(holder, pre)
   }
 
+  // 腳註：引用加上提示文字（滑過可看到內容），與編輯器裡「藍色 [1]」的樣子一致
+  for (const a of Array.from(dom.querySelectorAll('sup > a[data-footnote-ref]'))) {
+    const li = dom.getElementById((a.getAttribute('href') || '').replace(/^#/, ''))
+    const t = (li?.textContent || '').replace(/[↩\uFE0E]/g, '').replace(/\s+/g, ' ').trim()
+    if (t) a.setAttribute('title', t.length > 240 ? `${t.slice(0, 240)}…` : t)
+  }
+
   // 本機圖片 → data URL，使匯出檔可獨立開啟
   const imgs = Array.from(dom.querySelectorAll('img'))
   await Promise.all(

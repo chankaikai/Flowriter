@@ -26,6 +26,7 @@ import { VaultPanel } from '@/components/VaultPanel'
 import type { CaretInfo } from '@/lib/caretMap'
 import { ReversePanel } from '@/components/ReversePanel'
 import { KnowledgePanel } from '@/components/KnowledgePanel'
+import { FootnotePanel } from '@/components/FootnotePanel'
 import { Pomodoro } from '@/components/Pomodoro'
 import { uploadToHost } from '@/lib/imageHost'
 import { findLocalImages, replaceImageUrls } from '../../shared/imageHost'
@@ -2164,6 +2165,9 @@ export default function App() {
             {panel === 'radar' && (
               <RadarPanel folder={folder} docPath={doc.path} query={radarQ} onOpen={(p) => void openPath(p)} />
             )}
+          </Popover>
+          <Popover open={panel === 'fn'} icon="book" title={tr('腳註')} onClose={() => setPanel(null)}>
+            {panel === 'fn' && <FootnotePanel editor={editorReady} settings={settings} update={update} onClose={() => setPanel(null)} />}
           </Popover>
           <Popover open={panel === 'kb'} icon="book" title={tr('知識庫')} onClose={() => setPanel(null)}>
             {panel === 'kb' && (

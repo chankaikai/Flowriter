@@ -4,6 +4,19 @@
  * 其他非中文語言查不到時退回英文；簡體中文用逐字轉換。
  */
 export const UI: Record<string, string> = {
+  '名稱不能有空白或 ] ，最長 30 字': 'Name cannot contain spaces or ], max 30 characters',
+  '目前無法插入腳註': 'Cannot insert a footnote right now',
+  '新名稱已被使用，或和原名稱相同': 'That name is already used or unchanged',
+  '在游標處插入腳註。名稱留空就用下一個數字；輸入已存在的名稱，就是再引用同一個腳註（像 Word 的交叉引用）。': 'Insert a footnote at the cursor. Leave the name empty for the next number; type an existing name to cite the same footnote again (like Word cross-references).',
+  '名稱（可留空）': 'Name (optional)',
+  '本文的腳註（點「引用」在游標處再引用一次）': 'Footnotes in this document (click Cite to reference one again at the cursor)',
+  '（內容還沒寫）': '(no content yet)',
+  '{0} 處引用': '{0} citations',
+  '改名': 'Rename',
+  '這份文件還沒有腳註。': 'This document has no footnotes yet.',
+  '引用的樣式（只影響畫面，不會改動 .md）': 'Citation style (display only; the .md is unchanged)',
+  '顯示編號': 'Show numbers',
+  '腳註（新建／引用）': 'Footnote (new / cite)',
   '隱藏': 'Hide',
   '複製這份譜的 Markdown 文字': 'Copy the Markdown text of this score',
   '隱藏代碼或譜面（不影響 Markdown 內容；匯出時以目前看到的為準）': 'Hide code or score (Markdown unchanged; exports follow what you see)',

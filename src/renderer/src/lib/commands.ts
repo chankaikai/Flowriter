@@ -3,7 +3,7 @@ import type { SidebarTab, ThemeName } from './settings'
 import { THEMES } from './themes'
 
 export type ExportKind = 'html' | 'pdf' | 'docx' | 'md' | 'png' | 'print'
-export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks' | 'vault' | 'diag' | 'clips' | 'notes' | 'radar' | 'refs' | 'reverse' | 'kb' | 'about' | 'resumes' | 'ambient'
+export type PanelName = 'history' | 'dashboard' | 'focus' | 'ai' | 'links' | 'tasks' | 'vault' | 'diag' | 'clips' | 'notes' | 'radar' | 'refs' | 'reverse' | 'kb' | 'fn' | 'about' | 'resumes' | 'ambient'
 
 export interface Actions {
   newDoc(): void
@@ -175,7 +175,7 @@ export function buildCommands(a: Actions): Cmd[] {
     { id: 'fmt.math', title: '數學公式塊', group: F, keys: ['Mod+Shift+M'], editorOnly: true, run: fmt('math') },
     { id: 'fmt.table', title: '插入表格', group: F, keys: ['Mod+T'], editorOnly: true, run: fmt('table') },
     { id: 'fmt.toc', title: '插入目錄 [TOC]', group: F, editorOnly: true, run: fmt('toc') },
-    { id: 'fmt.footnote', title: '插入腳註', group: F, keys: ['Mod+Alt+F'], editorOnly: true, run: fmt('footnote') },
+    { id: 'fmt.footnote', title: '腳註（新建／引用）', group: F, keys: ['Mod+Alt+F'], editorOnly: true, run: () => a.openPanel('fn') },
     { id: 'table.sortAsc', title: '表格依目前欄位升序排序', group: F, editorOnly: true, run: fmt('sortasc') },
     { id: 'table.sortDesc', title: '表格依目前欄位降序排序', group: F, editorOnly: true, run: fmt('sortdesc') },
     { id: 'fmt.bilingual', title: '插入雙語對照', group: F, editorOnly: true, run: fmt('bilingual') },

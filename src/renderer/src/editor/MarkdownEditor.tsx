@@ -48,7 +48,7 @@ import { convertList } from './listOps'
 import type { VoiceNote } from '@/lib/voice'
 import { blockTexts } from './extras'
 import { locate, ordinalOf, snippetOf, type CaretInfo } from '@/lib/caretMap'
-import { refreshLens, gotoBlockOffset, setTaskChecked, insertCallout, removeFrontMatter, isLockedAtCaret, setLockTexts, toggleLockAtCaret, gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote } from './extras'
+import { refreshLens, gotoBlockOffset, setTaskChecked, insertCallout, removeFrontMatter, isLockedAtCaret, setLockTexts, toggleLockAtCaret, gotoText, textFromCaret, gotoTask, sortTable, BILINGUAL_SNIPPET, extraPlugins, insertFootnote, insertFrontMatter, jumpFootnote, listFootnotes, renameFootnote, type FootnoteInfo } from './extras'
 import { LARGE_DOC } from '@/lib/markdown'
 
 export type FormatName =
@@ -78,6 +78,9 @@ export interface EditorHandle {
   setCaret(pos: number): boolean
   /** 切換所見即所得／源碼時用的游標錨點 */
   caretInfo(): CaretInfo | null
+  footnotes(): FootnoteInfo[]
+  insertFootnote(label?: string): boolean
+  renameFootnote(from: string, to: string): boolean
   restoreCaretInfo(info: CaretInfo): boolean
   refreshLens(): void
   /** 游標所在段落的語音錨點；不在文字段落回 null */
@@ -307,6 +310,18 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(function MarkdownE
       return empty ? '' : v.state.doc.textBetween(from, to, '\n\n')
     },
     getCaret: () => view()?.state.selection.head ?? 0,
+    footnotes: () => {
+      const v = view()
+      return v ? listFootnotes(v) : []
+    },
+    insertFootnote: (label) => {
+      const v = view()
+      return v ? insertFootnote(v, label) : false
+    },
+    renameFootnote: (from, to) => {
+      const v = view()
+      return v ? renameFootnote(v, from, to) : false
+    },
     caretInfo: () => {
       const v = view()
       if (!v) return null
